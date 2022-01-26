@@ -32,12 +32,13 @@ namespace trajPlanner{
 		cout << "[Trajectory Planner INFO]: Map updated!" << endl;
 	}
 
-	polyTraj* polyTrajOctomap::initSolver(){
-		return new polyTraj (this->degree_, this->veld_, this->diffDegree_, this->regularizationWeights_);
+	polyTrajSolver*  polyTrajOctomap::initSolver(){
+		// TODO
+		return NULL;
 	}
 
 	void polyTrajOctomap::freeSolver(){
-		delete this->trajSolver_;
+		// TODO
 	}
 
 	void polyTrajOctomap::updatePath(const std::vector<pose>& path){
@@ -45,57 +46,7 @@ namespace trajPlanner{
 	}
 
 	void polyTrajOctomap::makePlan(std::vector<pose>& trajectory, double delT){
-		if (this->path_.size() == 1){
-			trajectory = this->path_; // only has one waypoint
-			this->updateTrajVisMsg(trajectory);
-			return;
-		}
-
-		this->trajSolver_ = this->initSolver();
-		// load waypoint path to solver
-		this->trajSolver_->loadWaypointPath(this->path_);
-
-		// set corridor constraints for each path segment:
-		std::set<int> collisionSeg; // collision segment
-		for (int i=0; i<this->path_.size(); ++i){
-			collisionSeg.insert(i);
-		}
-
-		// Set corridor size for each segment
-		std::vector<double> radiusVec;
-		for (int i=0; i<collisionSeg.size(); ++i){
-			radiusVec.push_back(this->initR_);
-		}
-
-		// Solve for collision free trajectory:
-		std::vector<pose> currTrajectory;
-		std::vector<int> collisionIdx; // record the index where trajectory has collision
-		bool valid = false;
-		if (not valid){
-			cout << "[Trajectory Planner INFO]: Adding corridor constraints..." << endl;
-			for (int i=0; i<this->maxIter_; ++i){
-				this->trajSolver_->adjustCorridorConstraint(collisionSeg, radiusVec, delT);
-				this->trajSolver_->optimize();
-				currTrajectory = this->trajSolver_->getTrajectory(delT);
-				collisionIdx.clear();
-				valid = not this->checkCollisionTraj(currTrajectory, collisionIdx);
-				if (valid){
-					cout << "[Trajectory Planner INFO]: Find Valid Trajectory!" << endl;
-					break;
-				}
-				else{
-					std::set<int> radiusAjustCollisionIdx = this->trajSolver_->findCollisionSegment(collisionIdx, delT);
-					for (int adjustIdx: radiusAjustCollisionIdx){
-						radiusVec[adjustIdx] *= this->fs_;
-					}
-					double min_radius = *min_element(radiusVec.begin(), radiusVec.end());
-					cout << "[Planner INFO]: " << "min radius: " << min_radius << endl;
-				}
-			}
-		}
-		trajectory = currTrajectory;
-		this->updateTrajVisMsg(trajectory);
-		this->freeSolver();
+		// TODO
 	}
 
 

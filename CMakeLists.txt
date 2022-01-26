@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(OsqpEigen REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -125,9 +126,7 @@ include_directories(
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/trajectory_planner.cpp
 # )
-add_library(array include/${PROJECT_NAME}/Array.cc)
-add_library(quadprog include/${PROJECT_NAME}/QuadProg++.cc)
-add_library(polyTrajGen include/${PROJECT_NAME}/polyTrajGen.cpp)
+add_library(polyTrajSolver include/${PROJECT_NAME}/polyTrajSolver.cpp)
 add_library(polyTrajOctomap include/${PROJECT_NAME}/polyTrajOctomap.cpp)
 
 ## Add cmake target dependencies of the library
@@ -156,11 +155,10 @@ add_executable(polyRRTStarNode src/polyRRTStarNode.cpp)
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(polyTrajSolver OsqpEigen::OsqpEigen)
+target_link_libraries(polyTrajOctomap polyTrajSolver)
 target_link_libraries(polyRRTNode ${catkin_LIBRARIES} polyTrajOctomap)
 target_link_libraries(polyRRTStarNode ${catkin_LIBRARIES} polyTrajOctomap)
-target_link_libraries(quadprog array)
-target_link_libraries(polyTrajGen quadprog ${catkin_LIBRARIES})
-target_link_libraries(polyTrajOctomap polyTrajGen)
 
 
 #############

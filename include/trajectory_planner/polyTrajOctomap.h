@@ -11,8 +11,8 @@
 #include <octomap_msgs/Octomap.h>
 #include <octomap_msgs/GetOctomap.h>
 #include <octomap_msgs/conversions.h>
-#include <trajectory_planner/polyTrajGen.h>
 #include <nav_msgs/Path.h>
+#include <trajectory_planner/polyTrajSolver.h>
 #include <thread>
 #include <mutex>
 
@@ -21,7 +21,6 @@ namespace trajPlanner{
 	private:
 		ros::NodeHandle nh_;
 		ros::ServiceClient mapClient_; // call octomap server
-		polyTraj* trajSolver_;
 
 		int degree_; // polynomial degree
 		double veld_; // desired velocity
@@ -32,6 +31,7 @@ namespace trajPlanner{
 		double initR_;
 		double fs_; //factor of shrink
 
+		polyTrajSolver* trajSolver_; // trajectory solver
 		std::vector<pose> path_; // waypoint path
 		std::vector<double> collisionBox_;
 		octomap::OcTree* map_;
@@ -51,7 +51,7 @@ namespace trajPlanner{
 		void updateMap();
 
 		// initialize solver
-		polyTraj* initSolver();
+		polyTrajSolver*  initSolver();
 		void freeSolver();
 
 		// update waypoint path
