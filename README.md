@@ -21,3 +21,5 @@ cmake ..
 make
 make install
 ```
+
+Implement construct function
