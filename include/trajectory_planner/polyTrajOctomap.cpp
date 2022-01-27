@@ -34,11 +34,11 @@ namespace trajPlanner{
 
 	polyTrajSolver*  polyTrajOctomap::initSolver(){
 		// TODO
-		return NULL;
+		return new polyTrajSolver (this->degree_, this->diffDegree_, this->veld_);
 	}
 
 	void polyTrajOctomap::freeSolver(){
-		// TODO
+		delete this->trajSolver_;
 	}
 
 	void polyTrajOctomap::updatePath(const std::vector<pose>& path){
@@ -47,6 +47,13 @@ namespace trajPlanner{
 
 	void polyTrajOctomap::makePlan(std::vector<pose>& trajectory, double delT){
 		// TODO
+		if (this->path_.size() == 1){
+			trajectory = this->path_;
+			return;
+		}
+		this->trajSolver_ = this->initSolver();
+		this->trajSolver_->updatePath(this->path_);
+		this->trajSolver_->solve();
 	}
 
 

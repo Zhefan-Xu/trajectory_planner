@@ -99,9 +99,9 @@ int main(int argc, char** argv){
 		trajPlanner::convertPointPlan(plan, path);
 
 		// generate trajectory:
-		// std::vector<trajPlanner::pose> trajectory;
-		// polyPlanner.updatePath(path);
-		// polyPlanner.makePlan(trajectory, delT);
+		std::vector<trajPlanner::pose> trajectory;
+		polyPlanner.updatePath(path);
+		polyPlanner.makePlan(trajectory, delT);
 
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;
