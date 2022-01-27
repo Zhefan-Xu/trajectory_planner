@@ -172,11 +172,11 @@ namespace trajPlanner{
 				// Note: midpoint is only for first k-1 path segment, it is the right point on the path segment
 				for (int i=0; i<this->path_.size()-2; ++i){
 					double currTime = this->desiredTime_[i+1];
-					int currStartIndex = (this->polyDegree_+1) * i;
+					int currStartIdx = (this->polyDegree_+1) * i;
 					for (int d=0; d<this->polyDegree_+1; ++d){
 						double factor = pow(currTime, d);
 						if (factor != 0){
-							A.insert(countConstraint, currStartIndex+d) = factor;
+							A.insert(countConstraint, currStartIdx+d) = factor;
 						}
 					}
 					++countConstraint;
@@ -190,17 +190,60 @@ namespace trajPlanner{
 
 			// ==================K-1 Continuity===========================
 			{
-				
+				// from "LEFT" t0 "RIGHT"
+				for (int i=0; i<this->path_.size()-2; ++i){
+					double currTime = this->desiredTime_[i+1];
+					int leftStartIdx = (this->polyDegree_+1) * i;
+					int rightStartIdx = (this->polyDegree_+1) * (i+1);
+					for (int d=0; d<this->polyDegree_+1; ++d){
+						double factor = pow(currTime, d);
+						if (factor != 0){
+							A.insert(countConstraint, leftStartIdx+d) = factor;
+							A.insert(countConstraint, rightStartIdx+d) = -factor;
+						}
+					}
+					++countConstraint;
+				}	
 			}
 
+			cout << "k-1 = " << this->path_.size() - 2 << endl;
+			cout << A << endl;
+			cout << "Number of constraints: " << countConstraint << endl;
 		}
 
 
 		// Velcity Constraint:
+		{
+			// ================2 Endpoint===============================
+			{
+				// Note velocity = 0
+			}
+
+			// ================K-1 Continuity===========================
+			{
+
+			}
+		}
 
 		// Acceleration Constraint:
+		{
+			// ===============2 Endpoint================================
+			{
+				// Note: acceleration = 0
+			}
+
+			// ===============K-1 Continuity============================
+			{
+
+			}
+		}
 
 		// Higher order constraint: jerk snap
+		{
+			for (int diffD=3; diffD<=this->diffDegree_; ++diffD){
+
+			}
+		}
 
 	}
 
