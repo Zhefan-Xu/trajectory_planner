@@ -139,7 +139,7 @@ namespace trajPlanner{
 
 		int countConstraint = 0;
 
-		// Position Constraint: 2 endpoint, k-1 midpoint, k-1 continuity
+		// Position Constraint: 2 endpoint, k-1 midpoint, k-1 continuity (K is the number of path segments)
 		{
 			// =====================2 Endpoint==============================
 			{
@@ -217,11 +217,55 @@ namespace trajPlanner{
 			// ================2 Endpoint===============================
 			{
 				// Note velocity = 0
+				double startIdx = 0;
+				double startTime = this->desiredTime_[0];
+				for (int d=0; d<this->polyDegree_+1; ++d){ // start index
+					if (d != 0){
+						double factor = d * pow(startTime, d-1);
+						if (factor != 0){
+							A.insert(countConstraint, startIdx+d) = factor;
+						}
+					}
+				}
+				++countConstraint;
+
+				int endIdx = (this->path_.size()-2) * (this->polyDegree_+1);
+				double endTime = this->desiredTime_[this->desiredTime_.size()-1];
+				for (int d=0; d<this->polyDegree_+1; ++d){
+					if (d != 0){
+						double factor = d * pow(endTime, d-1);
+						if (factor != 0){
+							A.insert(countConstraint, endIdx+d) = factor;
+						}
+					}
+				}
+				++countConstraint;
+
+				cout << A << endl;
+				cout << "Number of constraints: " << countConstraint << endl;
 			}
+
 
 			// ================K-1 Continuity===========================
 			{
-
+				for (int i=0; i<this->path_.size()-2; ++i){
+					double currTime = this->desiredTime_[i+1];
+					int leftStartIdx = (this->polyDegree_+1) * i;
+					int rightStartIdx = (this->polyDegree_+1) * (i+1);
+					for (int d=0; d<this->polyDegree_+1; ++d){
+						if (d != 0){ // C0 index is alawys zero
+							double factor = d * pow(currTime, d-1);
+							if (factor != 0){
+								A.insert(countConstraint, leftStartIdx+d) = factor;
+								A.insert(countConstraint, rightStartIdx+d) = -factor;
+							}
+						}
+					}
+					++countConstraint;
+				}
+				cout << "k-1 = " << this->path_.size() - 2 << endl;
+				cout << A << endl;
+				cout << "Number of constraints: " << countConstraint << endl;
 			}
 		}
 
@@ -230,17 +274,59 @@ namespace trajPlanner{
 			// ===============2 Endpoint================================
 			{
 				// Note: acceleration = 0
+				int startIdx = 0;
+				double startTime = this->desiredTime_[0];
+				for (int d=0; d<this->polyDegree_+1; ++d){
+					if (d > 1){
+						double factor = d * (d-1) * pow(startTime, d-2);
+						if (factor != 0){
+							A.insert(countConstraint, startIdx+d) = factor;
+						}
+					}
+				}
+				++countConstraint;
+
+				int endIdx = (this->path_.size()-2) * (this->polyDegree_+1);
+				double endTime = this->desiredTime_[this->desiredTime_.size()-1];
+				for (int d=0; d<this->polyDegree_+1; ++d){
+					if (d > 1){
+						double factor = d * (d-1) * pow(endTime, d-2);
+						if (factor != 0){
+							A.insert(countConstraint, endIdx+d) = factor;
+						}
+					}
+				}
+				++countConstraint;
+				cout << A << endl;
+				cout << "Number of constraints: " << countConstraint << endl;
 			}
 
 			// ===============K-1 Continuity============================
 			{
-
+				for (int i=0; i<this->path_.size()-2; ++i){
+					double currTime = this->desiredTime_[i+1];
+					int leftStartIdx = (this->polyDegree_+1) * i;
+					int rightStartIdx = (this->polyDegree_+1) * (i+1);
+					for (int d=0; d<this->polyDegree_+1; ++d){
+						if (d > 1){
+							double factor = d * (d-1) * pow(currTime, d-2);
+							if (factor != 0){
+								A.insert(countConstraint, leftStartIdx+d) = factor;
+								A.insert(countConstraint, rightStartIdx+d) = -factor;
+							}
+						}
+					}
+					++countConstraint;
+				}
+				cout << "k-1 = " << this->path_.size() - 2 << endl;
+				cout << A << endl;
+				cout << "Number of constraints: " << countConstraint << endl;
 			}
 		}
 
 		// Higher order constraint: jerk snap
 		{
-			for (int diffD=3; diffD<=this->diffDegree_; ++diffD){
+			for (int diffD=3; diffD<=this->diffDegree_+1; ++diffD){
 
 			}
 		}
