@@ -28,7 +28,7 @@ polynomial_degree: 7
 desired_velocity: 1 # m/s
 differential_degree: 4 # 3: jerk 4: snap
 regularization_weights: 1
-sample_delta_time: 0.1
+sample_delta_time: 0.05
 
 # corridor:
 maximum_iteration_num: 50

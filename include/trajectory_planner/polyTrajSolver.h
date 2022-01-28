@@ -12,6 +12,8 @@
 #define POLYTRAJSOLVER_H
 #include <trajectory_planner/utils.h>
 #include <OsqpEigen/OsqpEigen.h>
+#include <thread>
+#include <mutex>
 
 using std::cout;
 using std::endl;
@@ -33,7 +35,16 @@ namespace trajPlanner{
 		OsqpEigen::Solver* zSolver_;
 		bool init_;
 
+		Eigen::VectorXd xSol_;
+		Eigen::VectorXd ySol_;
+		Eigen::VectorXd zSol_;
+		std::vector<trajPlanner::pose> trajectory_;
+
 	public:
+		std::thread xWorker_;
+		std::thread yWorker_;
+		std::thread zWorker_;
+
 		// default constructor
 		polyTrajSolver();
 
@@ -61,9 +72,19 @@ namespace trajPlanner{
 		void constructBound(Eigen::VectorXd& lx, Eigen::VectorXd& ly, Eigen::VectorXd& lz, 
 			                Eigen::VectorXd& ux, Eigen::VectorXd& uy, Eigen::VectorXd& uz);
 
+		//  get pose at time t from trajectory
+		trajPlanner::pose getPose(double t);
+
+		// get the whole trajectory with given time interval
+		void getTrajectory(std::vector<trajPlanner::pose>& trajectory, double delT=0.1);
 		
 		// solve the problem
 		void solve();
+		
+		// helper function: solve for x, y, z
+		void solveX();
+		void solveY();
+		void solveZ();
 	};
 }
 
