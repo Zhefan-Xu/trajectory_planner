@@ -84,7 +84,7 @@ Visualization Manager:
       Marker Topic: /rrt_planned_path
       Name: MarkerArray
       Namespaces:
-        {}
+        rrt_path: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -95,6 +95,14 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /trajectory_sp
+      Name: MarkerArray
+      Namespaces:
+        sample_point: true
+      Queue Size: 100
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -118,6 +126,15 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /trajectory
       Unreliable: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: <Fixed Frame>
+      Show Trail: false
       Value: true
   Enabled: true
   Global Options:
@@ -147,7 +164,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 40.854644775390625
+      Distance: 36.91019058227539
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -163,9 +180,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4697964191436768
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 3.191307783126831
+      Yaw: 3.066310167312622
     Saved: ~
 Window Geometry:
   Displays:

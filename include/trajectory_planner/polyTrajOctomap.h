@@ -11,6 +11,7 @@
 #include <octomap_msgs/Octomap.h>
 #include <octomap_msgs/GetOctomap.h>
 #include <octomap_msgs/conversions.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/Path.h>
 #include <trajectory_planner/polyTrajSolver.h>
 #include <thread>
@@ -38,10 +39,13 @@ namespace trajPlanner{
 
 		// visualization:
 		ros::Publisher trajVisPub_;
+		ros::Publisher samplePointVisPub_;
 		nav_msgs::Path trajVisMsg_;
+		visualization_msgs::MarkerArray samplePointMsg_;
 		
 	public:
 		std::thread trajVisWorker_;
+		std::thread samplePointVisWorker_;
 
 		polyTrajOctomap();
 
@@ -77,6 +81,7 @@ namespace trajPlanner{
 		// visualizaton:
 		void updateTrajVisMsg(const std::vector<pose>& trajectory);
 		void publishTrajectory();
+		void publishSamplePoint();
 
 		// conversion helper:
 		void pose2Octomap(const pose& pTraj, octomap::point3d& p);

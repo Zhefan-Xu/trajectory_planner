@@ -26,7 +26,7 @@ max_num_neighbors: 10
 # # polynomial trajectory
 polynomial_degree: 7
 desired_velocity: 1 # m/s
-differential_degree: 3 # 3: jerk 4: snap
+differential_degree: 4 # 3: jerk 4: snap
 regularization_weights: 1
 sample_delta_time: 0.1
 

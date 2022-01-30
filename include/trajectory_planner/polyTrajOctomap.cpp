@@ -15,7 +15,9 @@ namespace trajPlanner{
 
 		// visualize:
 		this->trajVisPub_= this->nh_.advertise<nav_msgs::Path>("/trajectory", 1);
+		this->samplePointVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("trajectory_sp", 1);
 		this->trajVisWorker_ = std::thread(&polyTrajOctomap::publishTrajectory, this);
+		this->samplePointVisWorker_ = std::thread(&polyTrajOctomap::publishSamplePoint, this);
 	}
 
 	void polyTrajOctomap::updateMap(){
@@ -51,8 +53,6 @@ namespace trajPlanner{
 		}
 		this->trajSolver_ = this->initSolver();
 		this->trajSolver_->updatePath(this->path_);
-		double radius = 0.5;
-		this->trajSolver_->solve(delT, radius);
 		this->trajSolver_->solve();
 		this->trajSolver_->getTrajectory(trajectory, delT);
 		this->updateTrajVisMsg(trajectory);
@@ -161,6 +161,33 @@ namespace trajPlanner{
 			trajVisVec.push_back(ps);
 		}
 		this->trajVisMsg_.poses = trajVisVec;
+
+		std::vector<visualization_msgs::Marker> samplePointVec;
+		visualization_msgs::Marker samplePoint;
+		int count = 0;
+		for (pose p: trajectory){
+			samplePoint.header.frame_id = "map";
+			samplePoint.header.stamp = ros::Time();
+			samplePoint.ns = "sample_point";
+			samplePoint.id = count;
+			samplePoint.type = visualization_msgs::Marker::ARROW;
+			samplePoint.action = visualization_msgs::Marker::ADD;
+			samplePoint.pose.position.x = p.x;
+			samplePoint.pose.position.y = p.y;
+			samplePoint.pose.position.z = p.z;
+			samplePoint.pose.orientation = quaternion_from_rpy(0, 0, p.yaw);
+			samplePoint.lifetime = ros::Duration(0.5);
+			samplePoint.scale.x = 0.1;
+			samplePoint.scale.y = 0.2;
+			samplePoint.scale.z = 0.2;
+			samplePoint.color.a = 0.5;
+			samplePoint.color.r = 0.7;
+			samplePoint.color.g = 1.0;
+			samplePoint.color.b = 0.0;
+			samplePointVec.push_back(samplePoint);
+			++count;
+		}
+		this->samplePointMsg_.markers = samplePointVec;
 	}
 
 	void polyTrajOctomap::publishTrajectory(){
@@ -169,6 +196,14 @@ namespace trajPlanner{
 			this->trajVisMsg_.header.frame_id = "map";
 			this->trajVisMsg_.header.stamp = ros::Time::now();
 			this->trajVisPub_.publish(this->trajVisMsg_);
+			r.sleep();
+		}
+	}
+
+	void polyTrajOctomap::publishSamplePoint(){
+		ros::Rate r (10);
+		while (ros::ok()){
+			this->samplePointVisPub_.publish(this->samplePointMsg_);
 			r.sleep();
 		}
 	}

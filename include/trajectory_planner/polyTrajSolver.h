@@ -60,7 +60,6 @@ namespace trajPlanner{
 
 		// set up the optimzation problem
 		void setUpProblem();
-		void setUpProblem(double delT, double radius);
 
 		// construct coefficient matrix for second order of objective
 		void constructP(Eigen::SparseMatrix<double>& P);
@@ -70,25 +69,21 @@ namespace trajPlanner{
 
 		// Inquality matrix
 		void constructA(Eigen::SparseMatrix<double>& A);
-		void constructA(Eigen::SparseMatrix<double>& A, double delT);
 
 		// construct equality and upper and lower bound
 		void constructBound(Eigen::VectorXd& lx, Eigen::VectorXd& ly, Eigen::VectorXd& lz, 
 			                Eigen::VectorXd& ux, Eigen::VectorXd& uy, Eigen::VectorXd& uz);
 		
-		void constructBound(Eigen::VectorXd& lx, Eigen::VectorXd& ly, Eigen::VectorXd& lz, 
-			                Eigen::VectorXd& ux, Eigen::VectorXd& uy, Eigen::VectorXd& uz,
-			                double delT, double radius);
+
 
 		//  get pose at time t from trajectory
 		trajPlanner::pose getPose(double t);
 
 		// get the whole trajectory with given time interval
-		void getTrajectory(std::vector<trajPlanner::pose>& trajectory, double delT=0.1);
+		void getTrajectory(std::vector<trajPlanner::pose>& trajectory, double delT);
 		
 		// solve the problem
 		void solve();
-		void solve(double delT, double radius);
 		
 		// helper function: solve for x, y, z
 		void solveX();
