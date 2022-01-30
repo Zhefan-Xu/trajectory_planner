@@ -51,6 +51,8 @@ namespace trajPlanner{
 		}
 		this->trajSolver_ = this->initSolver();
 		this->trajSolver_->updatePath(this->path_);
+		double radius = 0.5;
+		this->trajSolver_->solve(delT, radius);
 		this->trajSolver_->solve();
 		this->trajSolver_->getTrajectory(trajectory, delT);
 		this->updateTrajVisMsg(trajectory);
