@@ -30,7 +30,8 @@ namespace trajPlanner{
 		double desiredVel_;
 
 		std::vector<trajPlanner::pose> path_;
-		std::vector<double> desiredTime_;
+		std::vector<double> desiredTime_; // desired time knots based on velocity 
+
 
 		OsqpEigen::Solver* xSolver_; // QP Solver
 		OsqpEigen::Solver* ySolver_; 
