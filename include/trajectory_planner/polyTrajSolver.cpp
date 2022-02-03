@@ -14,10 +14,6 @@ namespace trajPlanner{
 		this->xSolver_ = new OsqpEigen::Solver ();
 		this->ySolver_ = new OsqpEigen::Solver ();
 		this->zSolver_ = new OsqpEigen::Solver ();
-
-		this->xSolver_->settings()->setMaxIteration(30000);
-		this->ySolver_->settings()->setMaxIteration(30000);
-		this->zSolver_->settings()->setMaxIteration(30000);
 	}
 	
 
@@ -25,12 +21,11 @@ namespace trajPlanner{
 		this->path_ = path;
 		int pathSegNum = this->path_.size()-1;
 		this->paramDim_ = (this->polyDegree_+1) * pathSegNum;
-		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1);// + (pathSegNum-1) * (this->diffDegree_-2); // position, velocity, acceleration, jerk, snap
+		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1) + (pathSegNum-1) * (this->diffDegree_-2); // position, velocity, acceleration, jerk, snap
 		this->avgTimeAllocation();
 	}
 
 	void polyTrajSolver::avgTimeAllocation(){
-		// this->desiredTime_.clear();
 		double totalTime = 0;
 		this->desiredTime_.push_back(totalTime);
 		double distance;
@@ -62,8 +57,7 @@ namespace trajPlanner{
 
 		// Initialize three solver for x y z
 		// x solver:
-		this->xSolver_->settings()->setWarmStart(false);
-		// this->xSolver_->settings()->setVerbosity(false);
+		this->xSolver_->settings()->setVerbosity(false);
 		this->xSolver_->data()->setNumberOfVariables(this->paramDim_);
 		this->xSolver_->data()->setNumberOfConstraints(this->constraintNum_); // constraint number will be updated when using point interpolation
 		if(!this->xSolver_->data()->setHessianMatrix(P)) return;
@@ -74,8 +68,7 @@ namespace trajPlanner{
     	if(!this->xSolver_->initSolver()) return;
 
     	// y solver:
-    	this->ySolver_->settings()->setWarmStart(false);
-    	// this->ySolver_->settings()->setVerbosity(false);
+    	this->ySolver_->settings()->setVerbosity(false);
     	this->ySolver_->data()->setNumberOfVariables(this->paramDim_);
     	this->ySolver_->data()->setNumberOfConstraints(this->constraintNum_);
 		if(!this->ySolver_->data()->setHessianMatrix(P)) return;
@@ -87,8 +80,7 @@ namespace trajPlanner{
     	
 
     	// z solver:
-    	this->zSolver_->settings()->setWarmStart(false);
-    	// this->zSolver_->settings()->setVerbosity(false);
+    	this->zSolver_->settings()->setVerbosity(false);
     	this->zSolver_->data()->setNumberOfVariables(this->paramDim_);
 		this->zSolver_->data()->setNumberOfConstraints(this->constraintNum_);
 		if(!this->zSolver_->data()->setHessianMatrix(P)) return;
@@ -121,14 +113,13 @@ namespace trajPlanner{
 					}
 					// each segment start from 0 to its duration
 					double startTime = 0.0;
-					double endTime = this->desiredTime_[i+1]-this->desiredTime_[i];
+					double endTime = 1.0;
 					factor *= pow(endTime, d-this->diffDegree_+1) - pow(startTime, d-this->diffDegree_+1);
 					coeff(d) = factor;
 				}
 			}
 			m = coeff * coeff.transpose();
-			// cout << "coeff: " << coeff << endl;
-			// cout << "m: " << m << endl;
+
 
 			int startIdx = (this->polyDegree_+1) * i;
 			for (int row=0; row<m.rows(); ++row){
@@ -168,7 +159,7 @@ namespace trajPlanner{
 				++countConstraint;
 
 				int endIdx = (this->path_.size()-2) * (this->polyDegree_+1);
-				double endTime = this->desiredTime_[this->path_.size()-1]-this->desiredTime_[this->path_.size()-2];
+				double endTime = 1.0;
 				for (int d=0; d<this->polyDegree_+1; ++d){ // end position
 					double factor = pow(endTime, d);
 					if (factor != 0){
@@ -183,7 +174,7 @@ namespace trajPlanner{
 			{
 				// Note: midpoint is only for first k-1 path segment, it is the right point on the path segment
 				for (int i=0; i<this->path_.size()-2; ++i){
-					double currTime = this->desiredTime_[i+1]-this->desiredTime_[i];;
+					double currTime = 1.0;
 					int currStartIdx = (this->polyDegree_+1) * i;
 					for (int d=0; d<this->polyDegree_+1; ++d){
 						double factor = pow(currTime, d);
@@ -212,7 +203,7 @@ namespace trajPlanner{
 			{
 				// from "LEFT" t0 "RIGHT"
 				for (int i=0; i<this->path_.size()-2; ++i){
-					double leftTime = this->desiredTime_[i+1]-this->desiredTime_[i]; // time for "left" piece of polynomial
+					double leftTime = 1.0; // time for "left" piece of polynomial
 					double rightTime = 0.0; // time for "right" piece of polynomial
 					int leftStartIdx = (this->polyDegree_+1) * i;
 					int rightStartIdx = (this->polyDegree_+1) * (i+1);
@@ -250,7 +241,7 @@ namespace trajPlanner{
 				++countConstraint;
 
 				int endIdx = (this->path_.size()-2) * (this->polyDegree_+1);
-				double endTime = this->desiredTime_[this->path_.size()-1]-this->desiredTime_[this->path_.size()-2];
+				double endTime = 1.0;
 				for (int d=0; d<this->polyDegree_+1; ++d){
 					if (d != 0){
 						double factor = d * pow(endTime, d-1);
@@ -266,8 +257,10 @@ namespace trajPlanner{
 			// ================K-1 Continuity===========================
 			{
 				for (int i=0; i<this->path_.size()-2; ++i){
-					double leftTime = this->desiredTime_[i+1]-this->desiredTime_[i];
+					double leftTime = 1.0;
 					double rightTime = 0.0;
+					double dtLeft = this->desiredTime_[i+1] - this->desiredTime_[i];
+					double dtRight = this->desiredTime_[i+2] - this->desiredTime_[i+1];
 					int leftStartIdx = (this->polyDegree_+1) * i;
 					int rightStartIdx = (this->polyDegree_+1) * (i+1);
 					for (int d=0; d<this->polyDegree_+1; ++d){
@@ -275,10 +268,10 @@ namespace trajPlanner{
 							double leftFactor = d * pow(leftTime, d-1);
 							double rightFactor = d * pow(rightTime, d-1);
 							if (leftFactor != 0){
-								A.insert(countConstraint, leftStartIdx+d) = leftFactor;
+								A.insert(countConstraint, leftStartIdx+d) = leftFactor * dtRight;
 							}
 							if (rightFactor != 0){
-								A.insert(countConstraint, rightStartIdx+d) = -rightFactor;
+								A.insert(countConstraint, rightStartIdx+d) = -rightFactor * dtLeft;
 							}
 						}
 					}
@@ -320,19 +313,21 @@ namespace trajPlanner{
 			// ===============K-1 Continuity============================
 			{
 				for (int i=0; i<this->path_.size()-2; ++i){
-					double leftTime = this->desiredTime_[i+1]-this->desiredTime_[i];
+					double leftTime = 1.0;
 					double rightTime = 0.0;
 					int leftStartIdx = (this->polyDegree_+1) * i;
 					int rightStartIdx = (this->polyDegree_+1) * (i+1);
+					double dtLeft = this->desiredTime_[i+1] - this->desiredTime_[i];
+					double dtRight = this->desiredTime_[i+2] - this->desiredTime_[i+1];
 					for (int d=0; d<this->polyDegree_+1; ++d){
 						if (d > 1){
 							double leftFactor = d * (d-1) * pow(leftTime, d-2);
 							double rightFactor = d * (d-1) * pow(rightTime, d-2);
 							if (leftFactor != 0){
-								A.insert(countConstraint, leftStartIdx+d) = leftFactor;		
+								A.insert(countConstraint, leftStartIdx+d) = leftFactor * pow(dtRight,2);		
 							}
 							if (rightFactor != 0){
-								A.insert(countConstraint, rightStartIdx+d) = -rightFactor;		
+								A.insert(countConstraint, rightStartIdx+d) = -rightFactor * pow(dtLeft, 2);		
 							}
 						}
 					}
@@ -342,57 +337,60 @@ namespace trajPlanner{
 		}
 
 		// Higher order constraint: jerk snap
-		// {
-		// 	//=================K-1 Continuity in Jerk===================
-		// 	if (this->diffDegree_ >= 3){
-		// 		for (int i=0; i<this->path_.size()-2; ++i){
-		// 			double leftTime = this->desiredTime_[i+1]-this->desiredTime_[i];
-		// 			double rightTime = 0.0;
-		// 			int leftStartIdx = (this->polyDegree_+1) * i;
-		// 			int rightStartIdx = (this->polyDegree_+1) * (i+1);
-		// 			for (int d=0; d<this->polyDegree_+1; ++d){
-		// 				if (d > 2){
-		// 					double leftFactor = d * (d-1) * (d-2) * pow(leftTime, d-3);
-		// 					double rightFactor = d * (d-1) * (d-2) * pow(rightTime, d-3);
-		// 					if (leftFactor != 0){
-		// 						A.insert(countConstraint, leftStartIdx+d) = leftFactor;
-		// 					}
-		// 					if (rightFactor != 0){
-		// 						A.insert(countConstraint, rightStartIdx+d) = -rightFactor;
-		// 					}
-		// 				}
-		// 			}
-		// 			++countConstraint;
-		// 		}
-		// 	}
+		{
+			//=================K-1 Continuity in Jerk===================
+			if (this->diffDegree_ >= 3){
+				for (int i=0; i<this->path_.size()-2; ++i){
+					double leftTime = 1.0;
+					double rightTime = 0.0;
+					int leftStartIdx = (this->polyDegree_+1) * i;
+					int rightStartIdx = (this->polyDegree_+1) * (i+1);
+					double dtLeft = this->desiredTime_[i+1] - this->desiredTime_[i];
+					double dtRight = this->desiredTime_[i+2] - this->desiredTime_[i+1];
+					for (int d=0; d<this->polyDegree_+1; ++d){
+						if (d > 2){
+							double leftFactor = d * (d-1) * (d-2) * pow(leftTime, d-3);
+							double rightFactor = d * (d-1) * (d-2) * pow(rightTime, d-3);
+							if (leftFactor != 0){
+								A.insert(countConstraint, leftStartIdx+d) = leftFactor * pow(dtRight, 3);
+							}
+							if (rightFactor != 0){
+								A.insert(countConstraint, rightStartIdx+d) = -rightFactor * pow(dtLeft, 3);
+							}
+						}
+					}
+					++countConstraint;
+				}
+			}
 
-		// 	//=================K-1 Conitnuity in Snap===================
-		// 	if (this->diffDegree_ >= 4){
-		// 		for (int i=0; i<this->path_.size()-2; ++i){
-		// 			double leftTime = this->desiredTime_[i+1]-this->desiredTime_[i];
-		// 			double rightTime = 0.0;
-		// 			int leftStartIdx = (this->polyDegree_+1) * i;
-		// 			int rightStartIdx = (this->polyDegree_+1) * (i+1);
-		// 			for (int d=0; d<this->polyDegree_+1; ++d){
-		// 				if (d>3){
-		// 					double leftFactor = d * (d-1) * (d-2) * (d-3) * pow(leftTime, d-4);
-		// 					double rightFactor = d * (d-1) * (d-2) * (d-3) * pow(rightTime, d-4);
-		// 					if (leftFactor != 0){
-		// 						A.insert(countConstraint, leftStartIdx+d) = leftFactor;
-		// 					}
-		// 					if (rightFactor != 0){
-		// 						A.insert(countConstraint, rightStartIdx+d) = -rightFactor;
-		// 					}
+			//=================K-1 Conitnuity in Snap===================
+			if (this->diffDegree_ >= 4){
+				for (int i=0; i<this->path_.size()-2; ++i){
+					double leftTime = 1.0;
+					double rightTime = 0.0;
+					int leftStartIdx = (this->polyDegree_+1) * i;
+					int rightStartIdx = (this->polyDegree_+1) * (i+1);
+					double dtLeft = this->desiredTime_[i+1] - this->desiredTime_[i];
+					double dtRight = this->desiredTime_[i+2] - this->desiredTime_[i+1];
+					for (int d=0; d<this->polyDegree_+1; ++d){
+						if (d>3){
+							double leftFactor = d * (d-1) * (d-2) * (d-3) * pow(leftTime, d-4);
+							double rightFactor = d * (d-1) * (d-2) * (d-3) * pow(rightTime, d-4);
+							if (leftFactor != 0){
+								A.insert(countConstraint, leftStartIdx+d) = leftFactor * pow(dtRight, 4);
+							}
+							if (rightFactor != 0){
+								A.insert(countConstraint, rightStartIdx+d) = -rightFactor * pow(dtLeft, 4);
+							}
 							
-		// 				}
-		// 			}
-		// 			++countConstraint;
-		// 		}
-		// 	}
-		// 	cout << A << endl;
-		// 	cout << "Number of constraints: " << countConstraint << endl;
-		// 	cout << "Expected constraints: " << this->constraintNum_ << endl;
-		// }
+						}
+					}
+					++countConstraint;
+				}
+			}
+			// cout << "Number of constraints: " << countConstraint << endl;
+			// cout << "Expected constraints: " << this->constraintNum_ << endl;
+		}
 	}
 
 
@@ -586,44 +584,44 @@ namespace trajPlanner{
 
 
 		// Higher order
-		// {
-		// 	// Jerk Bound: k-1 
-		// 	if (this->diffDegree_ >= 3){
-		// 		// ================K-1 Continuity===================
-		// 		for (int i=0; i<this->path_.size()-2; ++i){
-		// 			int pathIdx = i+1;
-		// 			lx(countConstraint) = 0.0;
-	 // 				ux(countConstraint) = 0.0;
+		{
+			// Jerk Bound: k-1 
+			if (this->diffDegree_ >= 3){
+				// ================K-1 Continuity===================
+				for (int i=0; i<this->path_.size()-2; ++i){
+					int pathIdx = i+1;
+					lx(countConstraint) = 0.0;
+	 				ux(countConstraint) = 0.0;
 	 				
-	 // 				ly(countConstraint) = 0.0;
-	 // 				uy(countConstraint) = 0.0;
+	 				ly(countConstraint) = 0.0;
+	 				uy(countConstraint) = 0.0;
 
-	 // 				lz(countConstraint) = 0.0;
-	 // 				uz(countConstraint) = 0.0;
+	 				lz(countConstraint) = 0.0;
+	 				uz(countConstraint) = 0.0;
 	 				
-	 // 				++countConstraint;
-		// 		}
-		// 	}
+	 				++countConstraint;
+				}
+			}
 		
 
-		// 	// Snap Bound: k-1
-		// 	if (this->diffDegree_ >= 4){
-		// 		// ================K-1 Continuity===================
-		// 		for (int i=0; i<this->path_.size()-2; ++i){
-		// 			int pathIdx = i+1;
-		// 			lx(countConstraint) = 0.0;
-	 // 				ux(countConstraint) = 0.0;
+			// Snap Bound: k-1
+			if (this->diffDegree_ >= 4){
+				// ================K-1 Continuity===================
+				for (int i=0; i<this->path_.size()-2; ++i){
+					int pathIdx = i+1;
+					lx(countConstraint) = 0.0;
+	 				ux(countConstraint) = 0.0;
 	 				
-	 // 				ly(countConstraint) = 0.0;
-	 // 				uy(countConstraint) = 0.0;
+	 				ly(countConstraint) = 0.0;
+	 				uy(countConstraint) = 0.0;
 
-	 // 				lz(countConstraint) = 0.0;
-	 // 				uz(countConstraint) = 0.0;
+	 				lz(countConstraint) = 0.0;
+	 				uz(countConstraint) = 0.0;
 	 				
-	 // 				++countConstraint;
-		// 		}
-		// 	}
-		// }
+	 				++countConstraint;
+				}
+			}
+		}
 	}
 
 
@@ -633,7 +631,7 @@ namespace trajPlanner{
 			double startTime = this->desiredTime_[i];
 			double endTime = this->desiredTime_[i+1];
 			if ((t >= startTime) and (t <= endTime)){
-				t = (double) (t-startTime); ///(endTime - startTime);
+				t = (double) (t-startTime)/(endTime - startTime);
 				int coeffStartIdx = (this->polyDegree_+1) * i;
 				double x = 0; double y = 0; double z = 0; double yaw = 0;
 				for (int d=0; d<this->polyDegree_+1; ++d){

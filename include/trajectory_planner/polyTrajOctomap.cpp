@@ -47,8 +47,10 @@ namespace trajPlanner{
 	}
 
 	void polyTrajOctomap::makePlan(std::vector<pose>& trajectory, double delT){
+		ros::Time startTime = ros::Time::now();
 		if (this->path_.size() == 1){
 			trajectory = this->path_;
+			this->updateTrajVisMsg(trajectory);
 			return;
 		}
 		this->trajSolver_ = this->initSolver();
@@ -57,6 +59,9 @@ namespace trajPlanner{
 		this->trajSolver_->getTrajectory(trajectory, delT);
 		this->updateTrajVisMsg(trajectory);
 		this->freeSolver();
+		ros::Time endTime = ros::Time::now();
+		double dT = (endTime - startTime).toSec();
+		cout << "[Trajectory Planner INFO]: trajectory found! Time: " << dT << "s."<< endl;
 	}
 
 
