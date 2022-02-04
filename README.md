@@ -22,4 +22,7 @@ make
 make install
 ```
 
-Implement construct function
+TODO:
+1. Check others implementation
+2. get a stable version
+3. Organize parameters
