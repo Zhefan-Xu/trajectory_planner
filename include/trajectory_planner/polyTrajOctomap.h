@@ -66,11 +66,13 @@ namespace trajPlanner{
 
 		// collision checking
 		bool checkCollision(const octomap::point3d& p);
-		bool checkCollisionPoint(const octomap::point3d &p);
+		bool checkCollisionPoint(const octomap::point3d &p, bool ignoreUnknown=true);
 		bool checkCollisionPoint(const pose& pTraj);
 		bool checkCollisionLine(const octomap::point3d& p1, const octomap::point3d& p2);
 		bool checkCollisionLine(const pose& pTraj1, const pose& pTraj2);
 		bool checkCollisionTraj(const std::vector<pose>& trajectory, std::vector<int>& collisionIdx);
+		bool checkCollisionTraj(const std::vector<pose>& trajectory, double delT, std::set<int>& collisionSeg);
+
 
 		double getDegree();
 		double getVelD();

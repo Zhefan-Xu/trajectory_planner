@@ -53,23 +53,54 @@ namespace trajPlanner{
 			this->updateTrajVisMsg(trajectory);
 			return;
 		}
+
+		// Try solving without corridor constraint
 		this->trajSolver_ = this->initSolver();
 		this->trajSolver_->updatePath(this->path_);
-		// this->trajSolver_->setSoftConstraint(0.1);
+		// this->trajSolver_->setSoftConstraint(0.1); 
 		this->trajSolver_->solve();
 		this->trajSolver_->getTrajectory(trajectory, delT);
-		this->updateTrajVisMsg(trajectory);
-		std::cin.get();
 
-		this->trajSolver_->setCorridorConstraint(1.0, 2);
-		this->trajSolver_->solve();
+		std::set<int> collisionSeg;
+		bool valid = not this->checkCollisionTraj(trajectory, delT, collisionSeg);
 
-		this->trajSolver_->getTrajectory(trajectory, delT);
+		if (not valid){
+			cout << "[Trajector Planner INFO]: " << "Adding corridor constraint..." << endl;
+			std::vector<double> corridorSizeVec;
+			for (int i=0; i<this->path_.size()-1; ++i){
+				corridorSizeVec.push_back(0);
+			}
+
+			for (int i=0; i<this->maxIter_; ++i){
+				for (int segIdx: collisionSeg){
+					if (corridorSizeVec[segIdx] == 0){
+						corridorSizeVec[segIdx] = this->initR_;	
+					}
+					else{
+						corridorSizeVec[segIdx] *= this->fs_;	
+					}
+				}
+				this->trajSolver_->setCorridorConstraint(corridorSizeVec, 5); // TODO
+				this->trajSolver_->solve();
+				this->trajSolver_->getTrajectory(trajectory, delT);
+				valid = not this->checkCollisionTraj(trajectory, delT, collisionSeg);
+				if (valid){
+					break;
+				}
+			}
+		}
 		this->updateTrajVisMsg(trajectory);
 		this->freeSolver();
 		ros::Time endTime = ros::Time::now();
 		double dT = (endTime - startTime).toSec();
-		cout << "[Trajectory Planner INFO]: trajectory found! Time: " << dT << "s."<< endl;
+		if (valid){
+			cout << "[Trajectory Planner INFO]: Found valid trajectory!" << endl;	
+		}
+		else{
+			cout << "[Trajectory Planner INFO]: Not found. Return the best." << endl;	
+		}
+		
+		cout << "[Trajectory Planner INFO]: Time: " << dT << "s."<< endl;
 	}
 
 
@@ -79,9 +110,9 @@ namespace trajPlanner{
 		ymin = p.y() - this->collisionBox_[1]/2; ymax = p.y() + this->collisionBox_[1]/2;
 		zmin = p.z() - this->collisionBox_[2]/2; zmax = p.z() + this->collisionBox_[2]/2;
 
-		for (double x=xmin; x<xmax; x+=this->mapRes_){
-			for (double y=ymin; y<ymax; y+=this->mapRes_){
-				for (double z=zmin; z<zmax; z+=this->mapRes_){
+		for (double x=xmin; x<=xmax; x+=this->mapRes_){
+			for (double y=ymin; y<=ymax; y+=this->mapRes_){
+				for (double z=zmin; z<=zmax; z+=this->mapRes_){
 					if (!this->checkCollisionPoint(octomap::point3d (x, y, z))){
 						// do nothing
 					}
@@ -95,10 +126,15 @@ namespace trajPlanner{
 	}
 
 
-	bool polyTrajOctomap::checkCollisionPoint(const octomap::point3d &p){
+	bool polyTrajOctomap::checkCollisionPoint(const octomap::point3d &p, bool ignoreUnknown){
 		octomap::OcTreeNode* nptr = this->map_->search(p);
 		if (nptr == NULL){
-			return true;
+			if (not ignoreUnknown){
+				return true;
+			}
+			else{
+				return false;
+			}
 		}
 		return this->map_->isNodeOccupied(nptr);
 	}
@@ -112,6 +148,10 @@ namespace trajPlanner{
 	bool polyTrajOctomap::checkCollisionLine(const octomap::point3d& p1, const octomap::point3d& p2){
 		std::vector<octomap::point3d> ray;
 		this->map_->computeRay(p1, p2, ray);
+		if (this->checkCollision(p2)){
+			return true;
+		}
+
 		for (octomap::point3d p: ray){
 			if (this->checkCollision(p)){
 				return true;
@@ -130,14 +170,38 @@ namespace trajPlanner{
 	bool polyTrajOctomap::checkCollisionTraj(const std::vector<pose>& trajectory, std::vector<int>& collisionIdx){
 		octomap::point3d p;
 		int count = 0;
-		bool hasColllision;
+		bool hasColllision = false;
 		for (pose pTraj: trajectory){
 			this->pose2Octomap(pTraj, p);
-			if (this->checkCollisionPoint(p)){
+			if (this->checkCollision(p)){
 				hasColllision = true;
 				collisionIdx.push_back(count);
 			}
 			++count;
+		}
+		return hasColllision;
+	}
+
+	bool polyTrajOctomap::checkCollisionTraj(const std::vector<pose>& trajectory, double delT, std::set<int>& collisionSeg){
+		collisionSeg.clear();
+		std::vector<double> timeKnot = this->trajSolver_->getTimeKnot();
+		octomap::point3d p;
+		double t = 0;
+		bool hasColllision = false;
+		for (pose pTraj: trajectory){
+			this->pose2Octomap(pTraj, p);
+			if (this->checkCollision(p)){
+				hasColllision = true;
+				for (int i=0; i<timeKnot.size()-1; ++i){
+					double startTime = timeKnot[i];
+					double endTime = timeKnot[i+1];
+					if ((t>=startTime) and (t<=endTime)){
+						collisionSeg.insert(i);
+						break;
+					}
+				}
+			}
+			t += delT;
 		}
 		return hasColllision;
 	}

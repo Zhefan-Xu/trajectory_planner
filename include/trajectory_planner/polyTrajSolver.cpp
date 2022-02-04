@@ -375,6 +375,9 @@ namespace trajPlanner{
 			if (this->corridorConstraint_){
 				// go through each path segment and apply constraints
 				for (int i=0; i<this->path_.size()-1; ++i){
+					if (this->corridorSizeVec_[i] == 0.0){
+						continue;
+					}
 					std::unordered_map<double, trajPlanner::pose> timeToPose = this->segToTimePose_[i];
 					int coeffStartIdx = (this->polyDegree_+1) * i;
 					for (auto itr : timeToPose){
@@ -390,8 +393,8 @@ namespace trajPlanner{
 				}
 			}
 		}
-		cout << "Number of constraints: " << countConstraint << endl;
-		cout << "Expected constraints: " << this->constraintNum_ << endl;
+		// cout << "Number of constraints: " << countConstraint << endl;
+		// cout << "Expected constraints: " << this->constraintNum_ << endl;
 	}
 
 
@@ -607,6 +610,9 @@ namespace trajPlanner{
 			if (this->corridorConstraint_){
 				// go through each path segment and apply constraints
 				for (int i=0; i<this->path_.size()-1; ++i){
+					if (this->corridorSizeVec_[i] == 0.0){
+						continue;
+					}
 					std::unordered_map<double, trajPlanner::pose> timeToPose = this->segToTimePose_[i];
 					double r = this->corridorSizeVec_[i];
 					for (auto itr : timeToPose){
@@ -701,13 +707,18 @@ namespace trajPlanner{
 		this->segToTimePose_.clear();
 		int countCorridorConstraint = 0;
 		for (int i=0; i<this->path_.size()-1; ++i){ // go through each path segment
+			if (this->corridorSizeVec_[i] == 0.0){ // this segment does not need corridor constraint
+				std::unordered_map<double, trajPlanner::pose> timeToPose;
+				this->segToTimePose_.push_back(timeToPose);// dummy for index matching
+				continue;
+			}
 			trajPlanner::pose pStart = this->path_[i];
 			trajPlanner::pose pEnd = this->path_[i+1]; 
 			double duration = this->desiredTime_[i+1] - this->desiredTime_[i];
 			int numCorridor = (int) duration * this->corridorRes_;
 			double dt = (1.0)/numCorridor;
 			std::unordered_map<double, trajPlanner::pose> timeToPose;
-			for (double t=dt; t<1.0; t+=dt){
+			for (double t=dt; t<=1.0-dt; t+=dt){
 				trajPlanner::pose pMid = this->interpolatePose(pStart, pEnd, 0.0, 1.0, t);
 				timeToPose[t] = pMid;
 				++countCorridorConstraint;
@@ -777,4 +788,7 @@ namespace trajPlanner{
 		this->trajectory_.push_back(endpoint);
 	}
 
+	std::vector<double>& polyTrajSolver::getTimeKnot(){
+		return this->desiredTime_;
+	}	
 }

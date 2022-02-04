@@ -107,6 +107,9 @@ namespace trajPlanner{
 
 		// get the whole trajectory with given time interval
 		void getTrajectory(std::vector<trajPlanner::pose>& trajectory, double delT);
+
+		// get time knot
+		std::vector<double>& getTimeKnot();
 	};
 }
 
