@@ -55,7 +55,15 @@ namespace trajPlanner{
 		}
 		this->trajSolver_ = this->initSolver();
 		this->trajSolver_->updatePath(this->path_);
+		// this->trajSolver_->setSoftConstraint(0.1);
 		this->trajSolver_->solve();
+		this->trajSolver_->getTrajectory(trajectory, delT);
+		this->updateTrajVisMsg(trajectory);
+		std::cin.get();
+
+		this->trajSolver_->setCorridorConstraint(1.0, 2);
+		this->trajSolver_->solve();
+
 		this->trajSolver_->getTrajectory(trajectory, delT);
 		this->updateTrajVisMsg(trajectory);
 		this->freeSolver();

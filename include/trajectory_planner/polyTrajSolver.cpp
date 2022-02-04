@@ -14,6 +14,18 @@ namespace trajPlanner{
 		this->xSolver_ = new OsqpEigen::Solver ();
 		this->ySolver_ = new OsqpEigen::Solver ();
 		this->zSolver_ = new OsqpEigen::Solver ();
+		// this->xSolver_->settings()->setMaxIteration(10000);
+		// this->ySolver_->settings()->setMaxIteration(10000);
+		// this->zSolver_->settings()->setMaxIteration(10000);
+
+		// Soft constraint for waypoint (default: fasle)
+		this->softConstraint_ = false;
+		for (int i=0; i<3; ++i){
+			this->scDeviation_[i] = 0; // soft constraint for x y z
+		}
+
+		// Corridor constraint (default: false)
+		this->corridorConstraint_ = false;
 	}
 	
 
@@ -57,6 +69,9 @@ namespace trajPlanner{
 
 		// Initialize three solver for x y z
 		// x solver:
+		this->xSolver_->clearSolver();
+		this->xSolver_->data()->clearHessianMatrix();
+		this->xSolver_->data()->clearLinearConstraintsMatrix();
 		this->xSolver_->settings()->setVerbosity(false);
 		this->xSolver_->data()->setNumberOfVariables(this->paramDim_);
 		this->xSolver_->data()->setNumberOfConstraints(this->constraintNum_); // constraint number will be updated when using point interpolation
@@ -68,6 +83,9 @@ namespace trajPlanner{
     	if(!this->xSolver_->initSolver()) return;
 
     	// y solver:
+    	this->ySolver_->clearSolver();
+    	this->ySolver_->data()->clearHessianMatrix();
+		this->ySolver_->data()->clearLinearConstraintsMatrix();
     	this->ySolver_->settings()->setVerbosity(false);
     	this->ySolver_->data()->setNumberOfVariables(this->paramDim_);
     	this->ySolver_->data()->setNumberOfConstraints(this->constraintNum_);
@@ -80,6 +98,9 @@ namespace trajPlanner{
     	
 
     	// z solver:
+    	this->zSolver_->clearSolver();
+    	this->zSolver_->data()->clearHessianMatrix();
+		this->zSolver_->data()->clearLinearConstraintsMatrix();
     	this->zSolver_->settings()->setVerbosity(false);
     	this->zSolver_->data()->setNumberOfVariables(this->paramDim_);
 		this->zSolver_->data()->setNumberOfConstraints(this->constraintNum_);
@@ -184,19 +205,6 @@ namespace trajPlanner{
 					}
 					++countConstraint;
 				}
-
-				// Note: midpoint is only for the k-1 path segment, it is the left point on the path segment
-				// for (int i=1; i<this->path_.size()-1; ++i){
-				// 	double currTime = this->desiredTime_[i];
-				// 	int currStartIdx = (this->polyDegree_+1) * i;
-				// 	for (int d=0; d<this->polyDegree_+1; ++d){
-				// 		double factor = pow(currTime, d);
-				// 		if (factor != 0){
-				// 			A.insert(countConstraint, currStartIdx+d) = factor;
-				// 		}
-				// 	}
-				// 	++countConstraint;
-				// }
 			}
 
 			// ==================K-1 Continuity===========================
@@ -282,34 +290,6 @@ namespace trajPlanner{
 
 		// Acceleration Constraint:
 		{
-			// ===============2 Endpoint================================
-			// {
-			// 	// Note: acceleration = 0
-			// 	int startIdx = 0;
-			// 	double startTime = 0.0;
-			// 	for (int d=0; d<this->polyDegree_+1; ++d){
-			// 		if (d > 1){
-			// 			double factor = d * (d-1) * pow(startTime, d-2);
-			// 			if (factor != 0){
-			// 				A.insert(countConstraint, startIdx+d) = factor;
-			// 			}
-			// 		}
-			// 	}
-			// 	++countConstraint;
-
-			// 	int endIdx = (this->path_.size()-2) * (this->polyDegree_+1);
-			// 	double endTime = 1.0;
-			// 	for (int d=0; d<this->polyDegree_+1; ++d){
-			// 		if (d > 1){
-			// 			double factor = d * (d-1) * pow(endTime, d-2);
-			// 			if (factor != 0){
-			// 				A.insert(countConstraint, endIdx+d) = factor;
-			// 			}
-			// 		}
-			// 	}
-			// 	++countConstraint;
-			// }
-
 			// ===============K-1 Continuity============================
 			{
 				for (int i=0; i<this->path_.size()-2; ++i){
@@ -388,9 +368,30 @@ namespace trajPlanner{
 					++countConstraint;
 				}
 			}
-			// cout << "Number of constraints: " << countConstraint << endl;
-			// cout << "Expected constraints: " << this->constraintNum_ << endl;
 		}
+
+		// Corridor Constraints:
+		{
+			if (this->corridorConstraint_){
+				// go through each path segment and apply constraints
+				for (int i=0; i<this->path_.size()-1; ++i){
+					std::unordered_map<double, trajPlanner::pose> timeToPose = this->segToTimePose_[i];
+					int coeffStartIdx = (this->polyDegree_+1) * i;
+					for (auto itr : timeToPose){
+						double t = itr.first;
+						for (int d=0; d<this->polyDegree_+1; ++d){
+							double factor = pow(t, d);
+							if (factor != 0){
+								A.insert(countConstraint, coeffStartIdx+d) = factor;	
+							}
+						}
+						++countConstraint;
+					}
+				}
+			}
+		}
+		cout << "Number of constraints: " << countConstraint << endl;
+		cout << "Expected constraints: " << this->constraintNum_ << endl;
 	}
 
 
@@ -435,35 +436,41 @@ namespace trajPlanner{
 
  			// ================k-1 Midpoint=====================
  			{
-	 			for (int i=0; i<this->path_.size()-2; ++i){
-	 				int pathIdx = i+1;
-	 				// cout << this->path_[pathIdx] << endl;
-	 				lx(countConstraint) = this->path_[pathIdx].x;
-	 				ux(countConstraint) = this->path_[pathIdx].x;
-	 				
-	 				ly(countConstraint) = this->path_[pathIdx].y;
-	 				uy(countConstraint) = this->path_[pathIdx].y;
+ 				// Hard constraints:
+ 				if (not this->softConstraint_){
+ 					for (int i=0; i<this->path_.size()-2; ++i){
+		 				int pathIdx = i+1;
+		 				// cout << this->path_[pathIdx] << endl;
+		 				lx(countConstraint) = this->path_[pathIdx].x;
+		 				ux(countConstraint) = this->path_[pathIdx].x;
+		 				
+		 				ly(countConstraint) = this->path_[pathIdx].y;
+		 				uy(countConstraint) = this->path_[pathIdx].y;
 
-	 				lz(countConstraint) = this->path_[pathIdx].z;
-	 				uz(countConstraint) = this->path_[pathIdx].z;
-	 				
-	 				++countConstraint;
-	 			}
+		 				lz(countConstraint) = this->path_[pathIdx].z;
+		 				uz(countConstraint) = this->path_[pathIdx].z;
+		 				
+		 				++countConstraint;
+	 				}
+ 				}
+ 				else{
+ 					for (int i=0; i<this->path_.size()-2; ++i){
+		 				int pathIdx = i+1;
+		 				// cout << this->path_[pathIdx] << endl;
+		 				lx(countConstraint) = this->path_[pathIdx].x - this->scDeviation_[0];
+		 				ux(countConstraint) = this->path_[pathIdx].x + this->scDeviation_[0];
+		 				
+		 				ly(countConstraint) = this->path_[pathIdx].y - this->scDeviation_[1];
+		 				uy(countConstraint) = this->path_[pathIdx].y + this->scDeviation_[1];
 
-	 			// for (int i=0; i<this->path_.size()-2; ++i){
-	 			// 	int pathIdx = i+1;
-	 			// 	// cout << this->path_[pathIdx] << endl;
-	 			// 	lx(countConstraint) = this->path_[pathIdx].x;
-	 			// 	ux(countConstraint) = this->path_[pathIdx].x;
-	 				
-	 			// 	ly(countConstraint) = this->path_[pathIdx].y;
-	 			// 	uy(countConstraint) = this->path_[pathIdx].y;
+		 				lz(countConstraint) = this->path_[pathIdx].z - this->scDeviation_[2];
+		 				uz(countConstraint) = this->path_[pathIdx].z + this->scDeviation_[2];
+		 				
+		 				++countConstraint;
+	 				}
+ 				}
+	 	
 
-	 			// 	lz(countConstraint) = this->path_[pathIdx].z;
-	 			// 	uz(countConstraint) = this->path_[pathIdx].z;
-	 				
-	 			// 	++countConstraint;
-	 			// }
  			}
 
  			// ================k-1 Continuity=====================
@@ -534,36 +541,8 @@ namespace trajPlanner{
 		}
 		
 
-		// Accel Bound: 2 + (k-1)
+		// Accel Bound: k-1
 		{
-			// ==================2 Endpoint=====================
-			// {
-			// 	// Start accel = 0
-			// 	lx(countConstraint) = 0.0;
-	 	// 		ux(countConstraint) = 0.0;
-	 				
-	 	// 		ly(countConstraint) = 0.0;
-	 	// 		uy(countConstraint) = 0.0;
-
-	 	// 		lz(countConstraint) = 0.0;
-	 	// 		uz(countConstraint) = 0.0;
-
-			// 	++countConstraint;
-				
-			// 	// End vel = 0
-			// 	lx(countConstraint) = 0.0;
-	 	// 		ux(countConstraint) = 0.0;
-	 				
-	 	// 		ly(countConstraint) = 0.0;
-	 	// 		uy(countConstraint) = 0.0;
-
-	 	// 		lz(countConstraint) = 0.0;
-	 	// 		uz(countConstraint) = 0.0;		
-			
-	 	// 		++countConstraint;
-			// }
-
-
 			// ================K-1 Continuity===================
 			{
 				for (int i=0; i<this->path_.size()-2; ++i){
@@ -622,11 +601,137 @@ namespace trajPlanner{
 				}
 			}
 		}
+
+		// Corridor Constraints:
+		{
+			if (this->corridorConstraint_){
+				// go through each path segment and apply constraints
+				for (int i=0; i<this->path_.size()-1; ++i){
+					std::unordered_map<double, trajPlanner::pose> timeToPose = this->segToTimePose_[i];
+					double r = this->corridorSizeVec_[i];
+					for (auto itr : timeToPose){
+						trajPlanner::pose p = itr.second;
+						lx(countConstraint) = p.x - r;
+		 				ux(countConstraint) = p.x + r;
+		 				
+		 				ly(countConstraint) = p.y - r;
+		 				uy(countConstraint) = p.y + r;
+
+		 				lz(countConstraint) = p.z - r;
+		 				uz(countConstraint) = p.z + r;
+
+						++countConstraint;
+					}
+				}
+			}
+		}
 	}
 
 
-	trajPlanner::pose polyTrajSolver::getPose(double t){
-		trajPlanner::pose p;
+	void polyTrajSolver::solve(){
+		this->setUpProblem();	
+
+		this->xWorker_ = std::thread(&polyTrajSolver::solveX, this);
+		this->yWorker_ = std::thread(&polyTrajSolver::solveY, this);
+		this->zWorker_ = std::thread(&polyTrajSolver::solveZ, this);
+
+		this->xWorker_.join();
+		this->yWorker_.join();
+		this->zWorker_.join();
+	}
+
+	void polyTrajSolver::solveX(){
+		 if (this->xSolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
+		 this->xSol_ = this->xSolver_->getSolution();
+	}
+
+	void polyTrajSolver::solveY(){
+		 if (this->ySolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
+		 this->ySol_ = this->ySolver_->getSolution();
+	}
+
+	void polyTrajSolver::solveZ(){
+ 		if (this->zSolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
+ 		this->zSol_ = this->zSolver_->getSolution();
+	}
+
+	void polyTrajSolver::setSoftConstraint(double r){
+		this->softConstraint_ = true;
+		for (int i=0; i<3; ++i){
+			this->scDeviation_[i] = r;
+		}
+	}
+
+	void polyTrajSolver::setSoftConstraint(double rx, double ry){
+		this->softConstraint_ = true;
+		this->scDeviation_[0] = rx; this->scDeviation_[1] = ry; this->scDeviation_[2] = 0.0;
+	}
+
+	void polyTrajSolver::setSoftConstraint(double rx, double ry, double rz){
+		this->softConstraint_ = true;
+		this->scDeviation_[0] = rx; this->scDeviation_[1] = ry; this->scDeviation_[2] = rz;	
+	}
+
+
+	void polyTrajSolver::setCorridorConstraint(const std::vector<double>& corridorSizeVec, double corridorRes){
+		if (this->path_.size() <= 0){
+			cout << "[Trajectory Solver]: Invalid! Please load path first!!" << endl;
+			return;
+		}
+		this->corridorConstraint_ = true;
+		this->corridorSizeVec_ = corridorSizeVec;
+		this->corridorRes_ = corridorRes;
+		this->updateCorridorParam(); 
+	}	
+
+	void polyTrajSolver::setCorridorConstraint(double corridorSize, double corridorRes){
+		if (this->path_.size() <= 0){
+			cout << "[Trajectory Solver]: Invalid! Please load path first!!" << endl;
+			return;
+		}
+		std::vector<double> corridorSizeVec;
+		for (int i=0; i<this->path_.size()-1; ++i){
+			corridorSizeVec.push_back(corridorSize);
+		}
+		this->setCorridorConstraint(corridorSizeVec, corridorRes);
+	}
+
+	void polyTrajSolver::updateCorridorParam(){
+		// update number of constraint, determine which time each segment needs to consider
+		this->segToTimePose_.clear();
+		int countCorridorConstraint = 0;
+		for (int i=0; i<this->path_.size()-1; ++i){ // go through each path segment
+			trajPlanner::pose pStart = this->path_[i];
+			trajPlanner::pose pEnd = this->path_[i+1]; 
+			double duration = this->desiredTime_[i+1] - this->desiredTime_[i];
+			int numCorridor = (int) duration * this->corridorRes_;
+			double dt = (1.0)/numCorridor;
+			std::unordered_map<double, trajPlanner::pose> timeToPose;
+			for (double t=dt; t<1.0; t+=dt){
+				trajPlanner::pose pMid = this->interpolatePose(pStart, pEnd, 0.0, 1.0, t);
+				timeToPose[t] = pMid;
+				++countCorridorConstraint;
+			}
+			this->segToTimePose_.push_back(timeToPose);
+		}
+		int pathSegNum = this->path_.size()-1;
+		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1) + (pathSegNum-1) * (this->diffDegree_-2) + countCorridorConstraint;
+	}
+
+	trajPlanner::pose& polyTrajSolver::interpolatePose(const trajPlanner::pose& pStart, const trajPlanner::pose& pEnd, double startTime, double endTime, double t){
+		static trajPlanner::pose pMid;
+		double xMid = pStart.x + (pEnd.x - pStart.x) * (t-startTime)/(endTime-startTime);
+		double yMid = pStart.y + (pEnd.y - pStart.y) * (t-startTime)/(endTime-startTime);
+		double zMid = pStart.z + (pEnd.z - pStart.z) * (t-startTime)/(endTime-startTime);
+		pMid.x = xMid;
+		pMid.y = yMid;
+		pMid.z = zMid;
+		return pMid;
+	}
+
+
+	trajPlanner::pose& polyTrajSolver::getPose(double t){
+		static trajPlanner::pose p;
 		for (int i=0; i<this->desiredTime_.size()-1; ++i){
 			double startTime = this->desiredTime_[i];
 			double endTime = this->desiredTime_[i+1];
@@ -659,6 +764,7 @@ namespace trajPlanner{
 
 
 	void polyTrajSolver::getTrajectory(std::vector<trajPlanner::pose>& trajectory, double delT){
+		trajectory.clear();
 		this->trajectory_.clear();
 		double endTime = this->desiredTime_[this->desiredTime_.size()-1];
 		for (double t=0; t<endTime; t+=delT){
@@ -669,34 +775,6 @@ namespace trajPlanner{
 		trajPlanner::pose endpoint = this->path_[this->path_.size()-1];
 		trajectory.push_back(endpoint);
 		this->trajectory_.push_back(endpoint);
-	}
-
-
-	void polyTrajSolver::solve(){
-		this->setUpProblem();
-
-		this->xWorker_ = std::thread(&polyTrajSolver::solveX, this);
-		this->yWorker_ = std::thread(&polyTrajSolver::solveY, this);
-		this->zWorker_ = std::thread(&polyTrajSolver::solveZ, this);
-
-		this->xWorker_.join();
-		this->yWorker_.join();
-		this->zWorker_.join();
-	}
-
-	void polyTrajSolver::solveX(){
-		 if (this->xSolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
-		 this->xSol_ = this->xSolver_->getSolution();
-	}
-
-	void polyTrajSolver::solveY(){
-		 if (this->ySolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
-		 this->ySol_ = this->ySolver_->getSolution();
-	}
-
-	void polyTrajSolver::solveZ(){
- 		if (this->zSolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
- 		this->zSol_ = this->zSolver_->getSolution();
 	}
 
 }
