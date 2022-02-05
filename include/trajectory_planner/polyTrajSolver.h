@@ -25,6 +25,7 @@ namespace trajPlanner{
 	private:
 		int polyDegree_;
 		int diffDegree_; 
+		int continuityDegree_;
 		int paramDim_; // dimension of parameter vector
 		int constraintNum_; // number of constraints
 		double desiredVel_;
@@ -57,7 +58,7 @@ namespace trajPlanner{
 		// default constructor
 		polyTrajSolver();
 
-		polyTrajSolver(int polyDegree, int diffDegree, double desiredVel);
+		polyTrajSolver(int polyDegree, int diffDegree, int continuityDegree, double desiredVel);
 
 		// load or update path 
 		void updatePath(const std::vector<trajPlanner::pose>& path);

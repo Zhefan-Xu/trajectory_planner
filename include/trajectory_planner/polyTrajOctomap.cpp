@@ -8,16 +8,18 @@
 namespace trajPlanner{
 	polyTrajOctomap::polyTrajOctomap(){}
 
-	polyTrajOctomap::polyTrajOctomap(const ros::NodeHandle& nh, std::vector<double> collisionBox, int degree, double veld, int diffDegree, double regularizationWeights, double mapRes, int maxIter, double initR, double fs)
-	: nh_(nh), collisionBox_(collisionBox), degree_(degree), veld_(veld), diffDegree_(diffDegree), regularizationWeights_(regularizationWeights), mapRes_(mapRes), maxIter_(maxIter), initR_(initR), fs_(fs){
+	polyTrajOctomap::polyTrajOctomap(const ros::NodeHandle& nh, std::vector<double> collisionBox, int degree, int diffDegree, int continuityDegree, double veld, double regularizationWeights, double mapRes, int maxIter, double initR, double fs)
+	: nh_(nh), collisionBox_(collisionBox), degree_(degree), diffDegree_(diffDegree),  continuityDegree_(continuityDegree), veld_(veld), regularizationWeights_(regularizationWeights), mapRes_(mapRes), maxIter_(maxIter), initR_(initR), fs_(fs){
 		this->mapClient_ = this->nh_.serviceClient<octomap_msgs::GetOctomap>("/octomap_binary");
 		this->updateMap();
 
 		// visualize:
 		this->trajVisPub_= this->nh_.advertise<nav_msgs::Path>("/trajectory", 1);
-		this->samplePointVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("trajectory_sp", 1);
+		this->samplePointVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("/trajectory_sp", 1);
+		this->waypointVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("/waypoint", 1);
 		this->trajVisWorker_ = std::thread(&polyTrajOctomap::publishTrajectory, this);
 		this->samplePointVisWorker_ = std::thread(&polyTrajOctomap::publishSamplePoint, this);
+		this->waypointVisWorker_ = std::thread(&polyTrajOctomap::publishWaypoint, this);
 	}
 
 	void polyTrajOctomap::updateMap(){
@@ -35,7 +37,7 @@ namespace trajPlanner{
 	}
 
 	polyTrajSolver*  polyTrajOctomap::initSolver(){
-		return new polyTrajSolver (this->degree_, this->diffDegree_, this->veld_);
+		return new polyTrajSolver (this->degree_, this->diffDegree_, this->continuityDegree_,this->veld_);
 	}
 
 	void polyTrajOctomap::freeSolver(){
@@ -46,6 +48,16 @@ namespace trajPlanner{
 		this->path_ = path;
 	}
 
+	void polyTrajOctomap::insertWaypoint(const std::set<int>& seg){
+		for (std::set<int>::reverse_iterator rit = seg.rbegin(); rit != seg.rend(); rit++){ // reverse order can solve the segment number change problem
+			int idx = *rit;
+			trajPlanner::pose p1 = this->path_[idx];
+			trajPlanner::pose p2 = this->path_[idx+1];
+			trajPlanner::pose pMid = trajPlanner::pose ((p1.x+p2.x)/2, (p1.y+p2.y)/2, (p1.z+p2.z)/2);
+			this->path_.insert(this->path_.begin()+idx+1, pMid);
+		}
+	}
+
 	void polyTrajOctomap::makePlan(std::vector<pose>& trajectory, double delT){
 		ros::Time startTime = ros::Time::now();
 		if (this->path_.size() == 1){
@@ -53,40 +65,23 @@ namespace trajPlanner{
 			this->updateTrajVisMsg(trajectory);
 			return;
 		}
-
-		// Try solving without corridor constraint
+		ros::Time currTime = ros::Time::now();
+		double dtNow;
 		this->trajSolver_ = this->initSolver();
-		this->trajSolver_->updatePath(this->path_);
-		// this->trajSolver_->setSoftConstraint(0.1); 
-		this->trajSolver_->solve();
-		this->trajSolver_->getTrajectory(trajectory, delT);
-
-		std::set<int> collisionSeg;
-		bool valid = not this->checkCollisionTraj(trajectory, delT, collisionSeg);
-
-		if (not valid){
-			cout << "[Trajector Planner INFO]: " << "Adding corridor constraint..." << endl;
-			std::vector<double> corridorSizeVec;
-			for (int i=0; i<this->path_.size()-1; ++i){
-				corridorSizeVec.push_back(0);
+		int countIter = 0;
+		bool valid = false;
+		while (ros::ok() and not valid){
+			this->trajSolver_->updatePath(this->path_);
+			this->trajSolver_->solve();
+			this->trajSolver_->getTrajectory(trajectory, delT);
+			std::set<int> collisionSeg;
+			valid = not this->checkCollisionTraj(trajectory, delT, collisionSeg);
+			if (not valid){
+				this->insertWaypoint(collisionSeg);
 			}
-
-			for (int i=0; i<this->maxIter_; ++i){
-				for (int segIdx: collisionSeg){
-					if (corridorSizeVec[segIdx] == 0){
-						corridorSizeVec[segIdx] = this->initR_;	
-					}
-					else{
-						corridorSizeVec[segIdx] *= this->fs_;	
-					}
-				}
-				this->trajSolver_->setCorridorConstraint(corridorSizeVec, 5); // TODO
-				this->trajSolver_->solve();
-				this->trajSolver_->getTrajectory(trajectory, delT);
-				valid = not this->checkCollisionTraj(trajectory, delT, collisionSeg);
-				if (valid){
-					break;
-				}
+			++countIter;
+			if (countIter > this->maxIter_){
+				break;
 			}
 		}
 		this->updateTrajVisMsg(trajectory);
@@ -265,6 +260,32 @@ namespace trajPlanner{
 			++count;
 		}
 		this->samplePointMsg_.markers = samplePointVec;
+
+		std::vector<visualization_msgs::Marker> waypointVec;
+		visualization_msgs::Marker waypoint;
+		int waypointCount = 0;
+		for (pose p: this->path_){
+			waypoint.header.frame_id = "map";
+			waypoint.header.stamp = ros::Time();
+			waypoint.ns = "waypoint";
+			waypoint.id = waypointCount;
+			waypoint.type = visualization_msgs::Marker::SPHERE;
+			waypoint.action = visualization_msgs::Marker::ADD;
+			waypoint.pose.position.x = p.x;
+			waypoint.pose.position.y = p.y;
+			waypoint.pose.position.z = p.z;
+			waypoint.lifetime = ros::Duration(0.5);
+			waypoint.scale.x = 0.3;
+			waypoint.scale.y = 0.3;
+			waypoint.scale.z = 0.3;
+			waypoint.color.a = 0.5;
+			waypoint.color.r = 0.7;
+			waypoint.color.g = 1.0;
+			waypoint.color.b = 0.0;
+			waypointVec.push_back(waypoint);
+			++waypointCount;
+		}
+		this->waypointMsg_.markers = waypointVec;
 	}
 
 	void polyTrajOctomap::publishTrajectory(){
@@ -281,6 +302,14 @@ namespace trajPlanner{
 		ros::Rate r (10);
 		while (ros::ok()){
 			this->samplePointVisPub_.publish(this->samplePointMsg_);
+			r.sleep();
+		}
+	}
+
+	void polyTrajOctomap::publishWaypoint(){
+		ros::Rate r (10);
+		while (ros::ok()){
+			this->waypointVisPub_.publish(this->waypointMsg_);
 			r.sleep();
 		}
 	}

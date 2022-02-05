@@ -26,6 +26,7 @@ namespace trajPlanner{
 		int degree_; // polynomial degree
 		double veld_; // desired velocity
 		int diffDegree_; // differential degree
+		int continuityDegree_; // continuity degree
 		double regularizationWeights_; // paramters regularization
 		double mapRes_;
 		int maxIter_;
@@ -40,16 +41,19 @@ namespace trajPlanner{
 		// visualization:
 		ros::Publisher trajVisPub_;
 		ros::Publisher samplePointVisPub_;
+		ros::Publisher waypointVisPub_;
 		nav_msgs::Path trajVisMsg_;
 		visualization_msgs::MarkerArray samplePointMsg_;
+		visualization_msgs::MarkerArray waypointMsg_;
 		
 	public:
 		std::thread trajVisWorker_;
 		std::thread samplePointVisWorker_;
+		std::thread waypointVisWorker_;
 
 		polyTrajOctomap();
 
-		polyTrajOctomap(const ros::NodeHandle& nh, std::vector<double> collisionBox, int degree, double veld, int diffDegree, double regularizationWeights, double mapRes, int maxIter, double initR, double fs);
+		polyTrajOctomap(const ros::NodeHandle& nh, std::vector<double> collisionBox, int degree, int diffDegree, int continuityDegree, double veld, double regularizationWeights, double mapRes, int maxIter, double initR, double fs);
 		
 		// update octomap
 		void updateMap();
@@ -60,6 +64,7 @@ namespace trajPlanner{
 
 		// update waypoint path
 		void updatePath(const std::vector<pose>& path);
+		void insertWaypoint(const std::set<int>& seg);
 
 		// CORE FUNCTION:
 		void makePlan(std::vector<pose>& trajectory, double delT=0.1);
@@ -84,6 +89,7 @@ namespace trajPlanner{
 		void updateTrajVisMsg(const std::vector<pose>& trajectory);
 		void publishTrajectory();
 		void publishSamplePoint();
+		void publishWaypoint();
 
 		// conversion helper:
 		void pose2Octomap(const pose& pTraj, octomap::point3d& p);

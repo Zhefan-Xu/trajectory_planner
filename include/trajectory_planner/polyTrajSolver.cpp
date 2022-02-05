@@ -9,8 +9,8 @@
 namespace trajPlanner{
 	polyTrajSolver::polyTrajSolver(){}
 
-	polyTrajSolver::polyTrajSolver(int polyDegree, int diffDegree, double desiredVel)
-	: polyDegree_(polyDegree), diffDegree_(diffDegree), desiredVel_(desiredVel){
+	polyTrajSolver::polyTrajSolver(int polyDegree, int diffDegree, int continuityDegree, double desiredVel)
+	: polyDegree_(polyDegree), diffDegree_(diffDegree), continuityDegree_(continuityDegree), desiredVel_(desiredVel){
 		this->xSolver_ = new OsqpEigen::Solver ();
 		this->ySolver_ = new OsqpEigen::Solver ();
 		this->zSolver_ = new OsqpEigen::Solver ();
@@ -33,12 +33,14 @@ namespace trajPlanner{
 		this->path_ = path;
 		int pathSegNum = this->path_.size()-1;
 		this->paramDim_ = (this->polyDegree_+1) * pathSegNum;
-		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1) + (pathSegNum-1) * (this->diffDegree_-2); // position, velocity, acceleration, jerk, snap
+		if (this->continuityDegree_ - 2 < 0){this->continuityDegree_ = 2;}
+		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2); // position, velocity, acceleration, jerk, snap
 		this->avgTimeAllocation();
 	}
 
 	void polyTrajSolver::avgTimeAllocation(){
 		double totalTime = 0;
+		this->desiredTime_.clear();
 		this->desiredTime_.push_back(totalTime);
 		double distance;
 		for (int i=0; i<this->path_.size(); ++i){
@@ -319,7 +321,7 @@ namespace trajPlanner{
 		// Higher order constraint: jerk snap
 		{
 			//=================K-1 Continuity in Jerk===================
-			if (this->diffDegree_ >= 3){
+			if (this->continuityDegree_ >= 3){
 				for (int i=0; i<this->path_.size()-2; ++i){
 					double leftTime = 1.0;
 					double rightTime = 0.0;
@@ -344,7 +346,7 @@ namespace trajPlanner{
 			}
 
 			//=================K-1 Conitnuity in Snap===================
-			if (this->diffDegree_ >= 4){
+			if (this->continuityDegree_ >= 4){
 				for (int i=0; i<this->path_.size()-2; ++i){
 					double leftTime = 1.0;
 					double rightTime = 0.0;
@@ -568,7 +570,7 @@ namespace trajPlanner{
 		// Higher order
 		{
 			// Jerk Bound: k-1 
-			if (this->diffDegree_ >= 3){
+			if (this->continuityDegree_ >= 3){
 				// ================K-1 Continuity===================
 				for (int i=0; i<this->path_.size()-2; ++i){
 					int pathIdx = i+1;
@@ -587,7 +589,7 @@ namespace trajPlanner{
 		
 
 			// Snap Bound: k-1
-			if (this->diffDegree_ >= 4){
+			if (this->continuityDegree_ >= 4){
 				// ================K-1 Continuity===================
 				for (int i=0; i<this->path_.size()-2; ++i){
 					int pathIdx = i+1;
@@ -726,7 +728,8 @@ namespace trajPlanner{
 			this->segToTimePose_.push_back(timeToPose);
 		}
 		int pathSegNum = this->path_.size()-1;
-		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1) + (pathSegNum-1) * (this->diffDegree_-2) + countCorridorConstraint;
+		if (this->continuityDegree_ - 2 < 0){this->continuityDegree_ = 2;}
+		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2) + countCorridorConstraint;; // position, velocity, acceleration, jerk, snap
 	}
 
 	trajPlanner::pose& polyTrajSolver::interpolatePose(const trajPlanner::pose& pStart, const trajPlanner::pose& pEnd, double startTime, double endTime, double t){

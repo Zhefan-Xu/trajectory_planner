@@ -27,7 +27,7 @@ int main(int argc, char** argv){
 
 	const int N = 3; // dimension
 	std::vector<double> collisionBox, envBox;
-	double delQ, dR, connectGoalRatio, mapRes, timeout, rNeighborhood, maxNeighbors, degree, veld, regularizationWeights, initR, fs, delT;;
+	double delQ, dR, connectGoalRatio, mapRes, timeout, rNeighborhood, maxNeighbors, degree, continuityDegree, veld, regularizationWeights, initR, fs, delT;;
 	int diffDegree, maxIter;
 	bool visRRT, visPath;
 	
@@ -44,8 +44,9 @@ int main(int argc, char** argv){
 
 	// Parameters for polynomial trajector planner:
 	nh.getParam("/polynomial_degree", degree);
-	nh.getParam("/desired_velocity", veld);
+	nh.getParam("/continuity_degree", continuityDegree);
 	nh.getParam("/differential_degree", diffDegree);
+	nh.getParam("/desired_velocity", veld);
 	nh.getParam("/regularization_weights", regularizationWeights);
 	nh.getParam("/sample_delta_time", delT);
 	nh.getParam("/maximum_iteration_num", maxIter);
@@ -56,7 +57,7 @@ int main(int argc, char** argv){
 	globalPlanner::rrtStarOctomap<N> rrtStarPlanner (nh, rNeighborhood, maxNeighbors, collisionBox, envBox, mapRes, delQ, dR, connectGoalRatio, timeout, visPath);
 	cout << rrtStarPlanner << endl;
 
-	trajPlanner::polyTrajOctomap polyPlanner (nh, collisionBox, degree, veld, diffDegree, regularizationWeights, mapRes, maxIter, initR, fs);
+	trajPlanner::polyTrajOctomap polyPlanner (nh, collisionBox, degree, diffDegree, continuityDegree, veld, regularizationWeights, mapRes, maxIter, initR, fs);
 	cout << polyPlanner << endl;
 
 	int countLoop = 0;
