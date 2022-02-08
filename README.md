@@ -23,6 +23,6 @@ make install
 ```
 
 TODO:
-1. Check others implementation
-2. get a stable version
+1. Check others implementation (implementation looks no big different but performance is wrong)
+2. get a stable version (both adding corridor and waypoints)
 3. Organize parameters
