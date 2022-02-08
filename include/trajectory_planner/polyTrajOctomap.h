@@ -65,9 +65,12 @@ namespace trajPlanner{
 		// update waypoint path
 		void updatePath(const std::vector<pose>& path);
 		void insertWaypoint(const std::set<int>& seg);
+		void adjustCorridorSize(const std::set<int>& collisionSeg, std::vector<double>& collisionVec);
 
 		// CORE FUNCTION:
 		void makePlan(std::vector<pose>& trajectory, double delT=0.1);
+		void makePlanAddingWaypoint(std::vector<pose>& trajectory, double delT); // adding point for collision avoidance
+		void makePlanCorridorConstraint(std::vector<pose>& trajectory, double delT); // adding corridor constraint for collision avoidance
 
 		// collision checking
 		bool checkCollision(const octomap::point3d& p);

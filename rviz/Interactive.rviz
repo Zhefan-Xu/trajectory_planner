@@ -79,13 +79,13 @@ Visualization Manager:
       Voxel Coloring: Z-Axis
       Voxel Rendering: Free Voxels
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /rrt_planned_path
       Name: MarkerArray
       Namespaces:
-        rrt_path: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /rrt_vis_array
@@ -171,7 +171,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 16.565298080444336
+      Distance: 34.55637741088867
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -179,17 +179,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -1.1198755502700806
-        Y: -5.612678527832031
-        Z: -1.3540229797363281
+        X: -2.770401954650879
+        Y: -9.126315116882324
+        Z: -1.3504247665405273
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5597963333129883
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 3.111309289932251
+      Yaw: 1.7144912481307983
     Saved: ~
 Window Geometry:
   Displays:

@@ -29,6 +29,7 @@ namespace trajPlanner{
 		int paramDim_; // dimension of parameter vector
 		int constraintNum_; // number of constraints
 		double desiredVel_;
+		bool init_;
 		
 		std::vector<trajPlanner::pose> path_;
 		std::vector<double> desiredTime_; // desired time knots based on velocity 
@@ -68,6 +69,7 @@ namespace trajPlanner{
 
 		// set up the optimzation problem
 		void setUpProblem();
+		void updateProblem(); // update constraint
 
 		// construct coefficient matrix for second order of objective
 		void constructP(Eigen::SparseMatrix<double>& P);

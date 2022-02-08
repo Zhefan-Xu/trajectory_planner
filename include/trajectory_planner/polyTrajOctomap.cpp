@@ -10,6 +10,10 @@ namespace trajPlanner{
 
 	polyTrajOctomap::polyTrajOctomap(const ros::NodeHandle& nh, std::vector<double> collisionBox, int degree, int diffDegree, int continuityDegree, double veld, double regularizationWeights, double mapRes, int maxIter, double initR, double fs)
 	: nh_(nh), collisionBox_(collisionBox), degree_(degree), diffDegree_(diffDegree),  continuityDegree_(continuityDegree), veld_(veld), regularizationWeights_(regularizationWeights), mapRes_(mapRes), maxIter_(maxIter), initR_(initR), fs_(fs){
+		// load parameters:
+		
+
+
 		this->mapClient_ = this->nh_.serviceClient<octomap_msgs::GetOctomap>("/octomap_binary");
 		this->updateMap();
 
@@ -58,15 +62,29 @@ namespace trajPlanner{
 		}
 	}
 
+	void polyTrajOctomap::adjustCorridorSize(const std::set<int>& collisionSeg, std::vector<double>& corridorSizeVec){
+		for (int collisionIdx: collisionSeg){
+			corridorSizeVec[collisionIdx] = corridorSizeVec[collisionIdx] * this->fs_; 
+		}
+	}
+
 	void polyTrajOctomap::makePlan(std::vector<pose>& trajectory, double delT){
 		ros::Time startTime = ros::Time::now();
+		
+		// this->makePlanAddingWaypoint(trajectory, delT);
+		this->makePlanCorridorConstraint(trajectory, delT);
+
+		ros::Time endTime = ros::Time::now();
+		double dT = (endTime - startTime).toSec();
+		cout << "[Trajectory Planner INFO]: Time: " << dT << "s."<< endl;
+	}
+
+	void polyTrajOctomap::makePlanAddingWaypoint(std::vector<pose>& trajectory, double delT){	
 		if (this->path_.size() == 1){
 			trajectory = this->path_;
 			this->updateTrajVisMsg(trajectory);
 			return;
 		}
-		ros::Time currTime = ros::Time::now();
-		double dtNow;
 		this->trajSolver_ = this->initSolver();
 		int countIter = 0;
 		bool valid = false;
@@ -86,18 +104,58 @@ namespace trajPlanner{
 		}
 		this->updateTrajVisMsg(trajectory);
 		this->freeSolver();
-		ros::Time endTime = ros::Time::now();
-		double dT = (endTime - startTime).toSec();
+
 		if (valid){
 			cout << "[Trajectory Planner INFO]: Found valid trajectory!" << endl;	
 		}
 		else{
 			cout << "[Trajectory Planner INFO]: Not found. Return the best." << endl;	
 		}
-		
-		cout << "[Trajectory Planner INFO]: Time: " << dT << "s."<< endl;
 	}
 
+	void polyTrajOctomap::makePlanCorridorConstraint(std::vector<pose>& trajectory, double delT){
+		if (this->path_.size() == 1){
+			trajectory = this->path_;
+			this->updateTrajVisMsg(trajectory);
+			return;
+		}
+		this->trajSolver_ = this->initSolver();
+		this->trajSolver_->updatePath(this->path_);
+
+		double corridorSize = this->initR_;
+		std::vector<double> corridorSizeVec;
+		for (int i=0; i<this->path_.size()-1; ++i){
+			corridorSizeVec.push_back(corridorSize);
+		} 
+
+		double corridorRes = 1.0; // 1 corridor box per 1 second
+		int countIter = 0;
+		bool valid = false;
+		while (ros::ok() and not valid){
+			this->trajSolver_->setCorridorConstraint(corridorSizeVec, corridorRes);
+			this->trajSolver_->solve();
+			this->trajSolver_->getTrajectory(trajectory, delT);
+			std::set<int> collisionSeg;
+			valid  = not this->checkCollisionTraj(trajectory, delT, collisionSeg);
+			if (not valid){
+				this->adjustCorridorSize(collisionSeg, corridorSizeVec);
+			}
+			++countIter;
+			if (countIter > this->maxIter_){
+				break;
+			}
+		}
+
+		this->updateTrajVisMsg(trajectory);
+		this->freeSolver();
+
+		if (valid){
+			cout << "[Trajectory Planner INFO]: Found valid trajectory!" << endl;	
+		}
+		else{
+			cout << "[Trajectory Planner INFO]: Not found. Return the best." << endl;	
+		}
+	}
 
 	bool polyTrajOctomap::checkCollision(const octomap::point3d& p){
 		double xmin, xmax, ymin, ymax, zmin, zmax; // bounding box for collision checking

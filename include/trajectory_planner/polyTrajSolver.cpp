@@ -26,6 +26,8 @@ namespace trajPlanner{
 
 		// Corridor constraint (default: false)
 		this->corridorConstraint_ = false;
+
+		this->init_ = false;
 	}
 	
 
@@ -112,6 +114,23 @@ namespace trajPlanner{
     	if(!this->zSolver_->data()->setLowerBound(lz)) return;
     	if(!this->zSolver_->data()->setUpperBound(uz)) return;
 		if(!this->zSolver_->initSolver()) return;
+
+		this->init_ = true;
+	}
+
+	void polyTrajSolver::updateProblem(){
+		Eigen::VectorXd lx, ly, lz; // lower bound
+		Eigen::VectorXd ux, uy, uz; // uppper bound
+		this->constructBound(lx, ly, lz, ux, uy, uz);
+
+		// x solver
+		this->xSolver_->updateBounds(lx, ux);
+
+		// y solver
+		this->ySolver_->updateBounds(ly, uy);
+
+		// z solver
+		this->zSolver_->updateBounds(lz, uz);
 	}
 
 	
@@ -637,7 +656,12 @@ namespace trajPlanner{
 
 
 	void polyTrajSolver::solve(){
-		this->setUpProblem();	
+		if (not this->init_){
+			this->setUpProblem();
+		}	
+		else{
+			this->updateProblem();
+		}
 
 		this->xWorker_ = std::thread(&polyTrajSolver::solveX, this);
 		this->yWorker_ = std::thread(&polyTrajSolver::solveY, this);
