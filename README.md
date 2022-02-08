@@ -23,6 +23,7 @@ make install
 ```
 
 TODO:
-1. Check others implementation (implementation looks no big different but performance is wrong)
-2. get a stable version (both adding corridor and waypoints)
-3. Organize parameters
+1. Trajectory moving visualization
+2. Include Piecewise Linear trajectory when fail happens
+3. Paper review and code understanding
+4. multiprocessing
