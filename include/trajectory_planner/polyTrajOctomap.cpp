@@ -470,7 +470,7 @@ namespace trajPlanner{
 
 	const geometry_msgs::PoseStamped& polyTrajOctomap::getPose(double t){
 		if (t > this->getDuration()){
-			std::cerr << "[Trajectory Planner INFO]: ERROR! Time is greater than duration!";
+			std::cerr << "[Trajectory Planner INFO]: ERROR! Time is greater than duration!" << endl;
 		}
 		static geometry_msgs::PoseStamped ps;
 		trajPlanner::pose p = this->trajSolver_->getPose(t);

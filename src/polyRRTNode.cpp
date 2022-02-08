@@ -104,6 +104,9 @@ int main(int argc, char** argv){
 		while (dt <= duration){
 			currTime = ros::Time::now();
 			dt = (currTime - startTime).toSec();
+			if (dt > duration){
+				break;
+			}
 			geometry_msgs::PoseStamped p = polyPlanner.getPose(dt);
 			posePub.publish(p);
 			r.sleep();
