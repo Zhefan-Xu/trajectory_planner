@@ -24,6 +24,7 @@ make install
 
 TODO:
 1. Trajectory moving visualization
-2. Include Piecewise Linear trajectory when fail happens
-3. Paper review and code understanding
-4. multiprocessing
+2. Print function
+3. Include Piecewise Linear trajectory when fail happens
+4. Paper review and code understanding
+5. multiprocessing
