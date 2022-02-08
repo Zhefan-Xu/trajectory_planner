@@ -57,7 +57,7 @@ int main(int argc, char** argv){
 	globalPlanner::rrtOctomap<N> rrtplanner (nh, collisionBox, envBox, mapRes, delQ, dR, connectGoalRatio, timeout, visRRT, visPath);
 	cout << rrtplanner << endl;
 
-	trajPlanner::polyTrajOctomap polyPlanner (nh, collisionBox, degree, diffDegree, continuityDegree, veld, regularizationWeights, mapRes, maxIter, initR, fs);
+	trajPlanner::polyTrajOctomap polyPlanner (nh);
 	cout << polyPlanner << endl;
 
 	int countLoop = 0;
@@ -100,9 +100,10 @@ int main(int argc, char** argv){
 		trajPlanner::convertPointPlan(plan, path);
 
 		// generate trajectory:
-		std::vector<trajPlanner::pose> trajectory;
 		polyPlanner.updatePath(path);
-		polyPlanner.makePlan(trajectory, delT);
+		polyPlanner.makePlan();
+		double duration = polyPlanner.getDuration();
+		cout << "[Planner Node]: Duration: " << duration << "s." << endl;
 
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;

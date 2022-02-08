@@ -24,14 +24,15 @@ max_num_neighbors: 10
 
 
 # # polynomial trajectory
+mode: True # True: adding waypoint, False: corridor constraint 
 polynomial_degree: 7
 differential_degree: 4 # 3: jerk 4: snap
 continuity_degree: 4 # second order continuous
 desired_velocity: 1 # m/s
-regularization_weights: 1
+maximum_iteration_num: 20
 sample_delta_time: 0.1
 
 # corridor:
-maximum_iteration_num: 20
 initial_radius: 0.5 # m
 shrinking_factor: 0.6
+corridor_res: 5.0 # how many corridor per second 

@@ -23,15 +23,18 @@ namespace trajPlanner{
 		ros::NodeHandle nh_;
 		ros::ServiceClient mapClient_; // call octomap server
 
-		int degree_; // polynomial degree
-		double veld_; // desired velocity
+		int polyDegree_; // polynomial degree
+		double desiredVel_; // desired velocity
 		int diffDegree_; // differential degree
 		int continuityDegree_; // continuity degree
 		double regularizationWeights_; // paramters regularization
 		double mapRes_;
 		int maxIter_;
+		bool mode_; // collision avoidance mode. (True: adding waypoint, False: corridor constraint) 
+		double delT_;
 		double initR_;
 		double fs_; //factor of shrink
+		double corridorRes_;
 
 		polyTrajSolver* trajSolver_; // trajectory solver
 		std::vector<pose> path_; // waypoint path
@@ -56,7 +59,7 @@ namespace trajPlanner{
 
 		polyTrajOctomap();
 
-		polyTrajOctomap(const ros::NodeHandle& nh, std::vector<double> collisionBox, int degree, int diffDegree, int continuityDegree, double veld, double regularizationWeights, double mapRes, int maxIter, double initR, double fs);
+		polyTrajOctomap(const ros::NodeHandle& nh);
 		
 		// update octomap
 		void updateMap();
@@ -66,13 +69,18 @@ namespace trajPlanner{
 		void freeSolver();
 
 		// update waypoint path
+		void updatePath(const nav_msgs::Path& path);
 		void updatePath(const std::vector<pose>& path);
 		void insertWaypoint(const std::set<int>& seg);
 		void adjustCorridorSize(const std::set<int>& collisionSeg, std::vector<double>& collisionVec);
 
 		// CORE FUNCTION:
+		void makePlan(); // no return. Get trajectory by this object
+		void makePlan(nav_msgs::Path& trajectory, double delT=0.1);
 		void makePlan(std::vector<pose>& trajectory, double delT=0.1);
+		void makePlanAddingWaypoint();
 		void makePlanAddingWaypoint(std::vector<pose>& trajectory, double delT); // adding point for collision avoidance
+		void makePlanCorridorConstraint();
 		void makePlanCorridorConstraint(std::vector<pose>& trajectory, double delT); // adding corridor constraint for collision avoidance
 
 		// collision checking
@@ -84,6 +92,9 @@ namespace trajPlanner{
 		bool checkCollisionTraj(const std::vector<pose>& trajectory, std::vector<int>& collisionIdx);
 		bool checkCollisionTraj(const std::vector<pose>& trajectory, double delT, std::set<int>& collisionSeg);
 
+		// get poses at specific time:
+		const geometry_msgs::PoseStamped& getPose(double t); 
+		double getDuration();
 
 		double getDegree();
 		double getVelD();
@@ -101,6 +112,7 @@ namespace trajPlanner{
 
 		// conversion helper:
 		void pose2Octomap(const pose& pTraj, octomap::point3d& p);
+		void trajMsgConverter(const std::vector<trajPlanner::pose>& trajectoryTemp, nav_msgs::Path& trajectory);
 	};
 
 	std::ostream &operator<<(std::ostream &os, polyTrajOctomap& polyPlanner){

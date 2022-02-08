@@ -14,9 +14,6 @@ namespace trajPlanner{
 		this->xSolver_ = new OsqpEigen::Solver ();
 		this->ySolver_ = new OsqpEigen::Solver ();
 		this->zSolver_ = new OsqpEigen::Solver ();
-		// this->xSolver_->settings()->setMaxIteration(10000);
-		// this->ySolver_->settings()->setMaxIteration(10000);
-		// this->zSolver_->settings()->setMaxIteration(10000);
 
 		// Soft constraint for waypoint (default: fasle)
 		this->softConstraint_ = false;
@@ -38,6 +35,7 @@ namespace trajPlanner{
 		if (this->continuityDegree_ - 2 < 0){this->continuityDegree_ = 2;}
 		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2); // position, velocity, acceleration, jerk, snap
 		this->avgTimeAllocation();
+		this->init_ = false;
 	}
 
 	void polyTrajSolver::avgTimeAllocation(){
@@ -63,7 +61,7 @@ namespace trajPlanner{
 		Eigen::VectorXd q;
 		this->constructQ(q); // gradient vector (first order term)
 
-		Eigen::SparseMatrix<double> A; // Equality and inqualit matrix
+		Eigen::SparseMatrix<double> A; // Equality and inquality matrix
 		this->constructA(A);
 
 		Eigen::VectorXd lx, ly, lz; // lower bound

@@ -7,7 +7,6 @@ Panels:
         - /Global Options1
         - /Status1
         - /OccupancyGrid1
-        - /MarkerArray1
       Splitter Ratio: 0.5
     Tree Height: 839
   - Class: rviz/Selection
@@ -79,13 +78,13 @@ Visualization Manager:
       Voxel Coloring: Z-Axis
       Voxel Rendering: Free Voxels
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /rrt_planned_path
       Name: MarkerArray
       Namespaces:
-        rrt_path: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /rrt_vis_array
@@ -110,6 +109,14 @@ Visualization Manager:
         waypoint: true
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /corridor
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -143,14 +150,6 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Show Trail: false
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /corridor
-      Name: MarkerArray
-      Namespaces:
-        corridor: true
-      Queue Size: 100
-      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -179,7 +178,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 37.734737396240234
+      Distance: 46.526641845703125
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -197,7 +196,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 3.520848035812378
+      Yaw: 4.764033794403076
     Saved: ~
 Window Geometry:
   Displays:
