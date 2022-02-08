@@ -113,6 +113,9 @@ namespace trajPlanner{
 
 		// get time knot
 		std::vector<double>& getTimeKnot();
+
+		//get corridor for visualization:
+		void getCorridor(std::vector<std::unordered_map<double, trajPlanner::pose>>& segToTimePose, std::vector<double>& corridorSizeVec);
 	};
 }
 

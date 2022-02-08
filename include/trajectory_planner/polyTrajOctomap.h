@@ -42,14 +42,17 @@ namespace trajPlanner{
 		ros::Publisher trajVisPub_;
 		ros::Publisher samplePointVisPub_;
 		ros::Publisher waypointVisPub_;
+		ros::Publisher corridorVisPub_;
 		nav_msgs::Path trajVisMsg_;
 		visualization_msgs::MarkerArray samplePointMsg_;
 		visualization_msgs::MarkerArray waypointMsg_;
+		visualization_msgs::MarkerArray corridorMsg_;
 		
 	public:
 		std::thread trajVisWorker_;
 		std::thread samplePointVisWorker_;
 		std::thread waypointVisWorker_;
+		std::thread corridorVisWorker_;
 
 		polyTrajOctomap();
 
@@ -90,9 +93,11 @@ namespace trajPlanner{
 
 		// visualizaton:
 		void updateTrajVisMsg(const std::vector<pose>& trajectory);
+		void updateCorridorVisMsg(const std::vector<std::unordered_map<double, trajPlanner::pose>>& segToTimePose, const std::vector<double>& corridorSizeVec);
 		void publishTrajectory();
 		void publishSamplePoint();
 		void publishWaypoint();
+		void publishCorridor();
 
 		// conversion helper:
 		void pose2Octomap(const pose& pTraj, octomap::point3d& p);

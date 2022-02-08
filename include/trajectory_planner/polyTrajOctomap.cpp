@@ -21,9 +21,11 @@ namespace trajPlanner{
 		this->trajVisPub_= this->nh_.advertise<nav_msgs::Path>("/trajectory", 1);
 		this->samplePointVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("/trajectory_sp", 1);
 		this->waypointVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("/waypoint", 1);
+		this->corridorVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("/corridor", 1);
 		this->trajVisWorker_ = std::thread(&polyTrajOctomap::publishTrajectory, this);
 		this->samplePointVisWorker_ = std::thread(&polyTrajOctomap::publishSamplePoint, this);
 		this->waypointVisWorker_ = std::thread(&polyTrajOctomap::publishWaypoint, this);
+		this->corridorVisWorker_ = std::thread(&polyTrajOctomap::publishCorridor, this);
 	}
 
 	void polyTrajOctomap::updateMap(){
@@ -128,7 +130,7 @@ namespace trajPlanner{
 			corridorSizeVec.push_back(corridorSize);
 		} 
 
-		double corridorRes = 1.0; // 1 corridor box per 1 second
+		double corridorRes = 5.0; // 1 corridor box per 1 second
 		int countIter = 0;
 		bool valid = false;
 		while (ros::ok() and not valid){
@@ -147,6 +149,10 @@ namespace trajPlanner{
 		}
 
 		this->updateTrajVisMsg(trajectory);
+		std::vector<double> corridorSizeVecVis;
+		std::vector<std::unordered_map<double, trajPlanner::pose>> segToTimePoseVis;
+		this->trajSolver_->getCorridor(segToTimePoseVis, corridorSizeVecVis);
+		this->updateCorridorVisMsg(segToTimePoseVis, corridorSizeVecVis);
 		this->freeSolver();
 
 		if (valid){
@@ -346,6 +352,38 @@ namespace trajPlanner{
 		this->waypointMsg_.markers = waypointVec;
 	}
 
+	void polyTrajOctomap::updateCorridorVisMsg(const std::vector<std::unordered_map<double, trajPlanner::pose>>& segToTimePose, const std::vector<double>& corridorSizeVec){
+		std::vector<visualization_msgs::Marker> corridorVec;
+		visualization_msgs::Marker box;
+		int boxCount = 0;
+		for (int i=0; i<this->path_.size()-1; ++i){
+			std::unordered_map<double, trajPlanner::pose> timeToPose = segToTimePose[i];
+			for (auto itr: timeToPose){
+				trajPlanner::pose p = itr.second;
+				box.header.frame_id = "map";
+				box.header.stamp = ros::Time();
+				box.ns = "corridor";
+				box.id = boxCount;
+				box.type = visualization_msgs::Marker::CUBE;
+				box.action = visualization_msgs::Marker::ADD;
+				box.pose.position.x = p.x;
+				box.pose.position.y = p.y;
+				box.pose.position.z = p.z;
+				box.lifetime = ros::Duration(0.5);
+				box.scale.x = corridorSizeVec[i]*2;
+				box.scale.y = corridorSizeVec[i]*2;
+				box.scale.z = corridorSizeVec[i]*2;
+				box.color.a = 0.3;
+				box.color.r = 0.0;
+				box.color.g = 0.5;
+				box.color.b = 0.3;
+				corridorVec.push_back(box);
+				++boxCount;
+			}
+		}
+		this->corridorMsg_.markers = corridorVec;
+	}
+
 	void polyTrajOctomap::publishTrajectory(){
 		ros::Rate r (10);
 		while (ros::ok()){
@@ -368,6 +406,14 @@ namespace trajPlanner{
 		ros::Rate r (10);
 		while (ros::ok()){
 			this->waypointVisPub_.publish(this->waypointMsg_);
+			r.sleep();
+		}
+	}
+
+	void polyTrajOctomap::publishCorridor(){
+		ros::Rate r (10);
+		while (ros::ok()){
+			this->corridorVisPub_.publish(this->corridorMsg_);
 			r.sleep();
 		}
 	}

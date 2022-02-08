@@ -34,4 +34,4 @@ sample_delta_time: 0.1
 # corridor:
 maximum_iteration_num: 20
 initial_radius: 0.5 # m
-shrinking_factor: 0.95
+shrinking_factor: 0.6

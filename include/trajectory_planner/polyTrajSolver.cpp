@@ -744,11 +744,12 @@ namespace trajPlanner{
 			int numCorridor = (int) duration * this->corridorRes_;
 			double dt = (1.0)/numCorridor;
 			std::unordered_map<double, trajPlanner::pose> timeToPose;
-			for (double t=dt; t<=1.0-dt; t+=dt){
+			for (double t=0; t<=1.0; t+=dt){
 				trajPlanner::pose pMid = this->interpolatePose(pStart, pEnd, 0.0, 1.0, t);
 				timeToPose[t] = pMid;
 				++countCorridorConstraint;
 			}
+
 			this->segToTimePose_.push_back(timeToPose);
 		}
 		int pathSegNum = this->path_.size()-1;
@@ -818,4 +819,9 @@ namespace trajPlanner{
 	std::vector<double>& polyTrajSolver::getTimeKnot(){
 		return this->desiredTime_;
 	}	
+
+	void polyTrajSolver::getCorridor(std::vector<std::unordered_map<double, trajPlanner::pose>>& segToTimePose, std::vector<double>& corridorSizeVec){
+		segToTimePose = this->segToTimePose_;
+		corridorSizeVec = this->corridorSizeVec_;
+	}
 }
