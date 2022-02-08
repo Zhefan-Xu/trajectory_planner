@@ -28,7 +28,7 @@ mode: True # True: adding waypoint, False: corridor constraint
 polynomial_degree: 7
 differential_degree: 4 # 3: jerk 4: snap
 continuity_degree: 4 # second order continuous
-desired_velocity: 1 # m/s
+desired_velocity: 2.0 # m/s
 maximum_iteration_num: 20
 sample_delta_time: 0.1
 

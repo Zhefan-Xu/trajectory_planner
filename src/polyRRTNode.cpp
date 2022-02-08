@@ -23,6 +23,7 @@ int main(int argc, char** argv){
 
 	// subscriber for clicked start and goal:
 	ros::Subscriber clickedPointSub = nh.subscribe("/move_base_simple/goal", 1000, clickedPointCB);
+	ros::Publisher posePub = nh.advertise<geometry_msgs::PoseStamped>("/trajectory_pose", 1000);
 
 	
 	const int N = 3; // dimension
@@ -43,15 +44,6 @@ int main(int argc, char** argv){
 	nh.getParam("/vis_path", visPath);
 
 	// Parameters for polynomial trajector planner:
-	nh.getParam("/polynomial_degree", degree);
-	nh.getParam("/differential_degree", diffDegree);
-	nh.getParam("/continuity_degree", continuityDegree);
-	nh.getParam("/desired_velocity", veld);
-	nh.getParam("/regularization_weights", regularizationWeights);
-	nh.getParam("/sample_delta_time", delT);
-	nh.getParam("/maximum_iteration_num", maxIter);
-	nh.getParam("/initial_radius", initR);
-	nh.getParam("/shrinking_factor", fs);
 
 	
 	globalPlanner::rrtOctomap<N> rrtplanner (nh, collisionBox, envBox, mapRes, delQ, dR, connectGoalRatio, timeout, visRRT, visPath);
@@ -104,6 +96,18 @@ int main(int argc, char** argv){
 		polyPlanner.makePlan();
 		double duration = polyPlanner.getDuration();
 		cout << "[Planner Node]: Duration: " << duration << "s." << endl;
+
+		ros::Time startTime = ros::Time::now();
+		ros::Time currTime = ros::Time::now();
+		ros::Rate r(50);
+		double dt = (currTime - startTime).toSec();
+		while (dt <= duration){
+			currTime = ros::Time::now();
+			dt = (currTime - startTime).toSec();
+			geometry_msgs::PoseStamped p = polyPlanner.getPose(dt);
+			posePub.publish(p);
+			r.sleep();
+		}
 
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;

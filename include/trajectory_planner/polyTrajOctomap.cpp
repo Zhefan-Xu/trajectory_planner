@@ -478,6 +478,7 @@ namespace trajPlanner{
 		ps.pose.position.y = p.y;
 		ps.pose.position.z = p.z;
 		geometry_msgs::Quaternion quat = quaternion_from_rpy(0, 0, p.yaw);
+		ps.pose.orientation = quat;
 		ps.header.stamp = ros::Time();
 		ps.header.frame_id = "map";
 		return ps;

@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /OccupancyGrid1
+        - /Pose1
       Splitter Ratio: 0.5
     Tree Height: 839
   - Class: rviz/Selection
@@ -150,6 +151,22 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Show Trail: false
       Value: true
+    - Alpha: 1
+      Axes Length: 0.6299999952316284
+      Axes Radius: 0.20000000298023224
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Queue Size: 10
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Axes
+      Topic: /trajectory_pose
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -178,7 +195,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 46.526641845703125
+      Distance: 26.329044342041016
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -194,9 +211,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 0.9597969055175781
       Target Frame: <Fixed Frame>
-      Yaw: 4.764033794403076
+      Yaw: 5.859039306640625
     Saved: ~
 Window Geometry:
   Displays:
