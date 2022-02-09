@@ -14,7 +14,7 @@ namespace trajPlanner{
 		if (not this->nh_.getParam("collision_box", this->collisionBox_)){
 			std::vector<double> defaultCollisionBox {1.0, 1.0, 0.6};
 			this->collisionBox_ = defaultCollisionBox;
-			cout << "[Trajectory Planner INFO]: No Collision Box Parameter. Use default collision Box: [1.0, 1.0, 0.6]" << endl;
+			cout << "[Trajectory Planner INFO]: No Collision Box Parameter. Use default collision Box: [1.0, 1.0, 0.6]." << endl;
 		}
 
 		// Polynomial Degree
@@ -492,16 +492,20 @@ namespace trajPlanner{
 		return this->polyDegree_;
 	}
 
-	double polyTrajOctomap::getVelD(){
-		return this->desiredVel_;
-	}
-
 	double polyTrajOctomap::getDiffDegree(){
 		return this->diffDegree_;
 	}
 
+	double polyTrajOctomap::getContinuityDegree(){
+		return this->continuityDegree_;
+	}
+
 	double polyTrajOctomap::getInitialRadius(){
 		return this->initR_;
+	}
+
+	double polyTrajOctomap::getDesiredVel(){
+		return this->desiredVel_;
 	}
 
 	double polyTrajOctomap::getShrinkFactor(){

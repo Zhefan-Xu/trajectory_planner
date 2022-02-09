@@ -97,8 +97,9 @@ namespace trajPlanner{
 		double getDuration();
 
 		double getDegree();
-		double getVelD();
 		double getDiffDegree();
+		double getContinuityDegree();
+		double getDesiredVel();
 		double getInitialRadius();
 		double getShrinkFactor();
 
@@ -120,7 +121,8 @@ namespace trajPlanner{
         os << "[Trajectory Planner INFO]: minimum snap polynomial trajectory planner with octomap\n";
         os << "[Polynomial Degree]: " << polyPlanner.getDegree() << "\n";
         os << "[Differential Degree]: " << polyPlanner.getDiffDegree() << "\n";
-        os << "[Desired Velocity]: " << polyPlanner.getVelD() << "\n";
+        os << "[Continuity Degree]: " << polyPlanner.getContinuityDegree() << "\n";
+        os << "[Desired Velocity]: " << polyPlanner.getDesiredVel() << "\n";
         os << "====================================================";
         return os;
     }
