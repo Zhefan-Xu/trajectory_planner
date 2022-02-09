@@ -140,6 +140,8 @@ add_library(polyTrajOctomap include/${PROJECT_NAME}/polyTrajOctomap.cpp)
 # add_executable(${PROJECT_NAME}_node src/trajectory_planner_node.cpp)
 add_executable(polyRRTNode src/polyRRTNode.cpp)
 add_executable(polyRRTStarNode src/polyRRTStarNode.cpp)
+add_executable(polyRRTGoalNode src/polyRRTGoalNode.cpp)
+add_executable(polyRRTStarGoalNode src/polyRRTGoalNode.cpp)
 add_executable(testEigen src/test/testEigen.cpp)
 
 ## Rename C++ executable without prefix
@@ -160,6 +162,8 @@ target_link_libraries(polyTrajSolver OsqpEigen::OsqpEigen)
 target_link_libraries(polyTrajOctomap polyTrajSolver)
 target_link_libraries(polyRRTNode ${catkin_LIBRARIES} polyTrajOctomap)
 target_link_libraries(polyRRTStarNode ${catkin_LIBRARIES} polyTrajOctomap)
+target_link_libraries(polyRRTGoalNode ${catkin_LIBRARIES} polyTrajOctomap)
+target_link_libraries(polyRRTStarGoalNode ${catkin_LIBRARIES} polyTrajOctomap)
 target_link_libraries(testEigen ${catkin_LIBRARIES} OsqpEigen::OsqpEigen)
 
 #############

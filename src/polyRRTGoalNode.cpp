@@ -7,6 +7,7 @@ using std::cout;
 using std::endl;
 
 
+bool firstTime = true;
 bool newMsg = false;
 std::vector<double> newPoint {0, 0, 1.0};
 void clickedPointCB(const geometry_msgs::PoseStamped::ConstPtr& cp){
@@ -44,7 +45,7 @@ void publishGoalVis(){
 }	
 
 int main(int argc, char** argv){
-	ros::init(argc, argv, "Poly_RRT_test_node");
+	ros::init(argc, argv, "Poly_RRT_goal_test_node");
 	ros::NodeHandle nh;
 
 	// subscriber for clicked start and goal:
@@ -62,17 +63,28 @@ int main(int argc, char** argv){
 	trajPlanner::polyTrajOctomap polyPlanner (nh);
 	cout << polyPlanner << endl;
 
+	std::vector<double> start;
+	std::vector<double> goal;
 	int countLoop = 0;
 	ros::Rate r(10);
 	while (ros::ok()){
 		cout << "----------------------------------------------------" << endl;
 		cout << "[Planner Node]: Request No. " << countLoop+1 << endl;
-		cout << "[Planner Node]: Wait for start point..." << endl;
+		if (firstTime){
+			cout << "[Planner Node]: Wait for start point..." << endl;
+		}
 		while (ros::ok()){
 			if (newMsg){
-				std::vector<double> start = newPoint;
+				if (firstTime){
+					start = newPoint;
+					firstTime = false;
+					newMsg = false;
+				}
+				else{
+					start = goal;
+				}
 				rrtplanner.updateStart(start);
-				newMsg = false;
+				
 				cout << "[Planner Node]: start point OK. (" << start[0] << " " << start[1] << " " << start[2] << ")" << endl;
 				
 				// visualization:
@@ -104,7 +116,7 @@ int main(int argc, char** argv){
 		cout << "[Planner Node]: Wait for goal point..." << endl;
 		while (ros::ok()){
 			if (newMsg){
-				std::vector<double> goal = newPoint;
+				goal = newPoint;
 				rrtplanner.updateGoal(goal);
 				newMsg = false;
 				cout << "[Planner Node]: goal point OK. (" << goal[0] << " " << goal[1] << " " << goal[2] << ")" << endl;
@@ -150,16 +162,20 @@ int main(int argc, char** argv){
 		ros::Time currTime = ros::Time::now();
 		ros::Rate r(50);
 		double dt = (currTime - startTime).toSec();
+		geometry_msgs::PoseStamped p;
 		while (dt <= duration){
 			currTime = ros::Time::now();
 			dt = (currTime - startTime).toSec();
 			if (dt > duration){
 				break;
 			}
-			geometry_msgs::PoseStamped p = polyPlanner.getPose(dt);
+			p = polyPlanner.getPose(dt);
 			posePub.publish(p);
 			r.sleep();
 		}
+
+		// for next time start
+		goal[0] = p.pose.position.x; goal[1] = p.pose.position.y; goal[2] = p.pose.position.z;
 
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;

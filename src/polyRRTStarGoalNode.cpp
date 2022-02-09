@@ -7,6 +7,7 @@ using std::cout;
 using std::endl;
 
 
+bool firstTime = true;
 bool newMsg = false;
 std::vector<double> newPoint {0, 0, 1.0};
 void clickedPointCB(const geometry_msgs::PoseStamped::ConstPtr& cp){
@@ -44,7 +45,7 @@ void publishGoalVis(){
 }	
 
 int main(int argc, char** argv){
-	ros::init(argc, argv, "Poly_RRT_test_node");
+	ros::init(argc, argv, "Poly_RRT_goal_test_node");
 	ros::NodeHandle nh;
 
 	// subscriber for clicked start and goal:
@@ -56,23 +57,34 @@ int main(int argc, char** argv){
 	std::thread goalVisWorker_ = std::thread(publishGoalVis);
 	
 	const int N = 3; // dimension
-	globalPlanner::rrtOctomap<N> rrtplanner (nh);
+	globalPlanner::rrtStarOctomap<N> rrtStarPlanner (nh);
 	cout << rrtplanner << endl;
 
 	trajPlanner::polyTrajOctomap polyPlanner (nh);
 	cout << polyPlanner << endl;
 
+	std::vector<double> start;
+	std::vector<double> goal;
 	int countLoop = 0;
 	ros::Rate r(10);
 	while (ros::ok()){
 		cout << "----------------------------------------------------" << endl;
 		cout << "[Planner Node]: Request No. " << countLoop+1 << endl;
-		cout << "[Planner Node]: Wait for start point..." << endl;
+		if (firstTime){
+			cout << "[Planner Node]: Wait for start point..." << endl;
+		}
 		while (ros::ok()){
 			if (newMsg){
-				std::vector<double> start = newPoint;
-				rrtplanner.updateStart(start);
-				newMsg = false;
+				if (firstTime){
+					start = newPoint;
+					firstTime = false;
+					newMsg = false;
+				}
+				else{
+					start = goal;
+				}
+				rrtStarPlanner.updateStart(start);
+				
 				cout << "[Planner Node]: start point OK. (" << start[0] << " " << start[1] << " " << start[2] << ")" << endl;
 				
 				// visualization:
@@ -104,8 +116,8 @@ int main(int argc, char** argv){
 		cout << "[Planner Node]: Wait for goal point..." << endl;
 		while (ros::ok()){
 			if (newMsg){
-				std::vector<double> goal = newPoint;
-				rrtplanner.updateGoal(goal);
+				goal = newPoint;
+				rrtStarPlanner.updateGoal(goal);
 				newMsg = false;
 				cout << "[Planner Node]: goal point OK. (" << goal[0] << " " << goal[1] << " " << goal[2] << ")" << endl;
 				
@@ -136,7 +148,7 @@ int main(int argc, char** argv){
 
 		// Generate waypoint path
 		nav_msgs::Path path;
-		rrtplanner.makePlan(path);
+		rrtStarPlanner.makePlan(path);
 
 
 		// generate trajectory:
@@ -150,16 +162,20 @@ int main(int argc, char** argv){
 		ros::Time currTime = ros::Time::now();
 		ros::Rate r(50);
 		double dt = (currTime - startTime).toSec();
+		geometry_msgs::PoseStamped p;
 		while (dt <= duration){
 			currTime = ros::Time::now();
 			dt = (currTime - startTime).toSec();
 			if (dt > duration){
 				break;
 			}
-			geometry_msgs::PoseStamped p = polyPlanner.getPose(dt);
+			p = polyPlanner.getPose(dt);
 			posePub.publish(p);
 			r.sleep();
 		}
+
+		// for next time start
+		goal[0] = p.pose.position.x; goal[1] = p.pose.position.y; goal[2] = p.pose.position.z;
 
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;
