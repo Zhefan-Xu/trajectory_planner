@@ -64,6 +64,16 @@ namespace trajPlanner{
 
     }
 
+    double getYawDistance(const pose& p1, const pose& p2){
+        double yaw1 = p1.yaw;
+        double yaw2 = p2.yaw;
+        double delta = std::abs(yaw1 - yaw2);
+        if (delta > PI_const){
+            delta = 2 * PI_const - delta;
+        }
+        return delta;
+    }
+
     template <size_t N>
     void convertPointPlan(const std::vector<KDTree::Point<N>>& plan, std::vector<pose>& path){
         for (KDTree::Point<N> p: plan){

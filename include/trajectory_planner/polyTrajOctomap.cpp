@@ -1,7 +1,7 @@
 /*
-	file: polyTrajOctomap.cpp
+	File: polyTrajOctomap.cpp
 	-------------------------
-	function definition of minimum snap polynomial trajectory planner
+	Function definition of minimum snap polynomial trajectory planner
 */
 #include <trajectory_planner/polyTrajOctomap.h>
 

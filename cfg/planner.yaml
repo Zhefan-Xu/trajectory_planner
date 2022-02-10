@@ -29,6 +29,7 @@ polynomial_degree: 7
 differential_degree: 4 # 3: jerk 4: snap
 continuity_degree: 4 # second order continuous
 desired_velocity: 2.0 # m/s
+desired_angular_velocity: 0.5 # rad/s
 maximum_iteration_num: 20
 sample_delta_time: 0.1
 

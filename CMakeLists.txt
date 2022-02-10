@@ -128,6 +128,7 @@ include_directories(
 # )
 add_library(polyTrajSolver include/${PROJECT_NAME}/polyTrajSolver.cpp)
 add_library(polyTrajOctomap include/${PROJECT_NAME}/polyTrajOctomap.cpp)
+add_library(pwlTraj include/${PROJECT_NAME}/piecewiseLinearTraj.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
