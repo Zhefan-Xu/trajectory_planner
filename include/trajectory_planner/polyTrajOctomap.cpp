@@ -485,6 +485,9 @@ namespace trajPlanner{
 	}
 
 	double polyTrajOctomap::getDuration(){
+		if (this->path_.size() == 1){
+			return 0.0; // no duration
+		}
 		return this->trajSolver_->getTimeKnot().back();
 	}
 
