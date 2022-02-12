@@ -1,6 +1,6 @@
 # Robot:
 collision_box: [1.0, 1.0, 0.6]
-# collision_box: [0.4, 0.4, 0.4]
+# collision_box: [0.4, 0.4, 0.2]
 
 
 # Environment:

@@ -176,6 +176,9 @@ int main(int argc, char** argv){
 
 		// for next time start
 		goal[0] = p.pose.position.x; goal[1] = p.pose.position.y; goal[2] = p.pose.position.z;
+		if (goal[0] == 0 and goal[1] == 0 and goal[2] == 0){ // fix corner issue
+			firstTime = true;
+		}
 
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;
