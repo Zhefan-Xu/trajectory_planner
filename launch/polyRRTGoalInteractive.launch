@@ -4,7 +4,7 @@
 	<node pkg="trajectory_planner" type="polyRRTGoalNode" name="polyRRTGoalNode" output="screen" />
 
 	<!-- map -->
-	<arg name="map_location" default="$(find trajectory_planner)/map/maze.bt"/>
+	<arg name="map_location" default="$(find trajectory_planner)/map/field.bt"/>
 	<node pkg="octomap_server" type="octomap_server_node" name="octomap_server_node" args="$(arg map_location)" output="log" />
 	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find trajectory_planner)/rviz/Interactive.rviz"/>
 </launch>

@@ -1,3 +1,9 @@
+/*
+    File: utils.h
+    -----------------
+    Trajectory pose definition and miscs. 
+*/ 
+
 #ifndef TRAJECTORYPLANNERUTILS_H
 #define TRAJECTORYPLANNERUTILS_H
 #include <iomanip>
