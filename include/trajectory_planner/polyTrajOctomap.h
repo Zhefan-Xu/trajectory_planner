@@ -14,6 +14,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/Path.h>
 #include <trajectory_planner/polyTrajSolver.h>
+#include <trajectory_planner/piecewiseLinearTraj.h>
 #include <thread>
 #include <mutex>
 
@@ -35,8 +36,10 @@ namespace trajPlanner{
 		double initR_;
 		double fs_; //factor of shrink
 		double corridorRes_;
+		bool findValidTraj_; // find valid solution
 
 		polyTrajSolver* trajSolver_; // trajectory solver
+		pwlTraj* pwlTrajSolver_; // piecewise linear trajectory solver
 		std::vector<pose> path_; // waypoint path
 		std::vector<double> collisionBox_;
 		octomap::OcTree* map_;
@@ -67,6 +70,8 @@ namespace trajPlanner{
 		// initialize solver
 		polyTrajSolver*  initSolver();
 		void freeSolver();
+		pwlTraj* initPWLSolver();
+		void freePWLSolver();
 
 		// update waypoint path
 		void updatePath(const nav_msgs::Path& path);

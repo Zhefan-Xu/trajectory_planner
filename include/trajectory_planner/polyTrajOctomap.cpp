@@ -86,8 +86,10 @@ namespace trajPlanner{
 				cout << "[Trajectory Planenr INFO]: No Corridor Resolution Parameter. Use default: 5.0." << endl;
 			}
 		}
+		this->findValidTraj_ = false;
 
 		this->trajSolver_ = NULL;
+		this->pwlTrajSolver_ = NULL;
 		this->mapClient_ = this->nh_.serviceClient<octomap_msgs::GetOctomap>("/octomap_binary");
 		this->updateMap();
 
@@ -126,6 +128,15 @@ namespace trajPlanner{
 	void polyTrajOctomap::freeSolver(){
 		delete this->trajSolver_;
 		this->trajSolver_ = NULL;
+	}
+
+	pwlTraj* polyTrajOctomap::initPWLSolver(){
+		return new pwlTraj (this->nh_);
+	}
+
+	void polyTrajOctomap::freePWLSolver(){
+		delete this->pwlTrajSolver_;
+		this->pwlTrajSolver_ = NULL;
 	}
 
 	void polyTrajOctomap::updatePath(const nav_msgs::Path& path){
@@ -191,10 +202,12 @@ namespace trajPlanner{
 	}
 
 	void polyTrajOctomap::makePlanAddingWaypoint(){
+		this->findValidTraj_ = false;
 		std::vector<trajPlanner::pose> trajectory;
 		if (this->path_.size() == 1){
 			trajectory = this->path_;
 			this->updateTrajVisMsg(trajectory);
+			this->findValidTraj_ = true;
 			return;
 		}
 
@@ -218,20 +231,30 @@ namespace trajPlanner{
 				break;
 			}
 		}
-		this->updateTrajVisMsg(trajectory);
-
+		
 		if (valid){
 			cout << "[Trajectory Planner INFO]: Found valid trajectory!" << endl;	
+			this->findValidTraj_ = true;
 		}
 		else{
 			cout << "[Trajectory Planner INFO]: Not found. Return the best. Please consider piecewise linear trajectory!!" << endl;	
+			if (this->pwlTrajSolver_ != NULL){
+				this->freePWLSolver();
+			}
+			this->pwlTrajSolver_ = this->initPWLSolver();
+			this->pwlTrajSolver_->updatePath(this->path_);
+			this->pwlTrajSolver_->makePlan(trajectory, this->delT_);
 		}
+
+		this->updateTrajVisMsg(trajectory);
 	}
 
 	void polyTrajOctomap::makePlanAddingWaypoint(std::vector<pose>& trajectory, double delT){	
+		this->findValidTraj_ = false;
 		if (this->path_.size() == 1){
 			trajectory = this->path_;
 			this->updateTrajVisMsg(trajectory);
+			this->findValidTraj_ = true;
 			return;
 		}
 
@@ -255,21 +278,32 @@ namespace trajPlanner{
 				break;
 			}
 		}
-		this->updateTrajVisMsg(trajectory);
+		
 
 		if (valid){
 			cout << "[Trajectory Planner INFO]: Found valid trajectory!" << endl;	
+			this->findValidTraj_ = true;
 		}
 		else{
 			cout << "[Trajectory Planner INFO]: Not found. Return the best. Please consider piecewise linear trajectory!!" << endl;	
+			if (this->pwlTrajSolver_ != NULL){
+				this->freePWLSolver();
+			}
+			this->pwlTrajSolver_ = this->initPWLSolver();
+			this->pwlTrajSolver_->updatePath(this->path_);
+			this->pwlTrajSolver_->makePlan(trajectory, delT);
 		}
+
+		this->updateTrajVisMsg(trajectory);
 	}
 
 	void polyTrajOctomap::makePlanCorridorConstraint(){
+		this->findValidTraj_ = false;
 		std::vector<trajPlanner::pose> trajectory;
 		if (this->path_.size() == 1){
 			trajectory = this->path_;
 			this->updateTrajVisMsg(trajectory);
+			this->findValidTraj_ = true;
 			return;
 		}
 
@@ -302,7 +336,6 @@ namespace trajPlanner{
 			}
 		}
 
-		this->updateTrajVisMsg(trajectory);
 		std::vector<double> corridorSizeVecVis;
 		std::vector<std::unordered_map<double, trajPlanner::pose>> segToTimePoseVis;
 		this->trajSolver_->getCorridor(segToTimePoseVis, corridorSizeVecVis);
@@ -310,16 +343,27 @@ namespace trajPlanner{
 
 		if (valid){
 			cout << "[Trajectory Planner INFO]: Found valid trajectory!" << endl;	
+			this->findValidTraj_ = true;
 		}
 		else{
 			cout << "[Trajectory Planner INFO]: Not found. Return the best. Please consider piecewise linear trajectory!!" << endl;	
+			if (this->pwlTrajSolver_ != NULL){
+				this->freePWLSolver();
+			}
+			this->pwlTrajSolver_ = this->initPWLSolver();
+			this->pwlTrajSolver_->updatePath(this->path_);
+			this->pwlTrajSolver_->makePlan(trajectory, this->delT_);
 		}
+
+		this->updateTrajVisMsg(trajectory);
 	}
 
 	void polyTrajOctomap::makePlanCorridorConstraint(std::vector<pose>& trajectory, double delT){
+		this->findValidTraj_ = false;
 		if (this->path_.size() == 1){
 			trajectory = this->path_;
 			this->updateTrajVisMsg(trajectory);
+			this->findValidTraj_ = true;
 			return;
 		}
 
@@ -352,7 +396,7 @@ namespace trajPlanner{
 			}
 		}
 
-		this->updateTrajVisMsg(trajectory);
+		
 		std::vector<double> corridorSizeVecVis;
 		std::vector<std::unordered_map<double, trajPlanner::pose>> segToTimePoseVis;
 		this->trajSolver_->getCorridor(segToTimePoseVis, corridorSizeVecVis);
@@ -360,10 +404,18 @@ namespace trajPlanner{
 
 		if (valid){
 			cout << "[Trajectory Planner INFO]: Found valid trajectory!" << endl;	
+			this->findValidTraj_ = true;
 		}
 		else{
 			cout << "[Trajectory Planner INFO]: Not found. Return the best. Please consider piecewise linear trajectory!!" << endl;	
+			if (this->pwlTrajSolver_ != NULL){
+				this->freePWLSolver();
+			}
+			this->pwlTrajSolver_ = this->initPWLSolver();
+			this->pwlTrajSolver_->updatePath(this->path_);
+			this->pwlTrajSolver_->makePlan(trajectory, delT);
 		}
+		this->updateTrajVisMsg(trajectory);
 	}
 
 	bool polyTrajOctomap::checkCollision(const octomap::point3d& p){
@@ -473,14 +525,19 @@ namespace trajPlanner{
 			std::cerr << "[Trajectory Planner INFO]: ERROR! Time is greater than duration!" << endl;
 		}
 		static geometry_msgs::PoseStamped ps;
-		trajPlanner::pose p = this->trajSolver_->getPose(t);
-		ps.pose.position.x = p.x;
-		ps.pose.position.y = p.y;
-		ps.pose.position.z = p.z;
-		geometry_msgs::Quaternion quat = quaternion_from_rpy(0, 0, p.yaw);
-		ps.pose.orientation = quat;
-		ps.header.stamp = ros::Time();
-		ps.header.frame_id = "map";
+		if (this->findValidTraj_){
+			trajPlanner::pose p = this->trajSolver_->getPose(t);
+			ps.pose.position.x = p.x;
+			ps.pose.position.y = p.y;
+			ps.pose.position.z = p.z;
+			geometry_msgs::Quaternion quat = quaternion_from_rpy(0, 0, p.yaw);
+			ps.pose.orientation = quat;
+			ps.header.stamp = ros::Time();
+			ps.header.frame_id = "map";
+		}
+		else{
+			ps = this->pwlTrajSolver_->getPose(t);
+		}
 		return ps;
 	}
 
@@ -488,7 +545,12 @@ namespace trajPlanner{
 		if (this->path_.size() == 1){
 			return 0.0; // no duration
 		}
-		return this->trajSolver_->getTimeKnot().back();
+		if (this->findValidTraj_){
+			return this->trajSolver_->getTimeKnot().back();
+		}
+		else{
+			return this->pwlTrajSolver_->getTimeKnot().back();
+		}
 	}
 
 	double polyTrajOctomap::getDegree(){

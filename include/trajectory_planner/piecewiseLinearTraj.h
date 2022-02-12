@@ -28,9 +28,11 @@ namespace trajPlanner{
 		void updatePath(const nav_msgs::Path& path);
 		void updatePath(const std::vector<trajPlanner::pose>& path);
 		void avgTimeAllocation();
-		void makePlan();
+		void makePlan(nav_msgs::Path& trajectory, double delT);
+		void makePlan(std::vector<trajPlanner::pose>& trajectory, double delT);
 
 		const geometry_msgs::PoseStamped& getPose(double t);
+		std::vector<double>& getTimeKnot();
 	};
 }
 

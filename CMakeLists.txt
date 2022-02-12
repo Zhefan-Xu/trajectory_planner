@@ -160,7 +160,7 @@ add_executable(testEigen src/test/testEigen.cpp)
 #   ${catkin_LIBRARIES}
 # )
 target_link_libraries(polyTrajSolver OsqpEigen::OsqpEigen)
-target_link_libraries(polyTrajOctomap polyTrajSolver)
+target_link_libraries(polyTrajOctomap polyTrajSolver pwlTraj)
 target_link_libraries(polyRRTNode ${catkin_LIBRARIES} polyTrajOctomap)
 target_link_libraries(polyRRTStarNode ${catkin_LIBRARIES} polyTrajOctomap)
 target_link_libraries(polyRRTGoalNode ${catkin_LIBRARIES} polyTrajOctomap)

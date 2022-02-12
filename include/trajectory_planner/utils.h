@@ -64,10 +64,10 @@ namespace trajPlanner{
 
     }
 
-    double getYawDistance(const pose& p1, const pose& p2){
-        double yaw1 = p1.yaw;
-        double yaw2 = p2.yaw;
-        double delta = std::abs(yaw1 - yaw2);
+    double getYawDistance(const pose& pStart, const pose& pTarget){
+        double yaw1 = pStart.yaw;
+        double yaw2 = pTarget.yaw;
+        double delta = std::abs(yaw2 - yaw1);
         if (delta > PI_const){
             delta = 2 * PI_const - delta;
         }
