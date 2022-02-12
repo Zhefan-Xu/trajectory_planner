@@ -10,7 +10,7 @@ cd osqp
 mkdir build && cd build
 cmake -G "Unix Makefiles" ..
 cmake --build .
-cmake --build . --target install
+sudo cmake --build . --target install
 
 # install OSQP-Eigen
 cd PATH/TO/YOUR/PREFERED/DIRECTORY
@@ -19,7 +19,7 @@ cd osqp-eigen
 mkdir build && cd build
 cmake ..
 make
-make install
+sudo make install
 ```
 
 TODO:
