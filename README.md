@@ -23,8 +23,6 @@ sudo make install
 ```
 
 TODO:
-1. Trajectory moving visualization
-2. Print function
-3. Include Piecewise Linear trajectory when fail happens
+1. Problem: for goal, when first time not avaiable will cause issue
 4. Paper review and code understanding
 5. multiprocessing
