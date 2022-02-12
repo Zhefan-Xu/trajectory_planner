@@ -26,3 +26,10 @@ TODO:
 1. Problem: for goal, when first time not avaiable will cause issue
 4. Paper review and code understanding
 5. multiprocessing
+
+
+
+https://user-images.githubusercontent.com/55560905/153730297-87751cc3-800e-4f72-ad39-93c32eec3f15.mp4
+
+
+
