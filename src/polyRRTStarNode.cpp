@@ -148,20 +148,20 @@ int main(int argc, char** argv){
 
 
 		// visualization
-		ros::Time startTime = ros::Time::now();
-		ros::Time currTime = ros::Time::now();
-		ros::Rate r(50);
-		double dt = (currTime - startTime).toSec();
-		while (dt <= duration){
-			currTime = ros::Time::now();
-			dt = (currTime - startTime).toSec();
-			if (dt > duration){
-				break;
-			}
-			geometry_msgs::PoseStamped p = polyPlanner.getPose(dt);
-			posePub.publish(p);
-			r.sleep();
-		}
+		// ros::Time startTime = ros::Time::now();
+		// ros::Time currTime = ros::Time::now();
+		// ros::Rate r(50);
+		// double dt = (currTime - startTime).toSec();
+		// while (dt <= duration){
+		// 	currTime = ros::Time::now();
+		// 	dt = (currTime - startTime).toSec();
+		// 	if (dt > duration){
+		// 		break;
+		// 	}
+		// 	geometry_msgs::PoseStamped p = polyPlanner.getPose(dt);
+		// 	posePub.publish(p);
+		// 	r.sleep();
+		// }
 
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;

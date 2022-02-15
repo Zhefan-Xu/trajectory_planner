@@ -429,9 +429,9 @@ namespace trajPlanner{
 		int zNum = (zmax - zmin)/this->mapRes_;
 
 		int xID, yID, zID;
-		for (int xID=0; xID<=xNum; ++xID){
-			for (int yID=0; yID<=yNum; ++yID){
-				for (int zID=0; zID<=zNum; ++zID){
+		for (xID=0; xID<=xNum; ++xID){
+			for (yID=0; yID<=yNum; ++yID){
+				for (zID=0; zID<=zNum; ++zID){
 					if (this->checkCollisionPoint(octomap::point3d(xmin+xID*this->mapRes_, ymin+yID*this->mapRes_, zmin+zID*this->mapRes_), true)){
 						return true;
 					}
