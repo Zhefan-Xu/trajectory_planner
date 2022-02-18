@@ -33,13 +33,13 @@ namespace trajPlanner{
         }
     };
 
-    std::ostream &operator<<(std::ostream &os, pose& pose){
+    inline std::ostream &operator<<(std::ostream &os, pose& pose){
         os << "pose: (" << pose.x << " " << pose.y << " " << pose.z << " " << pose.yaw << ")";
         return os;
     }
 
 
-    geometry_msgs::Quaternion quaternion_from_rpy(double roll, double pitch, double yaw)
+    inline geometry_msgs::Quaternion quaternion_from_rpy(double roll, double pitch, double yaw)
     {
     	if (yaw > PI_const){
     		yaw = yaw - 2*PI_const;
@@ -50,7 +50,7 @@ namespace trajPlanner{
         return quaternion;
     }
 
-    double rpy_from_quaternion(const geometry_msgs::Quaternion& quat){
+    inline double rpy_from_quaternion(const geometry_msgs::Quaternion& quat){
     	// return is [0, 2pi]
     	tf2::Quaternion tf_quat;
     	tf2::convert(quat, tf_quat);
@@ -59,18 +59,18 @@ namespace trajPlanner{
     	return yaw;
     }
 
-    void rpy_from_quaternion(const geometry_msgs::Quaternion& quat, double &roll, double &pitch, double &yaw){
+    inline void rpy_from_quaternion(const geometry_msgs::Quaternion& quat, double &roll, double &pitch, double &yaw){
     	tf2::Quaternion tf_quat;
     	tf2::convert(quat, tf_quat);
     	tf2::Matrix3x3(tf_quat).getRPY(roll, pitch, yaw);
     }
 
-    double getPoseDistance(const pose& p1, const pose& p2){
+    inline double getPoseDistance(const pose& p1, const pose& p2){
     	return sqrt(pow((p1.x - p2.x),2) + pow((p1.y - p2.y),2) + pow((p1.z - p2.z),2));	
 
     }
 
-    double getYawDistance(const pose& pStart, const pose& pTarget){
+    inline double getYawDistance(const pose& pStart, const pose& pTarget){
         double yaw1 = pStart.yaw;
         double yaw2 = pTarget.yaw;
         double delta = std::abs(yaw2 - yaw1);
@@ -81,7 +81,7 @@ namespace trajPlanner{
     }
 
     template <size_t N>
-    void convertPointPlan(const std::vector<KDTree::Point<N>>& plan, std::vector<pose>& path){
+    inline void convertPointPlan(const std::vector<KDTree::Point<N>>& plan, std::vector<pose>& path){
         for (KDTree::Point<N> p: plan){
             pose pPose (p[0], p[1], p[2]);
             path.push_back(pPose);
