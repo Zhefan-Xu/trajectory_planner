@@ -13,11 +13,12 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   octomap_ros
   global_planner
+  OsqpEigen
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(OsqpEigen REQUIRED)
+# find_package(OsqpEigen REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -108,7 +109,7 @@ catkin_package(
  INCLUDE_DIRS include
  LIBRARIES trajectory_planner
  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS system_lib
+ # DEPENDS system_lib
 )
 
 ###########
