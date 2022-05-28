@@ -101,8 +101,8 @@ namespace trajPlanner{
 		}
 	}
 
-	const geometry_msgs::PoseStamped& pwlTraj::getPose(double t){
-		static geometry_msgs::PoseStamped ps;
+	geometry_msgs::PoseStamped pwlTraj::getPose(double t){
+		geometry_msgs::PoseStamped ps;
 		for (int i=0; i<this->desiredTime_.size()-1; ++i){
 			double startTime = this->desiredTime_[i];
 			double endTime = this->desiredTime_[i+1];
@@ -161,7 +161,16 @@ namespace trajPlanner{
 		return ps;
 	}
 
-	std::vector<double>& pwlTraj::getTimeKnot(){
+	std::vector<double> pwlTraj::getTimeKnot(){
 		return this->desiredTime_;
+	}
+
+	double pwlTraj::getDuration(){
+		if (this->desiredTime_.size() != 0){
+			return this->desiredTime_[this->desiredTime_.size()-1];
+		}
+		else{
+			return -1.0;
+		}
 	}
 }
