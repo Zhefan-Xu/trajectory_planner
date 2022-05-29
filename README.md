@@ -96,4 +96,4 @@ Planner paramters can be edited in ```cfg/planner.yaml```. The paramter names ar
 - Richter, C., Bry, A. and Roy, N., 2016. Polynomial trajectory planning for aggressive quadrotor flight in dense indoor environments. In Robotics research (pp. 649-666). Springer, Cham.
 
 
-
+debug pwl
