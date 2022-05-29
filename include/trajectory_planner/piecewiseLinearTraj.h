@@ -25,9 +25,9 @@ namespace trajPlanner{
 
 	public:
 		pwlTraj(const ros::NodeHandle& nh);
-		void updatePath(const nav_msgs::Path& path);
-		void updatePath(const std::vector<trajPlanner::pose>& path);
-		void avgTimeAllocation();
+		void updatePath(const nav_msgs::Path& path, bool useYaw=false);
+		void updatePath(const std::vector<trajPlanner::pose>& path, bool useYaw=false);
+		void avgTimeAllocation(bool useYaw=false);
 		void makePlan(nav_msgs::Path& trajectory, double delT);
 		void makePlan(std::vector<trajPlanner::pose>& trajectory, double delT);
 
