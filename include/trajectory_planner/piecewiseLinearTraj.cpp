@@ -42,16 +42,33 @@ namespace trajPlanner{
 
 	void pwlTraj::updatePath(const std::vector<trajPlanner::pose>& path, bool useYaw){
 		this->path_ = path;
+		double yaw;
 		if (not useYaw){
 			for (int i=0; i<this->path_.size()-1; ++i){ // calculate each position's orientation (yaw). Last point does not need a orientation
 				trajPlanner::pose p1 = this->path_[i];
 				trajPlanner::pose p2 = this->path_[i+1];
-				double yaw = std::atan2(p2.y-p1.y, p2.x-p1.x);
+				yaw = std::atan2(p2.y-p1.y, p2.x-p1.x);
 
 				this->path_[i].yaw = yaw;
 			}
+			this->path_.back().yaw = yaw;
 		}
+
 		this->avgTimeAllocation(useYaw);
+	}
+
+	void pwlTraj::adjustHeading(const geometry_msgs::Quaternion& quat){
+		double yaw = trajPlanner::rpy_from_quaternion(quat);
+		this->adjustHeading(yaw);
+	}
+
+	void pwlTraj::adjustHeading(double yaw){// sometimes the heading is not correct
+		trajPlanner::pose p1 = this->path_[0];
+		trajPlanner::pose p (p1.x, p1.y, p1.z, yaw);
+		this->path_.insert(this->path_.begin(), 0, p);
+		this->path_.insert(this->path_.begin(), 0, p);
+		this->path_.insert(this->path_.begin(), 0, p); // we need three
+		this->avgTimeAllocation();
 	}
 
 	void pwlTraj::avgTimeAllocation(bool useYaw){

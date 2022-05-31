@@ -28,6 +28,9 @@ namespace trajPlanner{
 		void updatePath(const nav_msgs::Path& path, bool useYaw=false);
 		void updatePath(const std::vector<trajPlanner::pose>& path, bool useYaw=false);
 		void avgTimeAllocation(bool useYaw=false);
+		void adjustHeading(const geometry_msgs::Quaternion& quat);
+		void adjustHeading(double yaw);
+
 		void makePlan(nav_msgs::Path& trajectory, double delT);
 		void makePlan(std::vector<trajPlanner::pose>& trajectory, double delT);
 
