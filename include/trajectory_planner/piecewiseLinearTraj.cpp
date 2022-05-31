@@ -123,6 +123,18 @@ namespace trajPlanner{
 
 	geometry_msgs::PoseStamped pwlTraj::getPose(double t){
 		geometry_msgs::PoseStamped ps;
+		if (t >= this->getDuration()){
+			trajPlanner::pose lastP = this->path_[this->path_.size()-1];
+			ps.pose.position.x = lastP.x;
+			ps.pose.position.y = lastP.y;
+			ps.pose.position.z = lastP.z;
+			ps.pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, lastP.yaw);
+			ps.header.frame_id = "map";
+			ps.header.stamp = ros::Time::now();
+			return ps;
+		}
+
+
 		for (int i=0; i<this->desiredTime_.size()-1; ++i){
 			double startTime = this->desiredTime_[i];
 			double endTime = this->desiredTime_[i+1];

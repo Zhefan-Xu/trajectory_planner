@@ -1,4 +1,5 @@
 <launch>
+	<rosparam>/use_sim_time: 0</rosparam>
 	<!-- planner -->
 	<rosparam file="$(find trajectory_planner)/cfg/planner.yaml" />
 	<node pkg="trajectory_planner" type="polyRRTGoalNode" name="polyRRTGoalNode" output="screen" />
