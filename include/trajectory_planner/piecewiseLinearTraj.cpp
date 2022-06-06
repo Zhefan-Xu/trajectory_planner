@@ -57,19 +57,6 @@ namespace trajPlanner{
 		this->avgTimeAllocation(useYaw);
 	}
 
-	void pwlTraj::adjustHeading(const geometry_msgs::Quaternion& quat){
-		double yaw = trajPlanner::rpy_from_quaternion(quat);
-		this->adjustHeading(yaw);
-	}
-
-	void pwlTraj::adjustHeading(double yaw){// sometimes the heading is not correct
-		trajPlanner::pose p1 = this->path_[0];
-		trajPlanner::pose p (p1.x, p1.y, p1.z, yaw);
-		this->path_.insert(this->path_.begin(), 0, p);
-		this->path_.insert(this->path_.begin(), 0, p);
-		this->path_.insert(this->path_.begin(), 0, p); // we need three
-		this->avgTimeAllocation();
-	}
 
 	void pwlTraj::avgTimeAllocation(bool useYaw){
 		double totalTime = 0;
@@ -221,5 +208,21 @@ namespace trajPlanner{
 		else{
 			return -1.0;
 		}
+	}
+
+	geometry_msgs::PoseStamped pwlTraj::getFirstPose(){
+		double yaw = this->path_[0].yaw;
+		geometry_msgs::Quaternion quat = trajPlanner::quaternion_from_rpy(0, 0, yaw);
+		double x = this->path_[0].x;
+		double y = this->path_[0].y;
+		double z = this->path_[0].z;
+
+		geometry_msgs::PoseStamped ps;
+		ps.pose.position.x = x;
+		ps.pose.position.y = y;
+		ps.pose.position.z = z;
+		ps.pose.orientation = quat;
+
+		return ps;
 	}
 }
