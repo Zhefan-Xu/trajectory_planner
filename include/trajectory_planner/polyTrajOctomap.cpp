@@ -323,6 +323,7 @@ namespace trajPlanner{
 		bool valid = false;
 		while (ros::ok() and not valid){
 			this->trajSolver_->setCorridorConstraint(corridorSizeVec, this->corridorRes_);
+			// this->trajSolver_->setSoftConstraint(1.0, 1.0, 0);
 			this->trajSolver_->solve();
 			this->trajSolver_->getTrajectory(trajectory, this->delT_);
 			std::set<int> collisionSeg;
@@ -334,6 +335,13 @@ namespace trajPlanner{
 			if (countIter > this->maxIter_){
 				break;
 			}
+			// std::vector<double> corridorSizeVecVis;
+			// std::vector<std::unordered_map<double, trajPlanner::pose>> segToTimePoseVis;
+			// this->trajSolver_->getCorridor(segToTimePoseVis, corridorSizeVecVis);
+			// this->updateCorridorVisMsg(segToTimePoseVis, corridorSizeVecVis);
+			// this->updateTrajVisMsg(trajectory);
+			// std::cin.get();
+
 		}
 
 		std::vector<double> corridorSizeVecVis;
@@ -522,11 +530,11 @@ namespace trajPlanner{
 		return hasColllision;
 	}
 
-	const geometry_msgs::PoseStamped& polyTrajOctomap::getPose(double t){
+	geometry_msgs::PoseStamped polyTrajOctomap::getPose(double t){
 		if (t > this->getDuration()){
 			std::cerr << "[Trajectory Planner INFO]: ERROR! Time is greater than duration!" << endl;
 		}
-		static geometry_msgs::PoseStamped ps;
+		geometry_msgs::PoseStamped ps;
 		if (this->findValidTraj_){
 			trajPlanner::pose p = this->trajSolver_->getPose(t);
 			ps.pose.position.x = p.x;

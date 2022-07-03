@@ -103,10 +103,10 @@ namespace trajPlanner{
 		void setCorridorConstraint(const std::vector<double>& corridorSizeVec, double corridorRes);
 		void setCorridorConstraint(double corridorSize, double corridorRes);
 		void updateCorridorParam(); // helper function
-		trajPlanner::pose& interpolatePose(const trajPlanner::pose& pStart, const trajPlanner::pose& pEnd, double startTime, double endTime, double t); // helper function
+		trajPlanner::pose interpolatePose(const trajPlanner::pose& pStart, const trajPlanner::pose& pEnd, double startTime, double endTime, double t); // helper function
 
 		//  get pose at time t from trajectory
-		trajPlanner::pose& getPose(double t);
+		trajPlanner::pose getPose(double t);
 
 		// get the whole trajectory with given time interval
 		void getTrajectory(std::vector<trajPlanner::pose>& trajectory, double delT);

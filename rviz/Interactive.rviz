@@ -81,13 +81,13 @@ Visualization Manager:
       Voxel Coloring: Z-Axis
       Voxel Rendering: Free Voxels
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /rrt_planned_path
       Name: MarkerArray
       Namespaces:
-        {}
+        rrt_path: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /rrt_vis_array
@@ -113,13 +113,13 @@ Visualization Manager:
       Queue Size: 100
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /corridor
       Name: MarkerArray
       Namespaces:
-        {}
+        corridor: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -213,7 +213,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 28.12826919555664
+      Distance: 21.78253173828125
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -221,9 +221,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -1.3979547023773193
-        Y: 2.025895357131958
-        Z: -1.5198919773101807
+        X: -0.41626664996147156
+        Y: 0.9480587840080261
+        Z: -1.3216423988342285
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -231,7 +231,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 5.879033088684082
+      Yaw: 1.7208502292633057
     Saved: ~
 Window Geometry:
   Displays:

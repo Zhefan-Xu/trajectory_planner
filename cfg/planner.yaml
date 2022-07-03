@@ -5,7 +5,7 @@ collision_box: [0.8, 0.8, 0.4]
 
 
 # Environment:
-env_box: [-100, 100, -100, 100, 0, 1.5] # xmin, xmax, ymin, ymax, zmin, zmax
+env_box: [-100, 100, -100, 100, 0.5, 0.5] # xmin, xmax, ymin, ymax, zmin, zmax
 
 
 # Planner parameters:
@@ -14,6 +14,7 @@ rrt_incremental_distance: 0.3 #m
 rrt_connect_goal_ratio: 0.2
 goal_reach_distance: 0.4 #m
 map_resolution: 0.2 # this should be at least bigger or equal to the true map resolution
+ignore_unknown: true
 
 # Planner Visualization:
 vis_RRT: False # does not support for RRT*
@@ -25,10 +26,10 @@ max_num_neighbors: 10
 
 
 # # polynomial trajectory
-mode: True # True: adding waypoint, False: corridor constraint 
-polynomial_degree: 10
+mode: false # True: adding waypoint, False: corridor constraint 
+polynomial_degree: 7
 differential_degree: 4 # 3: jerk 4: snap
-continuity_degree: 4 # second order continuous
+continuity_degree: 3 # second order continuous
 desired_velocity: 3 # m/s
 desired_angular_velocity: 0.5 # rad/s
 maximum_iteration_num: 20

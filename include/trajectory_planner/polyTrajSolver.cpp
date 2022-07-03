@@ -139,38 +139,54 @@ namespace trajPlanner{
 		Eigen::MatrixXd m; // temp matrix for store
 		P.resize(this->paramDim_, this->paramDim_);
 
-		// assign parameters for each path segment
-		for (int i=0; i<this->path_.size()-1; ++i){
-			// go through each degree order from 0 to polynomial degree
-			for (int d=0; d<this->polyDegree_+1; ++d){
-				if (d < this->diffDegree_){
-					coeff(d) = 0;
-				}
-				else{
+
+		// construct the coefficient matrix
+		// each segment
+		for (int n=0; n<this->path_.size()-1; ++n){
+			for (int i=this->diffDegree_; i<this->polyDegree_+1; ++i){
+				for (int j=this->diffDegree_; j<this->polyDegree_+1; ++j){
 					double factor = 1.0;
-					for (int j=0; j<this->diffDegree_-1; ++j){
-						factor *= (d-j);
+					for (int d=0; d<this->diffDegree_; ++d){
+						factor *= (double) (i - this->diffDegree_) * (j - this->diffDegree_);
 					}
-					// each segment start from 0 to its duration
-					double startTime = 0.0;
-					double endTime = 1.0;
-					factor *= pow(endTime, d-this->diffDegree_+1) - pow(startTime, d-this->diffDegree_+1);
-					coeff(d) = factor;
-				}
-			}
-			m = coeff * coeff.transpose();
-
-
-			int startIdx = (this->polyDegree_+1) * i;
-			for (int row=0; row<m.rows(); ++row){
-				for (int col=0; col<m.cols(); ++col){
-					double value = m(row, col);
-					if (value != 0){
-						P.insert(startIdx+row, startIdx+col) = value;
-					}
+					factor /= (i + j -1);
+					P.insert(n*(this->polyDegree_+1) + i, n*(this->polyDegree_+1) + j) = factor;
 				}
 			}
 		}
+
+		// // assign parameters for each path segment
+		// for (int i=0; i<this->path_.size()-1; ++i){
+		// 	// go through each degree order from 0 to polynomial degree
+		// 	for (int d=0; d<this->polyDegree_+1; ++d){
+		// 		if (d < this->diffDegree_){
+		// 			coeff(d) = 0;
+		// 		}
+		// 		else{
+		// 			double factor = 1.0;
+		// 			for (int j=0; j<this->diffDegree_-1; ++j){
+		// 				factor *= (d-j);
+		// 			}
+		// 			// each segment start from 0 to its duration
+		// 			double startTime = 0.0;
+		// 			double endTime = 1.0;
+		// 			// factor *= pow(endTime, d-this->diffDegree_+1) - pow(startTime, d-this->diffDegree_+1);
+		// 			coeff(d) = factor;
+		// 		}
+		// 	}
+		// 	m = coeff * coeff.transpose();
+
+
+		// 	int startIdx = (this->polyDegree_+1) * i;
+		// 	for (int row=0; row<m.rows(); ++row){
+		// 		for (int col=0; col<m.cols(); ++col){
+		// 			double value = m(row, col);
+		// 			if (value != 0){
+		// 				P.insert(startIdx+row, startIdx+col) = value;
+		// 			}
+		// 		}
+		// 	}
+		// }
 	}
 
 	void polyTrajSolver::constructQ(Eigen::VectorXd& q){
@@ -738,8 +754,9 @@ namespace trajPlanner{
 			}
 			trajPlanner::pose pStart = this->path_[i];
 			trajPlanner::pose pEnd = this->path_[i+1]; 
-			double duration = this->desiredTime_[i+1] - this->desiredTime_[i];
-			int numCorridor = (int) duration * this->corridorRes_;
+			// double duration = this->desiredTime_[i+1] - this->desiredTime_[i];
+			// int numCorridor = (int) duration * this->corridorRes_;
+			int numCorridor = this->corridorRes_;
 			double dt = (1.0)/numCorridor;
 			std::unordered_map<double, trajPlanner::pose> timeToPose;
 			for (double t=0; t<=1.0; t+=dt){
@@ -755,8 +772,8 @@ namespace trajPlanner{
 		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2) + countCorridorConstraint;; // position, velocity, acceleration, jerk, snap
 	}
 
-	trajPlanner::pose& polyTrajSolver::interpolatePose(const trajPlanner::pose& pStart, const trajPlanner::pose& pEnd, double startTime, double endTime, double t){
-		static trajPlanner::pose pMid;
+	trajPlanner::pose polyTrajSolver::interpolatePose(const trajPlanner::pose& pStart, const trajPlanner::pose& pEnd, double startTime, double endTime, double t){
+		trajPlanner::pose pMid;
 		double xMid = pStart.x + (pEnd.x - pStart.x) * (t-startTime)/(endTime-startTime);
 		double yMid = pStart.y + (pEnd.y - pStart.y) * (t-startTime)/(endTime-startTime);
 		double zMid = pStart.z + (pEnd.z - pStart.z) * (t-startTime)/(endTime-startTime);
@@ -767,8 +784,8 @@ namespace trajPlanner{
 	}
 
 
-	trajPlanner::pose& polyTrajSolver::getPose(double t){
-		static trajPlanner::pose p;
+	trajPlanner::pose polyTrajSolver::getPose(double t){
+		trajPlanner::pose p;
 		for (int i=0; i<this->desiredTime_.size()-1; ++i){
 			double startTime = this->desiredTime_[i];
 			double endTime = this->desiredTime_[i+1];

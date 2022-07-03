@@ -98,7 +98,7 @@ namespace trajPlanner{
 		bool checkCollisionTraj(const std::vector<pose>& trajectory, double delT, std::set<int>& collisionSeg);
 
 		// get poses at specific time:
-		const geometry_msgs::PoseStamped& getPose(double t); 
+		geometry_msgs::PoseStamped getPose(double t); 
 		double getDuration();
 
 		double getDegree();
