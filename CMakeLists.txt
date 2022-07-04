@@ -150,6 +150,7 @@ add_executable(polyRRTStarNode src/polyRRTStarNode.cpp)
 add_executable(polyRRTGoalNode src/polyRRTGoalNode.cpp)
 add_executable(polyRRTStarGoalNode src/polyRRTGoalNode.cpp)
 add_executable(testEigen src/test/testEigen.cpp)
+add_executable(testTrajSolver src/test/testTrajSolver.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -173,6 +174,7 @@ target_link_libraries(polyRRTStarNode ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(polyRRTGoalNode ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(polyRRTStarGoalNode ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(testEigen ${catkin_LIBRARIES} OsqpEigen::OsqpEigen)
+target_link_libraries(testTrajSolver ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 
 #############

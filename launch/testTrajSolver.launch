@@ -1,0 +1,5 @@
+<launch>
+	<rosparam file="$(find trajectory_planner)/src/test/waypoint.yaml" />
+	<node pkg="trajectory_planner" type="testTrajSolver" name="testTrajSolver" output="screen"/>
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find trajectory_planner)/rviz/testSolver.rviz"/>
+</launch>

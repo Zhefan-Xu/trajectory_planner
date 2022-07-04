@@ -139,22 +139,30 @@ namespace trajPlanner{
 		Eigen::MatrixXd m; // temp matrix for store
 		P.resize(this->paramDim_, this->paramDim_);
 
+		//debug
+		Eigen::MatrixXd pDebug;
+		pDebug.resize(this->paramDim_, this->paramDim_);
+		pDebug.setZero();
+
 
 		// construct the coefficient matrix
 		// each segment
+		cout << "diff degree: " << this->diffDegree_ << endl;
 		for (int n=0; n<this->path_.size()-1; ++n){
 			for (int i=this->diffDegree_; i<this->polyDegree_+1; ++i){
 				for (int j=this->diffDegree_; j<this->polyDegree_+1; ++j){
 					double factor = 1.0;
 					for (int d=0; d<this->diffDegree_; ++d){
-						factor *= (double) (i - this->diffDegree_) * (j - this->diffDegree_);
+						factor *= (double) (i - d) * (j - d);
 					}
-					factor /= (i + j -1);
+					factor /= (double) (i + j -5);
 					P.insert(n*(this->polyDegree_+1) + i, n*(this->polyDegree_+1) + j) = factor;
+					pDebug(n*(this->polyDegree_+1) + i, n*(this->polyDegree_+1) + j) = factor;
 				}
 			}
 		}
-
+		cout << "p debug: " << endl;
+		cout << pDebug << endl;
 		// // assign parameters for each path segment
 		// for (int i=0; i<this->path_.size()-1; ++i){
 		// 	// go through each degree order from 0 to polynomial degree
