@@ -9,8 +9,8 @@ env_box: [-100, 100, -100, 100, 0.5, 0.5] # xmin, xmax, ymin, ymax, zmin, zmax
 
 
 # Planner parameters:
-timeout: 2.0 #s
-rrt_incremental_distance: 0.3 #m
+timeout: 0.1 #s
+rrt_incremental_distance: 1.0 #m
 rrt_connect_goal_ratio: 0.2
 goal_reach_distance: 0.4 #m
 map_resolution: 0.2 # this should be at least bigger or equal to the true map resolution
@@ -26,16 +26,16 @@ max_num_neighbors: 10
 
 
 # # polynomial trajectory
-mode: false # True: adding waypoint, False: corridor constraint 
-polynomial_degree: 7
-differential_degree: 4 # 3: jerk 4: snap
-continuity_degree: 3 # second order continuous
-desired_velocity: 3 # m/s
+mode: true # True: adding waypoint, False: corridor constraint 
+polynomial_degree: 10
+differential_degree: 3 # 3: jerk 4: snap
+continuity_degree: 2 # second order continuous
+desired_velocity: 1 # m/s
 desired_angular_velocity: 0.5 # rad/s
 maximum_iteration_num: 20
 sample_delta_time: 0.1
 
 # corridor constraint (only for mode=false):
-initial_radius: 0.5 # m
+initial_radius: 10 # m
 shrinking_factor: 0.6
-corridor_res: 5.0 # how many corridor per second 
+corridor_res: 10.0 # how many corridor per second 

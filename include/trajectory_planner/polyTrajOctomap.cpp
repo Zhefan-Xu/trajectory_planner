@@ -219,6 +219,7 @@ namespace trajPlanner{
 		bool valid = false;
 		while (ros::ok() and not valid){
 			this->trajSolver_->updatePath(this->path_);
+			this->trajSolver_->setSoftConstraint(1.0, 1.0, 0);
 			this->trajSolver_->solve();
 			this->trajSolver_->getTrajectory(trajectory, this->delT_);
 			std::set<int> collisionSeg;

@@ -76,6 +76,7 @@ int main(int argc, char** argv){
 
 	trajPlanner::polyTrajSolver solver (polyDegree, diffDegree, continuityDegree, desiredVel);
 	solver.updatePath(waypointPath);
+	solver.setCorridorConstraint(1.0, 10);
 	solver.solve();
 
 	std::vector<trajPlanner::pose> trajectory;
