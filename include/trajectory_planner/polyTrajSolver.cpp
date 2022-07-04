@@ -33,7 +33,7 @@ namespace trajPlanner{
 		int pathSegNum = this->path_.size()-1;
 		this->paramDim_ = (this->polyDegree_+1) * pathSegNum;
 		if (this->continuityDegree_ - 2 < 0){this->continuityDegree_ = 2;}
-		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2); // position, velocity, acceleration, jerk, snap
+		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2-1+pathSegNum-1) + (1+pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2); // position, velocity, acceleration, jerk, snap
 		this->avgTimeAllocation();
 		this->init_ = false;
 	}
@@ -291,17 +291,17 @@ namespace trajPlanner{
 				}
 				++countConstraint;
 
-				int endIdx = (this->path_.size()-2) * (this->polyDegree_+1);
-				double endTime = 1.0;
-				for (int d=0; d<this->polyDegree_+1; ++d){
-					if (d != 0){
-						double factor = d * pow(endTime, d-1);
-						if (factor != 0){
-							A.insert(countConstraint, endIdx+d) = factor;
-						}
-					}
-				}
-				++countConstraint;
+				// int endIdx = (this->path_.size()-2) * (this->polyDegree_+1);
+				// double endTime = 1.0;
+				// for (int d=0; d<this->polyDegree_+1; ++d){
+				// 	if (d != 0){
+				// 		double factor = d * pow(endTime, d-1);
+				// 		if (factor != 0){
+				// 			A.insert(countConstraint, endIdx+d) = factor;
+				// 		}
+				// 	}
+				// }
+				// ++countConstraint;
 			}
 
 
@@ -333,6 +333,25 @@ namespace trajPlanner{
 
 		// Acceleration Constraint:
 		{
+
+			// ================1 Endpoint (start)===============================
+			{
+				// Note velocity = 0
+				double startIdx = 0;
+				double startTime = 0.0;
+				for (int d=0; d<this->polyDegree_+1; ++d){ // start index
+					if (d > 1){
+						double factor = d * (d-1) * pow(startTime, d-2);
+						if (factor != 0){
+							A.insert(countConstraint, startIdx+d) = factor;
+						}
+					}
+				}
+				++countConstraint;
+
+			}
+
+
 			// ===============K-1 Continuity============================
 			{
 				for (int i=0; i<this->path_.size()-2; ++i){
@@ -438,6 +457,8 @@ namespace trajPlanner{
 		}
 		// cout << "Number of constraints: " << countConstraint << endl;
 		// cout << "Expected constraints: " << this->constraintNum_ << endl;
+		cout << "A debug:" << endl;
+		cout << A << endl;
 	}
 
 
@@ -555,16 +576,16 @@ namespace trajPlanner{
 				++countConstraint;
 				
 				// End vel = 0
-				lx(countConstraint) = 0.0;
-	 			ux(countConstraint) = 0.0;
+				// lx(countConstraint) = 0.0;
+	 		// 	ux(countConstraint) = 0.0;
 	 				
-	 			ly(countConstraint) = 0.0;
-	 			uy(countConstraint) = 0.0;
+	 		// 	ly(countConstraint) = 0.0;
+	 		// 	uy(countConstraint) = 0.0;
 
-	 			lz(countConstraint) = 0.0;
-	 			uz(countConstraint) = 0.0;		
+	 		// 	lz(countConstraint) = 0.0;
+	 		// 	uz(countConstraint) = 0.0;		
 			
-	 			++countConstraint;
+	 		// 	++countConstraint;
 			}
 
 
@@ -589,6 +610,22 @@ namespace trajPlanner{
 
 		// Accel Bound: k-1
 		{
+			// ==================1 Endpoint (start)=====================
+			{
+				// Start acc = 0
+				lx(countConstraint) = 0.0;
+	 			ux(countConstraint) = 0.0;
+	 				
+	 			ly(countConstraint) = 0.0;
+	 			uy(countConstraint) = 0.0;
+
+	 			lz(countConstraint) = 0.0;
+	 			uz(countConstraint) = 0.0;
+
+				++countConstraint;
+				
+			}
+
 			// ================K-1 Continuity===================
 			{
 				for (int i=0; i<this->path_.size()-2; ++i){
@@ -674,6 +711,11 @@ namespace trajPlanner{
 				}
 			}
 		}
+
+		cout << "lx debug: " << endl;
+		cout << lx << endl;
+		cout << "ux debug: " << endl;
+		cout << ux << endl;
 	}
 
 
@@ -777,7 +819,7 @@ namespace trajPlanner{
 		}
 		int pathSegNum = this->path_.size()-1;
 		if (this->continuityDegree_ - 2 < 0){this->continuityDegree_ = 2;}
-		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2) + countCorridorConstraint;; // position, velocity, acceleration, jerk, snap
+		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2-1+pathSegNum-1) + (1+pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2) + countCorridorConstraint;; // position, velocity, acceleration, jerk, snap
 	}
 
 	trajPlanner::pose polyTrajSolver::interpolatePose(const trajPlanner::pose& pStart, const trajPlanner::pose& pEnd, double startTime, double endTime, double t){
