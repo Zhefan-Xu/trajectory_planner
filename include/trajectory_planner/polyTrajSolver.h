@@ -66,6 +66,7 @@ namespace trajPlanner{
 
 		// Estimated the desired time of path (avg)
 		void avgTimeAllocation();
+		void equalTimeAllocation();
 
 		// set up the optimzation problem
 		void setUpProblem();

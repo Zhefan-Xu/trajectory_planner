@@ -32,6 +32,8 @@ namespace trajPlanner{
 		double mapRes_;
 		int maxIter_;
 		bool mode_; // collision avoidance mode. (True: adding waypoint, False: corridor constraint) 
+		bool softConstraint_;
+		double softConstraintRadius_;
 		double delT_;
 		double initR_;
 		double fs_; //factor of shrink

@@ -35,6 +35,7 @@ namespace trajPlanner{
 		if (this->continuityDegree_ - 2 < 0){this->continuityDegree_ = 2;}
 		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (1+pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2); // position, velocity, acceleration, jerk, snap
 		this->avgTimeAllocation();
+		// this->equalTimeAllocation();
 		this->init_ = false;
 	}
 
@@ -50,6 +51,22 @@ namespace trajPlanner{
 				totalTime += duration;
 				this->desiredTime_.push_back(totalTime);
 			}
+		}
+	}
+
+	void polyTrajSolver::equalTimeAllocation(){
+		this->desiredTime_.clear();
+		double totalDistance = 0.0;
+		for (int i=0; i<this->path_.size(); ++i){
+			if (i != 0){
+				double distance = trajPlanner::getPoseDistance(this->path_[i], this->path_[i-1]);
+				totalDistance += distance;
+			}
+		}
+
+		double totalTime = totalDistance / this->desiredVel_;
+		for (int i=0; i<this->path_.size(); ++i){
+			this->desiredTime_.push_back(i * totalTime/(this->path_.size()-1));
 		}
 	}
 
@@ -140,14 +157,14 @@ namespace trajPlanner{
 		P.resize(this->paramDim_, this->paramDim_);
 
 		//debug
-		Eigen::MatrixXd pDebug;
-		pDebug.resize(this->paramDim_, this->paramDim_);
-		pDebug.setZero();
+		// Eigen::MatrixXd pDebug;
+		// pDebug.resize(this->paramDim_, this->paramDim_);
+		// pDebug.setZero();
 
 
 		// construct the coefficient matrix
 		// each segment
-		cout << "diff degree: " << this->diffDegree_ << endl;
+		// cout << "diff degree: " << this->diffDegree_ << endl;
 		for (int n=0; n<this->path_.size()-1; ++n){
 			for (int i=this->diffDegree_; i<this->polyDegree_+1; ++i){
 				for (int j=this->diffDegree_; j<this->polyDegree_+1; ++j){
@@ -156,16 +173,16 @@ namespace trajPlanner{
 						factor *= (double) (i - d) * (j - d);
 					}
 					factor /= (double) (i + j -5);
-					double startTime = 0.0;
-					double endTime = this->desiredTime_[n+1];
-					factor *= (double) pow(endTime, i+j-5) - pow(startTime, i+j-5);
+					// double startTime = 0.0;
+					// double endTime = this->desiredTime_[n+1];
+					// factor *= (double) pow(endTime, i+j-5) - pow(startTime, i+j-5);
 					P.insert(n*(this->polyDegree_+1) + i, n*(this->polyDegree_+1) + j) = factor;
-					pDebug(n*(this->polyDegree_+1) + i, n*(this->polyDegree_+1) + j) = factor;
+					// pDebug(n*(this->polyDegree_+1) + i, n*(this->polyDegree_+1) + j) = factor;
 				}
 			}
 		}
-		cout << "p debug: " << endl;
-		cout << pDebug << endl;
+		// cout << "p debug: " << endl;
+		// cout << pDebug << endl;
 		// // assign parameters for each path segment
 		// for (int i=0; i<this->path_.size()-1; ++i){
 		// 	// go through each degree order from 0 to polynomial degree
@@ -369,10 +386,10 @@ namespace trajPlanner{
 							double leftFactor = d * (d-1) * pow(leftTime, d-2);
 							double rightFactor = d * (d-1) * pow(rightTime, d-2);
 							if (leftFactor != 0){
-								A.insert(countConstraint, leftStartIdx+d) = leftFactor;// * pow(dtRight,2);		
+								A.insert(countConstraint, leftStartIdx+d) = leftFactor * pow(dtRight,2);		
 							}
 							if (rightFactor != 0){
-								A.insert(countConstraint, rightStartIdx+d) = -rightFactor;// * pow(dtLeft, 2);		
+								A.insert(countConstraint, rightStartIdx+d) = -rightFactor * pow(dtLeft, 2);		
 							}
 						}
 					}
@@ -397,10 +414,10 @@ namespace trajPlanner{
 							double leftFactor = d * (d-1) * (d-2) * pow(leftTime, d-3);
 							double rightFactor = d * (d-1) * (d-2) * pow(rightTime, d-3);
 							if (leftFactor != 0){
-								A.insert(countConstraint, leftStartIdx+d) = leftFactor;// * pow(dtRight, 3);
+								A.insert(countConstraint, leftStartIdx+d) = leftFactor * pow(dtRight, 3);
 							}
 							if (rightFactor != 0){
-								A.insert(countConstraint, rightStartIdx+d) = -rightFactor;// * pow(dtLeft, 3);
+								A.insert(countConstraint, rightStartIdx+d) = -rightFactor * pow(dtLeft, 3);
 							}
 						}
 					}
@@ -422,10 +439,10 @@ namespace trajPlanner{
 							double leftFactor = d * (d-1) * (d-2) * (d-3) * pow(leftTime, d-4);
 							double rightFactor = d * (d-1) * (d-2) * (d-3) * pow(rightTime, d-4);
 							if (leftFactor != 0){
-								A.insert(countConstraint, leftStartIdx+d) = leftFactor; // * pow(dtRight, 4);
+								A.insert(countConstraint, leftStartIdx+d) = leftFactor * pow(dtRight, 4);
 							}
 							if (rightFactor != 0){
-								A.insert(countConstraint, rightStartIdx+d) = -rightFactor; // * pow(dtLeft, 4);
+								A.insert(countConstraint, rightStartIdx+d) = -rightFactor * pow(dtLeft, 4);
 							}
 							
 						}
@@ -459,9 +476,9 @@ namespace trajPlanner{
 			}
 		}
 		// cout << "Number of constraints: " << countConstraint << endl;
-		// cout << "Expected constraints: " << this->constraintNum_ << endl;
-		cout << "A debug:" << endl;
-		cout << A << endl;
+		// // cout << "Expected constraints: " << this->constraintNum_ << endl;
+		// cout << "A debug:" << endl;
+		// cout << A << endl;
 	}
 
 
@@ -578,7 +595,7 @@ namespace trajPlanner{
 
 				++countConstraint;
 				
-				// End vel = 0
+				// // End vel = 0
 				lx(countConstraint) = 0.0;
 	 			ux(countConstraint) = 0.0;
 	 				
@@ -715,10 +732,10 @@ namespace trajPlanner{
 			}
 		}
 
-		cout << "lx debug: " << endl;
-		cout << lx << endl;
-		cout << "ux debug: " << endl;
-		cout << ux << endl;
+		// cout << "lx debug: " << endl;
+		// cout << lx << endl;
+		// cout << "ux debug: " << endl;
+		// cout << ux << endl;
 	}
 
 
@@ -740,18 +757,39 @@ namespace trajPlanner{
 	}
 
 	void polyTrajSolver::solveX(){
-		 if (this->xSolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
-		 this->xSol_ = this->xSolver_->getSolution();
+		if (this->xSolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
+		this->xSol_ = this->xSolver_->getSolution();
+		// cout << "x sol: " << this->xSol_ << endl;
+		for (int n=0; n<this->path_.size()-1; ++n){
+			for (int d=0; d<=this->polyDegree_; ++d){
+			 	this->xSol_(n*(this->polyDegree_+1) + d) /= pow((this->desiredTime_[n+1] - this->desiredTime_[n]), d);
+			}
+		}
+		// cout << "x sol: " << this->xSol_ << endl;
 	}
 
 	void polyTrajSolver::solveY(){
-		 if (this->ySolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
-		 this->ySol_ = this->ySolver_->getSolution();
+		if (this->ySolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
+		this->ySol_ = this->ySolver_->getSolution();
+		// cout << "y sol: " << this->ySol_ << endl;
+		for (int n=0; n<this->path_.size()-1; ++n){
+			for (int d=0; d<=this->polyDegree_; ++d){
+			 	this->ySol_(n*(this->polyDegree_+1) + d) /= pow((this->desiredTime_[n+1] - this->desiredTime_[n]), d);
+			}
+		}
+		 // cout << "y sol: " << this->ySol_ << endl;
 	}
 
 	void polyTrajSolver::solveZ(){
  		if (this->zSolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
  		this->zSol_ = this->zSolver_->getSolution();
+ 		// cout << "z sol: " << this->zSol_ << endl;
+		for (int n=0; n<this->path_.size()-1; ++n){
+			for (int d=0; d<=this->polyDegree_; ++d){
+			 	this->zSol_(n*(this->polyDegree_+1) + d) /= pow((this->desiredTime_[n+1] - this->desiredTime_[n]), d);
+			}
+		}
+		 // cout << "z sol: " << this->zSol_ << endl;
 	}
 
 	void polyTrajSolver::setSoftConstraint(double r){
@@ -807,9 +845,9 @@ namespace trajPlanner{
 			}
 			trajPlanner::pose pStart = this->path_[i];
 			trajPlanner::pose pEnd = this->path_[i+1]; 
-			// double duration = this->desiredTime_[i+1] - this->desiredTime_[i];
-			// int numCorridor = (int) duration * this->corridorRes_;
-			int numCorridor = this->corridorRes_;
+			double duration = this->desiredTime_[i+1] - this->desiredTime_[i];
+			int numCorridor = ceil(duration * this->corridorRes_);
+			// int numCorridor = this->corridorRes_;
 			double dt = (1.0)/numCorridor;
 			std::unordered_map<double, trajPlanner::pose> timeToPose;
 			for (double t=0; t<=1.0; t+=dt){
@@ -843,7 +881,7 @@ namespace trajPlanner{
 			double startTime = this->desiredTime_[i];
 			double endTime = this->desiredTime_[i+1];
 			if ((t >= startTime) and (t <= endTime)){
-				t = (double) (t-startTime)/(endTime - startTime);
+				t = (double) (t-startTime);///(endTime - startTime);
 				int coeffStartIdx = (this->polyDegree_+1) * i;
 				double x = 0; double y = 0; double z = 0; double yaw = 0;
 				for (int d=0; d<this->polyDegree_+1; ++d){

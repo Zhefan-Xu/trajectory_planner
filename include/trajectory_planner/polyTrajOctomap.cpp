@@ -86,6 +86,22 @@ namespace trajPlanner{
 				cout << "[Trajectory Planenr INFO]: No Corridor Resolution Parameter. Use default: 5.0." << endl;
 			}
 		}
+
+		// use soft constraint or not
+		if (not this->nh_.getParam("soft_constraint", this->softConstraint_)){
+			this->softConstraint_ = false;
+			cout << "[Trajectory Planner INFO]: No Soft Constraint Parameter. Use default: false." << endl;
+		} 
+
+		if (this->softConstraint_){
+			if (not this->nh_.getParam("constraint_radius", this->softConstraintRadius_)){
+				this->softConstraintRadius_ = 0.5;
+				cout << "[Trajectory Planner INFO]: No Soft Constraint Radius Parameter. Use default: 0.5 m." << endl;
+			}
+		}
+
+
+
 		this->findValidTraj_ = false;
 
 		this->trajSolver_ = NULL;
@@ -219,7 +235,9 @@ namespace trajPlanner{
 		bool valid = false;
 		while (ros::ok() and not valid){
 			this->trajSolver_->updatePath(this->path_);
-			this->trajSolver_->setSoftConstraint(1.0, 1.0, 0);
+			if (this->softConstraint_){
+				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);
+			}
 			this->trajSolver_->solve();
 			this->trajSolver_->getTrajectory(trajectory, this->delT_);
 			std::set<int> collisionSeg;
@@ -267,6 +285,9 @@ namespace trajPlanner{
 		bool valid = false;
 		while (ros::ok() and not valid){
 			this->trajSolver_->updatePath(this->path_);
+			if (this->softConstraint_){
+				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);
+			}
 			this->trajSolver_->solve();
 			this->trajSolver_->getTrajectory(trajectory, delT);
 			std::set<int> collisionSeg;
@@ -324,11 +345,14 @@ namespace trajPlanner{
 		bool valid = false;
 		while (ros::ok() and not valid){
 			this->trajSolver_->setCorridorConstraint(corridorSizeVec, this->corridorRes_);
-			// this->trajSolver_->setSoftConstraint(1.0, 1.0, 0);
+			if (this->softConstraint_){
+				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);
+			}
 			this->trajSolver_->solve();
 			this->trajSolver_->getTrajectory(trajectory, this->delT_);
 			std::set<int> collisionSeg;
 			valid  = not this->checkCollisionTraj(trajectory, this->delT_, collisionSeg);
+
 			if (not valid){
 				this->adjustCorridorSize(collisionSeg, corridorSizeVec);
 			}
@@ -392,6 +416,9 @@ namespace trajPlanner{
 		bool valid = false;
 		while (ros::ok() and not valid){
 			this->trajSolver_->setCorridorConstraint(corridorSizeVec, this->corridorRes_);
+			if (this->softConstraint_){
+				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);
+			}
 			this->trajSolver_->solve();
 			this->trajSolver_->getTrajectory(trajectory, delT);
 			std::set<int> collisionSeg;
@@ -441,7 +468,7 @@ namespace trajPlanner{
 		for (xID=0; xID<=xNum; ++xID){
 			for (yID=0; yID<=yNum; ++yID){
 				for (zID=0; zID<=zNum; ++zID){
-					if (this->checkCollisionPoint(octomap::point3d(xmin+xID*this->mapRes_, ymin+yID*this->mapRes_, zmin+zID*this->mapRes_), true)){
+					if (this->checkCollisionPoint(octomap::point3d(xmin+xID*this->mapRes_, ymin+yID*this->mapRes_, zmin+zID*this->mapRes_), false)){
 						return true;
 					}
 				}
