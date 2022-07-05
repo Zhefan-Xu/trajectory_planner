@@ -11,6 +11,7 @@
 #ifndef POLYTRAJSOLVER_H
 #define POLYTRAJSOLVER_H
 #include <trajectory_planner/utils.h>
+#include <geometry_msgs/Twist.h>
 #include <OsqpEigen/OsqpEigen.h>
 #include <thread>
 #include <mutex>
@@ -33,6 +34,8 @@ namespace trajPlanner{
 		
 		std::vector<trajPlanner::pose> path_;
 		std::vector<double> desiredTime_; // desired time knots based on velocity 
+		geometry_msgs::Twist initVel_;
+		geometry_msgs::Twist initAcc_;
 
 		OsqpEigen::Solver* xSolver_; // QP Solver
 		OsqpEigen::Solver* ySolver_; 
@@ -63,12 +66,18 @@ namespace trajPlanner{
 
 		// load or update path 
 		void updatePath(const std::vector<trajPlanner::pose>& path);
+		void updateInitVel(double vx, double vy, double vz);
+		void updateInitVel(const geometry_msgs::Twist& v);
+		void updateInitAcc(double ax, double ay, double az);
+		void updateInitAcc(const geometry_msgs::Twist& a);
+		void setDefaultInit();
 
 		// Estimated the desired time of path (avg)
 		void avgTimeAllocation();
 		void equalTimeAllocation();
 
 		// set up the optimzation problem
+		int getConstraintNum();
 		void setUpProblem();
 		void updateProblem(); // update constraint
 
@@ -93,6 +102,12 @@ namespace trajPlanner{
 		void solveX();
 		void solveY();
 		void solveZ();
+
+
+		// time allocation reevaluaton
+		void evalTrajectory();
+
+
 
 		// Settings
 		// soft constraint for waypoints

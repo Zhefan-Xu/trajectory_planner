@@ -40,6 +40,10 @@ namespace trajPlanner{
 		double corridorRes_;
 		bool findValidTraj_; // find valid solution
 
+		// initial condition
+		geometry_msgs::Twist initVel_;
+		geometry_msgs::Twist initAcc_;
+
 		polyTrajSolver* trajSolver_; // trajectory solver
 		pwlTraj* pwlTrajSolver_; // piecewise linear trajectory solver
 		std::vector<pose> path_; // waypoint path
@@ -80,6 +84,14 @@ namespace trajPlanner{
 		void updatePath(const std::vector<pose>& path);
 		void insertWaypoint(const std::set<int>& seg);
 		void adjustCorridorSize(const std::set<int>& collisionSeg, std::vector<double>& collisionVec);
+
+
+		// Initial condition
+		void updateInitVel(double vx, double vy, double vz);
+		void updateInitVel(const geometry_msgs::Twist& v);
+		void updateInitAcc(double ax, double ay, double az);
+		void updateInitAcc(const geometry_msgs::Twist& a);
+		void setDefaultInit();
 
 		// CORE FUNCTION:
 		void makePlan(); // no return. Get trajectory by this object

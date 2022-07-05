@@ -15,6 +15,8 @@ rrt_connect_goal_ratio: 0.2
 goal_reach_distance: 0.4 #m
 map_resolution: 0.2 # this should be at least bigger or equal to the true map resolution
 ignore_unknown: true
+max_shortcut_dist: 5.0
+
 
 # Planner Visualization:
 vis_RRT: False # does not support for RRT*
@@ -27,7 +29,7 @@ max_num_neighbors: 10
 
 # # polynomial trajectory
 mode: false # True: adding waypoint, False: corridor constraint 
-polynomial_degree: 7
+polynomial_degree: 10
 differential_degree: 4 # 3: jerk 4: snap
 continuity_degree: 3 # second order continuous
 desired_velocity: 1 # m/s

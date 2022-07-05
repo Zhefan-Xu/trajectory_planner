@@ -184,6 +184,38 @@ namespace trajPlanner{
 		}
 	}
 
+	void polyTrajOctomap::updateInitVel(double vx, double vy, double vz){
+		geometry_msgs::Twist v;
+		v.linear.x = vx;
+		v.linear.y = vy;
+		v.linear.z = vz;
+		this->updateInitVel(v);
+	}
+
+	void polyTrajOctomap::updateInitVel(const geometry_msgs::Twist& v){
+		this->initVel_ = v;
+	}
+
+	void polyTrajOctomap::updateInitAcc(double ax, double ay, double az){
+		geometry_msgs::Twist a;
+		a.linear.x = ax;
+		a.linear.y = ay;
+		a.linear.z = az;
+		this->updateInitAcc(a);
+	}
+
+
+	void polyTrajOctomap::updateInitAcc(const geometry_msgs::Twist& a){
+		this->initAcc_ = a;
+	}
+
+	void polyTrajOctomap::setDefaultInit(){
+		// initialize 
+		this->updateInitVel(0, 0, 0);
+		this->updateInitAcc(0, 0, 0); 
+	}
+
+
 	void polyTrajOctomap::makePlan(){
 		ros::Time startTime = ros::Time::now();
 		if (this->mode_ == true){
@@ -230,10 +262,13 @@ namespace trajPlanner{
 		if (this->trajSolver_ != NULL){
 			this->freeSolver();
 		}
+		this->setDefaultInit(); // vel acc
 		this->trajSolver_ = this->initSolver();
 		int countIter = 0;
 		bool valid = false;
 		while (ros::ok() and not valid){
+			this->trajSolver_->updateInitVel(this->initVel_);
+			this->trajSolver_->updateInitAcc(this->initAcc_);
 			this->trajSolver_->updatePath(this->path_);
 			if (this->softConstraint_){
 				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);
@@ -280,10 +315,14 @@ namespace trajPlanner{
 		if (this->trajSolver_ != NULL){
 			this->freeSolver();
 		}
+
+		this->setDefaultInit(); // vel acc
 		this->trajSolver_ = this->initSolver();
 		int countIter = 0;
 		bool valid = false;
 		while (ros::ok() and not valid){
+			this->trajSolver_->updateInitVel(this->initVel_);
+			this->trajSolver_->updateInitAcc(this->initAcc_);
 			this->trajSolver_->updatePath(this->path_);
 			if (this->softConstraint_){
 				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);
@@ -332,6 +371,8 @@ namespace trajPlanner{
 		if (this->trajSolver_ != NULL){
 			this->freeSolver();
 		}
+
+		this->setDefaultInit(); // vel acc
 		this->trajSolver_ = this->initSolver();
 		this->trajSolver_->updatePath(this->path_);
 
@@ -344,6 +385,8 @@ namespace trajPlanner{
 		int countIter = 0;
 		bool valid = false;
 		while (ros::ok() and not valid){
+			this->trajSolver_->updateInitVel(this->initVel_);
+			this->trajSolver_->updateInitAcc(this->initAcc_);
 			this->trajSolver_->setCorridorConstraint(corridorSizeVec, this->corridorRes_);
 			if (this->softConstraint_){
 				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);
@@ -403,6 +446,8 @@ namespace trajPlanner{
 		if (this->trajSolver_ != NULL){
 			this->freeSolver();
 		};
+
+		this->setDefaultInit(); // vel acc
 		this->trajSolver_ = this->initSolver();
 		this->trajSolver_->updatePath(this->path_);
 
@@ -415,6 +460,8 @@ namespace trajPlanner{
 		int countIter = 0;
 		bool valid = false;
 		while (ros::ok() and not valid){
+			this->trajSolver_->updateInitVel(this->initVel_);
+			this->trajSolver_->updateInitAcc(this->initAcc_);
 			this->trajSolver_->setCorridorConstraint(corridorSizeVec, this->corridorRes_);
 			if (this->softConstraint_){
 				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);

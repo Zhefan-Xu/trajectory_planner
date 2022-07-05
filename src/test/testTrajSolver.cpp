@@ -74,7 +74,13 @@ int main(int argc, char** argv){
 	int continuityDegree = 2;
 	double desiredVel = 1.0;
 
+	// initial condition
+	double vx = -1.0;
+	double vy = 0;
+	double vz = 0;
+
 	trajPlanner::polyTrajSolver solver (polyDegree, diffDegree, continuityDegree, desiredVel);
+	solver.updateInitVel(vx, vy, vz);
 	solver.updatePath(waypointPath);
 	// solver.setCorridorConstraint(1.0, 10);
 	solver.solve();

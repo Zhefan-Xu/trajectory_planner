@@ -25,6 +25,8 @@ namespace trajPlanner{
 		this->corridorConstraint_ = false;
 
 		this->init_ = false;
+
+		this->setDefaultInit(); // initial condition for vel and acc
 	}
 	
 
@@ -33,11 +35,44 @@ namespace trajPlanner{
 		int pathSegNum = this->path_.size()-1;
 		this->paramDim_ = (this->polyDegree_+1) * pathSegNum;
 		if (this->continuityDegree_ - 2 < 0){this->continuityDegree_ = 2;}
-		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (1+pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2); // position, velocity, acceleration, jerk, snap
+		this->constraintNum_ = this->getConstraintNum(); 
 		this->avgTimeAllocation();
 		// this->equalTimeAllocation();
 		this->init_ = false;
 	}
+
+	void polyTrajSolver::updateInitVel(double vx, double vy, double vz){
+		geometry_msgs::Twist v;
+		v.linear.x = vx;
+		v.linear.y = vy;
+		v.linear.z = vz;
+		this->updateInitVel(v);
+	}
+
+	void polyTrajSolver::updateInitVel(const geometry_msgs::Twist& v){
+		this->initVel_ = v;
+	}
+
+
+	void polyTrajSolver::updateInitAcc(double ax, double ay, double az){
+		geometry_msgs::Twist a;
+		a.linear.x = ax;
+		a.linear.y = ay;
+		a.linear.z = az;
+		this->updateInitAcc(a);
+	}
+
+
+	void polyTrajSolver::updateInitAcc(const geometry_msgs::Twist& a){
+		this->initAcc_ = a;
+	}
+
+	void polyTrajSolver::setDefaultInit(){
+		// initialize 
+		this->updateInitVel(0, 0, 0);
+		this->updateInitAcc(0, 0, 0); 
+	}
+
 
 	void polyTrajSolver::avgTimeAllocation(){
 		double totalTime = 0;
@@ -68,6 +103,12 @@ namespace trajPlanner{
 		for (int i=0; i<this->path_.size(); ++i){
 			this->desiredTime_.push_back(i * totalTime/(this->path_.size()-1));
 		}
+	}
+
+	int polyTrajSolver::getConstraintNum(){
+		int pathSegNum = this->path_.size()-1;
+		int num = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (1+pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2); // position, velocity, acceleration, jerk, snap
+		return num;
 	}
 
 	void polyTrajSolver::setUpProblem(){
@@ -584,14 +625,14 @@ namespace trajPlanner{
 			// ==================2 Endpoint=====================
 			{
 				// Start vel = 0
-				lx(countConstraint) = 0.0;
-	 			ux(countConstraint) = 0.0;
+				lx(countConstraint) = this->initVel_.linear.x;
+	 			ux(countConstraint) = this->initVel_.linear.x;
 	 				
-	 			ly(countConstraint) = 0.0;
-	 			uy(countConstraint) = 0.0;
+	 			ly(countConstraint) = this->initVel_.linear.y;
+	 			uy(countConstraint) = this->initVel_.linear.y;
 
-	 			lz(countConstraint) = 0.0;
-	 			uz(countConstraint) = 0.0;
+	 			lz(countConstraint) = this->initVel_.linear.z;
+	 			uz(countConstraint) = this->initVel_.linear.z;
 
 				++countConstraint;
 				
@@ -633,14 +674,14 @@ namespace trajPlanner{
 			// ==================1 Endpoint (start)=====================
 			{
 				// Start acc = 0
-				lx(countConstraint) = 0.0;
-	 			ux(countConstraint) = 0.0;
+				lx(countConstraint) = this->initAcc_.linear.x;
+	 			ux(countConstraint) = this->initAcc_.linear.x;
 	 				
-	 			ly(countConstraint) = 0.0;
-	 			uy(countConstraint) = 0.0;
+	 			ly(countConstraint) = this->initAcc_.linear.y;
+	 			uy(countConstraint) = this->initAcc_.linear.y;
 
-	 			lz(countConstraint) = 0.0;
-	 			uz(countConstraint) = 0.0;
+	 			lz(countConstraint) = this->initAcc_.linear.z;
+	 			uz(countConstraint) = this->initAcc_.linear.z;
 
 				++countConstraint;
 				
@@ -754,6 +795,9 @@ namespace trajPlanner{
 		this->xWorker_.join();
 		this->yWorker_.join();
 		this->zWorker_.join();
+
+		// this->evalTrajectory();
+		this->setDefaultInit();
 	}
 
 	void polyTrajSolver::solveX(){
@@ -791,6 +835,44 @@ namespace trajPlanner{
 		}
 		 // cout << "z sol: " << this->zSol_ << endl;
 	}
+
+
+	void polyTrajSolver::evalTrajectory(){
+		double delT = 0.1;
+		std::vector<trajPlanner::pose> trajectory; 
+		this->getTrajectory(trajectory, delT);
+
+
+		std::vector<double> trajLengthVec;
+		int timeIdx = 1;
+		double trajLength = 0.0;
+		// evaluate each segment length of trajectory
+		for (double i=0; i<trajectory.size()-1; ++i){
+			double t = i * delT;
+			trajPlanner::pose p1 = trajectory[i];
+			trajPlanner::pose p2 = trajectory[i+1];
+			if ((t <= this->desiredTime_[timeIdx]) and (i != trajectory.size() - 2)){
+				trajLength += trajPlanner::getPoseDistance(p1, p2);
+			}
+			else{
+				cout << "traj " << timeIdx << ": " << trajLength << endl;
+				trajLengthVec.push_back(trajLength);
+				trajLength = 0.0;
+				timeIdx += 1;
+			}
+		}
+
+		// evaluate each segment legnth of raw path
+		std::vector<double> pathLegnthVec;
+		for (int i=0; i<this->path_.size()-1; ++i){
+			trajPlanner::pose p1 = this->path_[i];
+			trajPlanner::pose p2 = this->path_[i+1];
+			double pathLength = trajPlanner::getPoseDistance(p1, p2);
+			pathLegnthVec.push_back(pathLength);
+			cout << "path " << i << ": " << pathLength << endl;
+		}
+	}
+
 
 	void polyTrajSolver::setSoftConstraint(double r){
 		this->softConstraint_ = true;
@@ -860,7 +942,7 @@ namespace trajPlanner{
 		}
 		int pathSegNum = this->path_.size()-1;
 		if (this->continuityDegree_ - 2 < 0){this->continuityDegree_ = 2;}
-		this->constraintNum_ = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (1+pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2) + countCorridorConstraint;; // position, velocity, acceleration, jerk, snap
+		this->constraintNum_ = this->getConstraintNum() + countCorridorConstraint;
 	}
 
 	trajPlanner::pose polyTrajSolver::interpolatePose(const trajPlanner::pose& pStart, const trajPlanner::pose& pEnd, double startTime, double endTime, double t){
