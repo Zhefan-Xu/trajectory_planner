@@ -559,6 +559,13 @@ namespace trajPlanner{
 
 
 	bool polyTrajOctomap::checkCollisionPoint(const octomap::point3d &p, bool ignoreUnknown){
+		double min_x, max_x, min_y, max_y, min_z, max_z;
+		this->map_->getMetricMax(max_x, max_y, max_z);
+		this->map_->getMetricMin(min_x, min_y, min_z);
+		if (p.x() < min_x or p.x() > max_x or p.y() < min_y or p.y() > max_y or p.z() < min_z or p.z() > max_z){
+			return true;
+		}
+
 		octomap::OcTreeNode* nptr = this->map_->search(p);
 		if (nptr == NULL){
 			if (not ignoreUnknown){
