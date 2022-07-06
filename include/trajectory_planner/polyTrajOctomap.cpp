@@ -52,6 +52,13 @@ namespace trajPlanner{
 			this->maxIter_ = 20;
 			cout << "[Trajectory Planner INFO]: No Maximum Iteration Parameter. Use default: 20." << endl;
 		}
+		
+		// Max Solving Time (Iteratively generating collision free trajectory)
+		if (not this->nh_.getParam("traj_timeout", this->timeout_)){
+			this->timeout_ = 0.1;
+			cout << "[Trajectory Planner INFO]: No Timeout Parameter. Use default: 0.1." << endl;
+		}
+
 
 		// Collision Avoidance Mode: (true: adding waypoint, false: corridor)
 		if (not this->nh_.getParam("mode", this->mode_)){
@@ -266,7 +273,14 @@ namespace trajPlanner{
 		this->trajSolver_ = this->initSolver();
 		int countIter = 0;
 		bool valid = false;
+		ros::Time startTime = ros::Time::now();
 		while (ros::ok() and not valid){
+			ros::Time endTime = ros::Time::now();
+			if ((endTime - startTime).toSec() >= this->timeout_){
+				cout << "[Trajectory Planner INFO]: Timeout." << endl;
+				break;
+			}
+
 			this->trajSolver_->updateInitVel(this->initVel_);
 			this->trajSolver_->updateInitAcc(this->initAcc_);
 			this->trajSolver_->updatePath(this->path_);
@@ -320,7 +334,14 @@ namespace trajPlanner{
 		this->trajSolver_ = this->initSolver();
 		int countIter = 0;
 		bool valid = false;
+		ros::Time startTime = ros::Time::now();
 		while (ros::ok() and not valid){
+			ros::Time endTime = ros::Time::now();
+			if ((endTime - startTime).toSec() >= this->timeout_){
+				cout << "[Trajectory Planner INFO]: Timeout." << endl;
+				break;
+			}
+
 			this->trajSolver_->updateInitVel(this->initVel_);
 			this->trajSolver_->updateInitAcc(this->initAcc_);
 			this->trajSolver_->updatePath(this->path_);
@@ -384,7 +405,13 @@ namespace trajPlanner{
 
 		int countIter = 0;
 		bool valid = false;
+		ros::Time startTime = ros::Time::now();
 		while (ros::ok() and not valid){
+			ros::Time endTime = ros::Time::now();
+			if ((endTime - startTime).toSec() >= this->timeout_){
+				cout << "[Trajectory Planner INFO]: Timeout." << endl;
+				break;
+			}
 			this->trajSolver_->updateInitVel(this->initVel_);
 			this->trajSolver_->updateInitAcc(this->initAcc_);
 			this->trajSolver_->setCorridorConstraint(corridorSizeVec, this->corridorRes_);
@@ -459,7 +486,13 @@ namespace trajPlanner{
 
 		int countIter = 0;
 		bool valid = false;
+		ros::Time startTime = ros::Time::now();
 		while (ros::ok() and not valid){
+			ros::Time endTime = ros::Time::now();
+			if ((endTime - startTime).toSec() >= this->timeout_){
+				cout << "[Trajectory Planner INFO]: Timeout." << endl;
+				break;
+			}
 			this->trajSolver_->updateInitVel(this->initVel_);
 			this->trajSolver_->updateInitAcc(this->initAcc_);
 			this->trajSolver_->setCorridorConstraint(corridorSizeVec, this->corridorRes_);

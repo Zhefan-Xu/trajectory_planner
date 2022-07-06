@@ -31,6 +31,7 @@ namespace trajPlanner{
 		double regularizationWeights_; // paramters regularization
 		double mapRes_;
 		int maxIter_;
+		double timeout_;
 		bool mode_; // collision avoidance mode. (True: adding waypoint, False: corridor constraint) 
 		bool softConstraint_;
 		double softConstraintRadius_;
