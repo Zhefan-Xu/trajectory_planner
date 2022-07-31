@@ -6,10 +6,10 @@
 
 #ifndef BSPLINE_H
 #define BSPLINE_H
-
+#include <iostream>
 #include <Eigen/Eigen>
 
-
+using std::cout; using std::endl;
 namespace trajPlanner{
 	class bspline{
 	private:
@@ -17,15 +17,22 @@ namespace trajPlanner{
 		Eigen::MatrixXd controlPoints_;
 		double ts_; // timestep
 		Eigen::VectorXd knots_; // time knots
+		double duration_; // duration of the whole bspline
 
 	public:
 		bspline();
 		bspline(int degree, const Eigen::MatrixXd& controlPoints, double ts);
 		void initKnots();
+		Eigen::VectorXd at(double t);
+
+		static void parameterizeToBspline(double ts, 
+										  const std::vector<Eigen::Vector3d>& points, 
+										  const std::vector<Eigen::Vector3d>& startEndCondition,
+										  Eigen::MatrixXd& controlPoints); // static function to fit a curve with bspine
 
 		void updateBsplineDegree(int degree);
 		void updateControlPoints(const Eigen::MatrixXd& controlPoints);
-		void updateTimeStep(double ts);
+		void updateTimestep(double ts);
 	};
 }
 
