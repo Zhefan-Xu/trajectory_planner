@@ -137,6 +137,7 @@ add_library(
 	include/${PROJECT_NAME}/polyTrajOctomap.cpp
 	include/${PROJECT_NAME}/piecewiseLinearTraj.cpp
   include/${PROJECT_NAME}/bspline.cpp
+  include/${PROJECT_NAME}/bsplineTraj.cpp
 )
 
 ## Add cmake target dependencies of the library
