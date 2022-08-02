@@ -57,6 +57,10 @@ namespace trajPlanner{
 		return d[this->degree_];
 	}
 
+	double bspline::getDuration(){
+		return this->duration_;
+	}
+
 	void bspline::parameterizeToBspline(double ts, 
 										const std::vector<Eigen::Vector3d>& points, 
 										const std::vector<Eigen::Vector3d>& startEndCondition,
@@ -122,18 +126,4 @@ namespace trajPlanner{
 	    controlPoints.row(1) = py.transpose();
 	    controlPoints.row(2) = pz.transpose();
 	}
-
-	void bspline::updateBsplineDegree(int degree){
-		this->degree_ = degree;
-	}
-
-	void bspline::updateControlPoints(const Eigen::MatrixXd& controlPoints){
-		this->controlPoints_ = controlPoints;
-	}
-
-	void bspline::updateTimestep(double ts){
-		this->ts_ = ts;
-	}
-
-
 }

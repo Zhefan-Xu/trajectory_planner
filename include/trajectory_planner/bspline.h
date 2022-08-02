@@ -24,15 +24,12 @@ namespace trajPlanner{
 		bspline(int degree, const Eigen::MatrixXd& controlPoints, double ts);
 		void initKnots();
 		Eigen::VectorXd at(double t);
+		double getDuration();
 
 		static void parameterizeToBspline(double ts, 
 										  const std::vector<Eigen::Vector3d>& points, 
 										  const std::vector<Eigen::Vector3d>& startEndCondition,
 										  Eigen::MatrixXd& controlPoints); // static function to fit a curve with bspine
-
-		void updateBsplineDegree(int degree);
-		void updateControlPoints(const Eigen::MatrixXd& controlPoints);
-		void updateTimestep(double ts);
 	};
 }
 

@@ -19,10 +19,12 @@ void clickedPointCB(const geometry_msgs::PoseStamped::ConstPtr& cp){
 
 ros::Publisher startVisPub;
 ros::Publisher goalVisPub;
+// ros::Publisher bslpineVisPub;
 bool initStart = false;
 visualization_msgs::Marker startMarker;
 bool initGoal = false;
 visualization_msgs::Marker goalMarker;
+nav_msgs::Path bsplineFitPath;
 
 void publishStartVis(){
 	ros::Rate r(10);
@@ -43,6 +45,16 @@ void publishGoalVis(){
 		r.sleep();
 	}
 }	
+
+// void publishBsplineFitTraj(){
+// 	ros::Rate r (10);
+// 	while (ros::ok()){
+// 		if (initGoal){
+// 			bslpineVisPub.publish(bsplineFitPath);
+// 		}
+// 		r.sleep();
+// 	}
+// }
 
 int main(int argc, char** argv){
 	ros::init(argc, argv, "test_bspline_node");
@@ -70,8 +82,10 @@ int main(int argc, char** argv){
 	ros::Publisher posePub = nh.advertise<geometry_msgs::PoseStamped>("/trajectory_pose", 1000);
 	startVisPub = nh.advertise<visualization_msgs::Marker>("/start_position", 1000);
 	goalVisPub = nh.advertise<visualization_msgs::Marker>("/goal_position", 1000);
+	// bslpineVisPub = nh.advertise<nav_msgs::Path>("/bspline_fit_curve", 1000);
 	std::thread startVisWorker_ = std::thread(publishStartVis);
 	std::thread goalVisWorker_ = std::thread(publishGoalVis);
+	// std::thread bsplineVisWorker_ = std::thread(publishBsplineFitTraj);
 	
 	const int N = 3; // dimension
 	globalPlanner::rrtOctomap<N> rrtplanner (nh);
@@ -79,6 +93,14 @@ int main(int argc, char** argv){
 
 	trajPlanner::polyTrajOctomap polyPlanner (nh);
 	cout << polyPlanner << endl;
+
+	trajPlanner::bsplineTraj bt;
+	bt.init(nh);
+	std::vector<Eigen::Vector3d> startEndCondition; // dummy start end condition (all zeros)
+	for (int i=0; i<4; ++i){
+		Eigen::Vector3d con (0, 0, 0);
+		startEndCondition.push_back(con);
+	}
 
 	int countLoop = 0;
 	ros::Rate r(10);
@@ -159,25 +181,17 @@ int main(int argc, char** argv){
 
 		// generate trajectory:
 		polyPlanner.updatePath(path);
-		polyPlanner.makePlan();
+		nav_msgs::Path trajectory;
+		polyPlanner.makePlan(trajectory);
 		double duration = polyPlanner.getDuration();
 		cout << "[Planner Node]: Duration: " << duration << "s." << endl;
 
-		// Visualization
-		// ros::Time startTime = ros::Time::now();
-		// ros::Time currTime = ros::Time::now();
-		// ros::Rate r(50);
-		// double dt = (currTime - startTime).toSec();
-		// while (dt <= duration){
-		// 	currTime = ros::Time::now();
-		// 	dt = (currTime - startTime).toSec();
-		// 	if (dt > duration){
-		// 		break;
-		// 	}
-		// 	geometry_msgs::PoseStamped p = polyPlanner.getPose(dt);
-		// 	posePub.publish(p);
-		// 	r.sleep();
-		// }
+
+		// fit trajectory with bspline curve and display bspline curve
+		bt.updatePath(trajectory, startEndCondition);
+		// bsplineFitPath = bt.evalTrajToMsg();
+		// cout << "trajectory size: " << trajectory.poses.size() << endl;
+
 
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;
