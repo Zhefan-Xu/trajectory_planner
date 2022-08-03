@@ -42,9 +42,9 @@ namespace trajPlanner{
 
 	void pwlTraj::updatePath(const std::vector<trajPlanner::pose>& path, bool useYaw){
 		this->path_ = path;
-		double yaw;
+		double yaw = 0.0;
 		if (not useYaw){
-			for (int i=0; i<this->path_.size()-1; ++i){ // calculate each position's orientation (yaw). Last point does not need a orientation
+			for (size_t i=0; i<this->path_.size()-1; ++i){ // calculate each position's orientation (yaw). Last point does not need a orientation
 				trajPlanner::pose p1 = this->path_[i];
 				trajPlanner::pose p2 = this->path_[i+1];
 				yaw = std::atan2(p2.y-p1.y, p2.x-p1.x);
@@ -61,9 +61,7 @@ namespace trajPlanner{
 	void pwlTraj::avgTimeAllocation(bool useYaw){
 		double totalTime = 0;
 		this->desiredTime_.clear();
-		double currYaw = 0;
-		double targetYaw = 0;
-		for (int i=0; i<this->path_.size()-1; ++i){
+		for (size_t i=0; i<this->path_.size()-1; ++i){
 			// rotation then move forward
 			if (i != 0){
 				// rotation:
@@ -139,7 +137,7 @@ namespace trajPlanner{
 		}
 
 
-		for (int i=0; i<this->desiredTime_.size()-1; ++i){
+		for (size_t i=0; i<this->desiredTime_.size()-1; ++i){
 			double startTime = this->desiredTime_[i];
 			double endTime = this->desiredTime_[i+1];
 			if ((t >= startTime) and (t <= endTime)){
@@ -151,7 +149,7 @@ namespace trajPlanner{
 
 					// Interpolation between yaw:
 					double yawDiff = pTarget.yaw - pCurr.yaw; // difference between yaw
-					double direction;
+					double direction = 1.0;
 					double yawDiffAbs = std::abs(yawDiff);
 					if ((yawDiffAbs <= PI_const) and (yawDiff>0)){
 						direction = 1.0; // counter clockwise
