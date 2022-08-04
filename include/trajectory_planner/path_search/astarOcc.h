@@ -39,6 +39,8 @@ public:
 
 class AStar{
 private:
+    double minHeight_ = 0.0;
+    double maxHeight_ = 3.0;
 	std::shared_ptr<mapManager::occMap> grid_map_;
 
 	inline void coord2gridIndexFast(const double x, const double y, const double z, int &id_x, int &id_y, int &id_z);
@@ -74,7 +76,7 @@ public:
 	AStar(){};
 	~AStar();
 
-	void initGridMap(std::shared_ptr<mapManager::occMap> occ_map, const Eigen::Vector3i pool_size);
+	void initGridMap(std::shared_ptr<mapManager::occMap> occ_map, const Eigen::Vector3i pool_size, double maxHeight=3.0);
 	bool AstarSearch(const double step_size, Eigen::Vector3d start_pt, Eigen::Vector3d end_pt);
 	std::vector<Eigen::Vector3d> getPath();
 };
@@ -110,9 +112,10 @@ AStar::~AStar(){
                 delete GridNodeMap_[i][j][k];
 }
 
-void AStar::initGridMap(std::shared_ptr<mapManager::occMap> occ_map, const Eigen::Vector3i pool_size){
+void AStar::initGridMap(std::shared_ptr<mapManager::occMap> occ_map, const Eigen::Vector3i pool_size, double maxHeight){
     POOL_SIZE_ = pool_size;
     CENTER_IDX_ = pool_size / 2;
+    maxHeight_ = maxHeight;
 
     GridNodeMap_ = new GridNodePtr **[POOL_SIZE_(0)];
     for (int i = 0; i < POOL_SIZE_(0); i++)
@@ -293,6 +296,10 @@ bool AStar::AstarSearch(const double step_size, Vector3d start_pt, Vector3d end_
                     }
 
                     neighborPtr->rounds = rounds_;
+
+                    if (Index2Coord(neighborPtr->index)(2) > maxHeight_ or Index2Coord(neighborPtr->index)(2) < minHeight_){
+                        continue;
+                    }
 
                     if (checkOccupancy(Index2Coord(neighborPtr->index)))
                     {

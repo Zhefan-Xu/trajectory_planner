@@ -39,7 +39,7 @@ namespace trajPlanner{
 	void bsplineTraj::setMap(const std::shared_ptr<mapManager::occMap>& map){
 		this->map_ = map;
 		this->pathSearch_.reset(new AStar);
-		this->pathSearch_->initGridMap(map, Eigen::Vector3i(100, 100, 100));
+		this->pathSearch_->initGridMap(map, Eigen::Vector3i(100, 100, 100), 1.0);
 	}
 
 	void bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition){
@@ -48,6 +48,10 @@ namespace trajPlanner{
 		this->pathMsgToEigenPoints(path, curveFitPoints);
 		this->bspline_.parameterizeToBspline(this->ts_, curveFitPoints, startEndCondition, controlPoints);
 		this->optData_.controlPoints = controlPoints;
+		int controlPointNum = controlPoints.cols();
+		this->optData_.guidePoints.resize(controlPointNum);
+		this->optData_.guideDirections.resize(controlPointNum);
+		this->optData_.findGuidePoint.resize(controlPointNum, false);
 		this->init_ = true;
 	}
 
@@ -55,40 +59,26 @@ namespace trajPlanner{
 	void bsplineTraj::makePlan(){
 		// step 1. find collision segment
 		cout << "start make plan" << endl;
-		std::vector<std::pair<int, int>> collisionSeg;
-		this->findCollisionSeg(this->optData_.controlPoints, collisionSeg);
+		this->findCollisionSeg(this->optData_.controlPoints);
 		cout << "collision segment founded" << endl;
 		int countSegNum = 0;
-		for (std::pair<int, int> seg : collisionSeg){
+		for (std::pair<int, int> seg : this->collisionSeg_){
 			cout << "segment number: " << countSegNum << endl;
 			cout << "start: " << seg.first << " end: " << seg.second << endl;
 			++countSegNum;
 		}
 
 		// step 2. A* to find collision free path
-		this->astarPaths_.clear();
-		for (std::pair<int, int> seg : collisionSeg){
-			Eigen::Vector3d pStart (this->optData_.controlPoints.col(seg.first));
-			Eigen::Vector3d pEnd (this->optData_.controlPoints.col(seg.second));
-			if (this->pathSearch_->AstarSearch(0.1, pStart, pEnd)){
-				this->astarPaths_.push_back(this->pathSearch_->getPath());
-				cout << "find path" << endl;
-				for (Eigen::Vector3d pTemp : this->pathSearch_->getPath()){
-					cout << pTemp << endl;
-				}
-			}
-			else{
-				cout << "[BsplineTraj]: Path Search Error. Force return." << endl;
-				return; 
-			}
-		}
+		this->pathSearch();
 
 		// step 3. Assign P, V pair
+		this->assignPVpairs();
 
 		// step 4. call solver
 	}
 
-	void bsplineTraj::findCollisionSeg(const Eigen::MatrixXd& controlPoints, std::vector<std::pair<int, int>>& collisionSeg){
+	void bsplineTraj::findCollisionSeg(const Eigen::MatrixXd& controlPoints){
+		this->collisionSeg_.clear();
 		bool previousHasCollision = false;
 		double checkRatio = 2/3;
 		int endIdx = int((controlPoints.cols() - bsplineDegree - 1) - checkRatio * (controlPoints.cols() - 2*bsplineDegree));
@@ -107,10 +97,51 @@ namespace trajPlanner{
 				else{ // if no collision and collision status changes: this means this is an end of a collision segment. record the previous point
 					pairEndIdx = i+1;
 					std::pair<int, int> seg {pairStartIdx, pairEndIdx};
-					collisionSeg.push_back(seg);
+					this->collisionSeg_.push_back(seg);
 				}
 			}
 			previousHasCollision = hasCollision;
+		}
+	}
+
+	void bsplineTraj::pathSearch(){
+		this->astarPaths_.clear();
+		for (std::pair<int, int> seg : this->collisionSeg_){
+			Eigen::Vector3d pStart (this->optData_.controlPoints.col(seg.first));
+			Eigen::Vector3d pEnd (this->optData_.controlPoints.col(seg.second));
+			if (this->pathSearch_->AstarSearch(0.1, pStart, pEnd)){
+				this->astarPaths_.push_back(this->pathSearch_->getPath());
+			}
+			else{
+				cout << "[BsplineTraj]: Path Search Error. Force return." << endl;
+				return; 
+			}
+		}	
+	}
+
+	void bsplineTraj::assignPVpairs(){
+		for (int i=0; i<this->optData_.controlPoints.cols(); ++i){
+			this->optData_.findGuidePoint[i] = false;
+		}
+
+		for (size_t i=0; i<this->collisionSeg_.size(); ++i){
+			int collisionStartIdx = this->collisionSeg_[i].first;
+			int collisionEndIdx = this->collisionSeg_[i].second;
+			std::vector<Eigen::Vector3d> path = this->astarPaths_[i];
+			for (int j=collisionStartIdx+1; j<collisionEndIdx; ++j){
+				Eigen::Vector3d tangentDirection = this->optData_.controlPoints.col(j+1) - this->optData_.controlPoints.col(j-1);
+				Eigen::Vector3d guidePoint;
+				bool success = this->findGuidePointFromPath(this->optData_.controlPoints.col(j), tangentDirection, path, guidePoint);
+				if (success){
+					this->optData_.guidePoints[j].push_back(guidePoint);
+					Eigen::Vector3d guideDirection = (guidePoint - this->optData_.controlPoints.col(j))/(guidePoint - this->optData_.controlPoints.col(j)).norm();
+					this->optData_.guideDirections[j].push_back(guideDirection);
+					this->optData_.findGuidePoint[j] = true; 
+				}
+				else{
+					this->optData_.findGuidePoint[j] = false;
+				}
+			}
 		}
 	}
 

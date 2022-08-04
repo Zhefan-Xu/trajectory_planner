@@ -16,7 +16,9 @@ const int bsplineDegree = 3;
 namespace trajPlanner{
 	struct optData{
 		Eigen::MatrixXd controlPoints; // control points
-
+		std::vector<std::vector<Eigen::Vector3d>> guidePoints; // p
+		std::vector<std::vector<Eigen::Vector3d>> guideDirections; // v
+		std::vector<bool> findGuidePoint;
 	};
 
 
@@ -38,6 +40,7 @@ namespace trajPlanner{
 		std::shared_ptr<mapManager::occMap> map_;
 		std::shared_ptr<AStar> pathSearch_;
 
+		std::vector<std::pair<int, int>> collisionSeg_;
 		std::vector<std::vector<Eigen::Vector3d>> astarPaths_;
 
 		// flag
@@ -53,8 +56,9 @@ namespace trajPlanner{
 		void updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition); // used to initialize control points
 		
 		void makePlan();
-		void findCollisionSeg(const Eigen::MatrixXd& controlPoints, std::vector<std::pair<int, int>>& collisionSeg); // find collision segment of current control points
-
+		void findCollisionSeg(const Eigen::MatrixXd& controlPoints); // find collision segment of current control points
+		void pathSearch();
+		void assignPVpairs();
 
 
 
@@ -64,12 +68,57 @@ namespace trajPlanner{
 		void publishCurrTraj();
 		void publishAstarPath();
 
-		// helper function
+		// helper functionin
 		std::vector<Eigen::Vector3d> evalTraj();
 		nav_msgs::Path evalTrajToMsg(); // evaluate current trajectory based on the control point
 		void pathMsgToEigenPoints(const nav_msgs::Path& path, std::vector<Eigen::Vector3d>& points);
 		void eigenPointsToPathMsg(const std::vector<Eigen::Vector3d>& points, nav_msgs::Path& path);
+
+		// inline function
+		inline bool findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint);
+
 	};
+	inline bool bsplineTraj::findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
+		size_t initIdx = int(path.size()/2); // start from the middle point of the path
+		Eigen::Vector3d pathPointDirection = path[initIdx] - controlPoint;
+		double dotProduct = tangentDirection.dot(pathPointDirection);
+		int searchDirection = 1;
+		if (dotProduct > 0){ // need to backward search
+			searchDirection = -1;
+		}
+		else if (dotProduct < 0){ // need to do forward search
+			searchDirection = 1;
+		}
+		else{ // happen to find our guide point
+			guidePoint = path[initIdx];
+			return true;
+		}
+
+		// start search for the best guide point
+		double prevDotProduct = dotProduct;
+		for (size_t i=initIdx+searchDirection; i>=0 and i<path.size(); i+=searchDirection){
+			pathPointDirection = path[i] - controlPoint;
+			dotProduct = tangentDirection.dot(pathPointDirection); 
+			if (dotProduct == 0){ // find the exact control point
+				guidePoint = path[i];
+				return true;
+			}
+			else if (dotProduct * prevDotProduct < 0){
+				// interpolate those two points in path
+				Eigen::Vector3d currPoint = path[i];
+				Eigen::Vector3d prevPoint = path[i-searchDirection];
+				double currLength = std::abs(dotProduct);
+				double totalLength = std::abs(dotProduct) + std::abs(prevDotProduct);
+				Eigen::Vector3d interPoint = currPoint + (prevPoint - currPoint) * (currLength / totalLength);\
+				guidePoint = interPoint;
+				return true;
+
+			}
+			prevDotProduct = dotProduct;
+		}
+		return false;
+	}
+
 }
 
 #endif
