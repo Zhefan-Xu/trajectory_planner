@@ -30,11 +30,16 @@ namespace trajPlanner{
 		ros::Publisher controlPointsVisPub_;
 		ros::Publisher currTrajVisPub_;
 		ros::Publisher astarVisPub_;
+		ros::Publisher guidePointsVisPub_;
+
 
 		// bspline
 		trajPlanner::bspline bspline_; // this is used to evaluate bspline. not for optimization
 		trajPlanner::optData optData_; // all optimization information including control points
 		double ts_;
+		double dthresh_;
+		double maxVel_;
+		double maxAcc_;
 
 		// occupancy grid map and path search
 		std::shared_ptr<mapManager::occMap> map_;
@@ -42,6 +47,7 @@ namespace trajPlanner{
 
 		std::vector<std::pair<int, int>> collisionSeg_;
 		std::vector<std::vector<Eigen::Vector3d>> astarPaths_;
+
 
 		// flag
 		bool init_ = false;
@@ -60,6 +66,10 @@ namespace trajPlanner{
 		void pathSearch();
 		void assignPVpairs();
 
+		// cost functions
+		void distanceCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // collision
+		void smoothnessCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // trajectory
+		void feasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // velocity and acceleration
 
 
 		// visualization
@@ -67,6 +77,7 @@ namespace trajPlanner{
 		void publishControlPoints();
 		void publishCurrTraj();
 		void publishAstarPath();
+		void publishGuidePoints();
 
 		// helper functionin
 		std::vector<Eigen::Vector3d> evalTraj();
@@ -76,7 +87,7 @@ namespace trajPlanner{
 
 		// inline function
 		inline bool findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint);
-
+		inline bool adjustGuidePoint(const Eigen::Vector3d& controlPoint, Eigen::Vector3d& guidePoint);
 	};
 	inline bool bsplineTraj::findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
 		size_t initIdx = int(path.size()/2); // start from the middle point of the path
@@ -93,6 +104,8 @@ namespace trajPlanner{
 			guidePoint = path[initIdx];
 			return true;
 		}
+
+		// TODO: CORNER CASE: ONLY ONE SEGMENT IS NOT COLLISION FREE!!!!!!!!!!!!!!!!
 
 		// start search for the best guide point
 		double prevDotProduct = dotProduct;
@@ -111,10 +124,31 @@ namespace trajPlanner{
 				double totalLength = std::abs(dotProduct) + std::abs(prevDotProduct);
 				Eigen::Vector3d interPoint = currPoint + (prevPoint - currPoint) * (currLength / totalLength);\
 				guidePoint = interPoint;
-				return true;
+				bool successAdjustment = this->adjustGuidePoint(controlPoint, guidePoint);
+				return successAdjustment;
 
 			}
 			prevDotProduct = dotProduct;
+		}
+		return false;
+	}
+
+	inline bool bsplineTraj::adjustGuidePoint(const Eigen::Vector3d& controlPoint, Eigen::Vector3d& guidePoint){
+		double length = (guidePoint - controlPoint).norm();
+		if (length > 1e-5){
+			bool hasCollision = false;
+			for (double a=length; a>=0.0; a-=this->map_->getRes()){
+				Eigen::Vector3d interpolatePoint = (a/length) * guidePoint + (1-a/length) * controlPoint;
+				hasCollision = this->map_->isInflatedOccupied(interpolatePoint);
+				if (hasCollision){
+					a += this->map_->getRes();
+					guidePoint = (a/length) * guidePoint + (1-a/length) * controlPoint;
+					return true;
+				}
+			}
+		}
+		else{
+			return false;
 		}
 		return false;
 	}
