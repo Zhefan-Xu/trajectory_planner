@@ -8,6 +8,7 @@
 #include <ros/ros.h>
 #include <trajectory_planner/bspline.h>
 #include <trajectory_planner/path_search/astarOcc.h>
+#include <trajectory_planner/solver/lbfgs.hpp>
 #include <map_manager/occupancyMap.h>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -40,6 +41,9 @@ namespace trajPlanner{
 		double dthresh_;
 		double maxVel_;
 		double maxAcc_;
+		double weightDistance_;
+		double weightSmoothness_;
+		double weightFeasibility_;
 
 		// occupancy grid map and path search
 		std::shared_ptr<mapManager::occMap> map_;
@@ -65,11 +69,14 @@ namespace trajPlanner{
 		void findCollisionSeg(const Eigen::MatrixXd& controlPoints); // find collision segment of current control points
 		void pathSearch();
 		void assignPVpairs();
+		void optimize();
 
 		// cost functions
-		void distanceCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // collision
-		void smoothnessCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // trajectory
-		void feasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // velocity and acceleration
+		double solverCostFunction(void* func_data, const double* x, double* grad, const int n); // deal with solver
+		double costFunction(const double* x, double* grad, const int n);
+		void getDistanceCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // collision
+		void getSmoothnessCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // trajectory
+		void getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // velocity and acceleration
 
 
 		// visualization

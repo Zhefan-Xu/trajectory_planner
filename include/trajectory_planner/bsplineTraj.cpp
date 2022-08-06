@@ -52,6 +52,33 @@ namespace trajPlanner{
 		else{
 			cout << "[BsplineTraj]" << ": Max acc: " << this->maxAcc_ << " m/s^2."<< endl;
 		}	
+
+		// optimization weight for distance
+		if (not this->nh_.getParam("bspline_traj/weight_distance", this->weightDistance_)){
+			this->weightDistance_ = 0.5;
+			cout << "[BsplineTraj]" << ": No weight distance. Use default: 2.0." << endl;
+		}
+		else{
+			cout << "[BsplineTraj]" << ": Weight distance: " << this->weightDistance_ << endl;
+		}	
+
+		// optimization weight for smoothness
+		if (not this->nh_.getParam("bspline_traj/weight_distance", this->weightSmoothness_)){
+			this->weightSmoothness_ = 1.0;
+			cout << "[BsplineTraj]" << ": No weight smoothness. Use default: 1.0." << endl;
+		}
+		else{
+			cout << "[BsplineTraj]" << ": Weight smoothness: " << this->weightSmoothness_ << endl;
+		}	
+
+		// optimization weight for feasiblity
+		if (not this->nh_.getParam("bspline_traj/weight_feasibility", this->weightFeasibility_)){
+			this->weightFeasibility_ = 1.0;
+			cout << "[BsplineTraj]" << ": No weight feasibility. Use default: 1.0." << endl;
+		}
+		else{
+			cout << "[BsplineTraj]" << ": Weight feasibility: " << this->weightFeasibility_ << endl;
+		}	
 	}
 
 	void bsplineTraj::registerPub(){
@@ -200,7 +227,53 @@ namespace trajPlanner{
 		}
 	}
 
-	void bsplineTraj::distanceCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
+	void bsplineTraj::optimize(){
+		// optimize information
+		int variableNum = 3 * (this->optData_.controlPoints.cols() - 2*bsplineDegree);
+		double q[variableNum]; int startID = bsplineDegree;
+		memcpy(q, this->optData_.controlPoints.data()+3*startID, variableNum*sizeof(q[0])); // convert control point into solver's param
+		double finalCost;
+
+		// set up solver paramters
+		lbfgs::lbfgs_parameter_t solverParams;
+		lbfgs::lbfgs_load_default_parameters(&solverParams);
+		solverParams.mem_size = 16;
+		solverParams.max_iterations = 200;
+		solverParams.g_epsilon = 0.01;
+
+		ros::Time startTime = ros::Time::now();
+		// int optimizeResult = lbfgs::lbfgs_optimize(variableNum, q, &finalCost, , NULL, );
+		ros::Time endTime = ros::Time::now();
+	}
+
+	double bsplineTraj::solverCostFunction(void* func_data, const double* x, double* grad, const int n){
+		trajPlanner::bsplineTraj* opt = reinterpret_cast<trajPlanner::bsplineTraj*>(func_data);
+		double cost = opt->costFunction(x, grad, n);
+		return cost;
+	}
+
+	double bsplineTraj::costFunction(const double* x, double* grad, const int n){
+		memcpy(this->optData_.controlPoints.data()+3*bsplineDegree, x, n*sizeof(x[0])); // copy current optimized data into control points
+
+		// get costs with their gradients
+		double distanceCost, smoothnessCost, feasibilityCost;
+		Eigen::MatrixXd distanceGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		Eigen::MatrixXd smoothnessGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		Eigen::MatrixXd feasibilityGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		this->getDistanceCost(this->optData_.controlPoints, distanceCost, distanceGradient);
+		this->getSmoothnessCost(this->optData_.controlPoints, smoothnessCost, smoothnessGradient);
+		this->getFeasibilityCost(this->optData_.controlPoints, feasibilityCost, feasibilityGradient);
+
+		// total cost and gradient
+		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + this->weightFeasibility_ * feasibilityCost;
+		Eigen::MatrixXd totalGradient = this->weightDistance_ * distanceGradient + this->weightSmoothness_ * smoothnessGradient + this->weightFeasibility_ * feasibilityGradient;
+		
+		// update gradient
+		memcpy(grad, totalGradient.data()+3*bsplineDegree, n*sizeof(grad[0]));
+		return totalCost;
+	}
+
+	void bsplineTraj::getDistanceCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
 		/* cost function: 
 		 	0,   if d_thresh - d <= 0
 		 	d^3, if 0<= d_thresh - d <=  d_thesh
@@ -231,7 +304,7 @@ namespace trajPlanner{
 		}
 	}
 
-	void bsplineTraj::smoothnessCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
+	void bsplineTraj::getSmoothnessCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
 		// minimize jerk of the trajectory
 		cost = 0.0;
 		Eigen::Vector3d jerk, gradTemp;
@@ -247,7 +320,7 @@ namespace trajPlanner{
 		}
 	}
 
-	void bsplineTraj::feasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
+	void bsplineTraj::getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
 		// velocity and acceleration cost
 		cost = 0.0;
 
