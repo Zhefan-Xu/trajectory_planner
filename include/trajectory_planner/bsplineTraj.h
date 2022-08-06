@@ -72,7 +72,8 @@ namespace trajPlanner{
 		void optimize();
 
 		// cost functions
-		double solverCostFunction(void* func_data, const double* x, double* grad, const int n); // deal with solver
+		static double solverCostFunction(void* func_data, const double* x, double* grad, const int n); // deal with solver
+		static int solverForceStop(void* func_data, const double* x, const double* grad, const double fx, const double xnorm, const double gnorm, const double step, int n, int k, int ls);
 		double costFunction(const double* x, double* grad, const int n);
 		void getDistanceCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // collision
 		void getSmoothnessCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // trajectory

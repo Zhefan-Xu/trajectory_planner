@@ -131,7 +131,9 @@ namespace trajPlanner{
 		// step 3. Assign P, V pair
 		this->assignPVpairs();
 
+		cout << "start solving..." << endl;
 		// step 4. call solver
+		this->optimize();
 
 		ros::Time endTime = ros::Time::now();
 		cout << "time: " << (endTime - startTime).toSec() << endl;
@@ -230,8 +232,8 @@ namespace trajPlanner{
 	void bsplineTraj::optimize(){
 		// optimize information
 		int variableNum = 3 * (this->optData_.controlPoints.cols() - 2*bsplineDegree);
-		double q[variableNum]; int startID = bsplineDegree;
-		memcpy(q, this->optData_.controlPoints.data()+3*startID, variableNum*sizeof(q[0])); // convert control point into solver's param
+		double x[variableNum]; int startID = bsplineDegree;
+		memcpy(x, this->optData_.controlPoints.data()+3*startID, variableNum*sizeof(x[0])); // convert control point into solver's param
 		double finalCost;
 
 		// set up solver paramters
@@ -242,14 +244,33 @@ namespace trajPlanner{
 		solverParams.g_epsilon = 0.01;
 
 		ros::Time startTime = ros::Time::now();
-		// int optimizeResult = lbfgs::lbfgs_optimize(variableNum, q, &finalCost, , NULL, );
+		int optimizeResult = lbfgs::lbfgs_optimize(variableNum, x, &finalCost, bsplineTraj::solverCostFunction, NULL, bsplineTraj::solverForceStop, this, &solverParams);
 		ros::Time endTime = ros::Time::now();
+		cout << "final cost is: " << finalCost << endl;
+		cout << "solver time: " << (endTime - startTime).toSec() << endl;
+
+		// check solvers' condition
+		if (optimizeResult == lbfgs::LBFGS_CONVERGENCE or optimizeResult == lbfgs::LBFGSERR_MAXIMUMITERATION or
+			optimizeResult == lbfgs::LBFGS_ALREADY_MINIMIZED or optimizeResult == lbfgs::LBFGS_STOP){
+			cout << "solver succeed!" << endl;
+		}
+		else if (optimizeResult == lbfgs::LBFGSERR_CANCELED){
+			cout << "solver force stopped" << endl;
+		}
+		else{
+			cout << "solver error" << endl;
+		}
 	}
 
 	double bsplineTraj::solverCostFunction(void* func_data, const double* x, double* grad, const int n){
 		trajPlanner::bsplineTraj* opt = reinterpret_cast<trajPlanner::bsplineTraj*>(func_data);
 		double cost = opt->costFunction(x, grad, n);
 		return cost;
+	}
+
+	int bsplineTraj::solverForceStop(void* func_data, const double* x, const double* grad, const double fx, const double xnorm, const double gnorm, const double step, int n, int k, int ls){
+		// TODO implement force stop
+		return 0;
 	}
 
 	double bsplineTraj::costFunction(const double* x, double* grad, const int n){
@@ -267,7 +288,7 @@ namespace trajPlanner{
 		// total cost and gradient
 		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + this->weightFeasibility_ * feasibilityCost;
 		Eigen::MatrixXd totalGradient = this->weightDistance_ * distanceGradient + this->weightSmoothness_ * smoothnessGradient + this->weightFeasibility_ * feasibilityGradient;
-		
+
 		// update gradient
 		memcpy(grad, totalGradient.data()+3*bsplineDegree, n*sizeof(grad[0]));
 		return totalCost;
@@ -287,7 +308,7 @@ namespace trajPlanner{
 		double a = 3.0 * this->dthresh_; double b = -3 * pow(this->dthresh_, 2); double c = pow(this->dthresh_, 3);
 		for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){ // for each control points
 			for (size_t j=0; j<this->optData_.guidePoints[i].size(); ++j){ // each control points we check all the guide points and guide directions
-				double dist = (this->optData_.guidePoints[i][j] - controlPoints.col(i)).dot(this->optData_.guideDirections[i][j]);
+				double dist = (controlPoints.col(i) - this->optData_.guidePoints[i][j]).dot(this->optData_.guideDirections[i][j]);
 				double distErr = this->dthresh_ - dist;
 				if (distErr <= 0){
 					// no punishment	
@@ -345,7 +366,7 @@ namespace trajPlanner{
 
 		// acceleration cost
 		Eigen::Vector3d ai;
-		for (int i=0; i<controlPoints.cols()-1; ++i){
+		for (int i=0; i<controlPoints.cols()-2; ++i){
 			ai = (controlPoints.col(i+2) - 2 * controlPoints.col(i+1) + controlPoints.col(i)) * tsInvSqr;
 			for (int j=0; j<3; ++j){
 				if (ai(j) > this->maxAcc_){
