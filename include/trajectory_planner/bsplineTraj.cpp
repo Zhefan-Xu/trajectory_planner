@@ -116,20 +116,13 @@ namespace trajPlanner{
 		ros::Time startTime = ros::Time::now();
 		// step 1. find collision segment
 		cout << "start make plan" << endl;
-		this->findCollisionSeg(this->optData_.controlPoints);
-		cout << "collision segment founded" << endl;
-		int countSegNum = 0;
-		for (std::pair<int, int> seg : this->collisionSeg_){
-			cout << "segment number: " << countSegNum << endl;
-			cout << "start: " << seg.first << " end: " << seg.second << endl;
-			++countSegNum;
-		}
+		this->findCollisionSeg(this->optData_.controlPoints); // upodate collision seg
 
 		// step 2. A* to find collision free path
-		this->pathSearch();
+		this->pathSearch(this->collisionSeg_);
 
-		// step 3. Assign P, V pair
-		this->assignPVpairs();
+		// step 3. Assign guide point and directions
+		this->assignGuidePoints();
 
 		cout << "start solving..." << endl;
 		// step 4. call solver
@@ -166,9 +159,9 @@ namespace trajPlanner{
 		}
 	}
 
-	void bsplineTraj::pathSearch(){
+	void bsplineTraj::pathSearch(const std::vector<std::pair<int, int>>& collisionSeg){
 		this->astarPaths_.clear();
-		for (std::pair<int, int> seg : this->collisionSeg_){
+		for (std::pair<int, int> seg : collisionSeg){
 			Eigen::Vector3d pStart (this->optData_.controlPoints.col(seg.first));
 			Eigen::Vector3d pEnd (this->optData_.controlPoints.col(seg.second));
 			if (this->pathSearch_->AstarSearch(0.1, pStart, pEnd)){
@@ -181,7 +174,7 @@ namespace trajPlanner{
 		}	
 	}
 
-	void bsplineTraj::assignPVpairs(){
+	void bsplineTraj::assignGuidePoints(){
 		for (int i=0; i<this->optData_.controlPoints.cols(); ++i){
 			this->optData_.findGuidePoint[i] = false;
 		}
@@ -229,6 +222,27 @@ namespace trajPlanner{
 		}
 	}
 
+	bool bsplineTraj::isReguideRequired(std::vector<std::pair<int, int>>& reguideCollisionSeg){
+		std::vector<std::pair<int, int>> prevCollisionSeg; // previous collision segment
+		this->findCollisionSeg(this->optData_.controlPoints); // new collision segment
+
+		std::vector<int> newCollisionPoints; // new collision controlpoints
+		std::vector<int> overlappedCollisionPoints; // old collision points which both appears in previous segment and new segment 
+		this->compareCollisionSeg(prevCollisionSeg, this->collisionSeg_, newCollisionPoints, overlappedCollisionPoints);
+
+
+
+		// for having new collision points: need to reguide and find its corresponding segment
+
+		// for overlapped collision points: check its distance to current guide point: if larger than threshold, it means we need to reuide and find its corresponding segment
+
+		return true;
+	}
+
+	void bsplineTraj::reassignGuidePoints(){
+
+	}
+
 	void bsplineTraj::optimizeTrajectory(){
 		ros::Time startTime = ros::Time::now();
 		// ros::Rate r (1);
@@ -236,11 +250,19 @@ namespace trajPlanner{
 		int count = 2;
 		double weightDistance0 = this->weightDistance_;
 		while (ros::ok() and this->hasCollisionTrajectory(this->optData_.controlPoints)){
+			// need to determine whether the reguide is required
+			std::vector<std::pair<int, int>> reguideCollisionSeg;
+			if (this->isReguideRequired(reguideCollisionSeg)){
+				this->pathSearch(reguideCollisionSeg);
+				this->assignGuidePoints();
+			}
+			else{
+				this->weightDistance_ *= 2.0; // no need reguide: this means weight is not big enough	
+			}
+
 			cout << "optimization: " << count << endl;
 			this->optimize();
 
-			// if not collision free, we increase weight for distance
-			this->weightDistance_ *= 2.0;
 
 			// this->publishCurrTraj();
 			// this->publishControlPoints();

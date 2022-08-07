@@ -67,8 +67,10 @@ namespace trajPlanner{
 		
 		void makePlan();
 		void findCollisionSeg(const Eigen::MatrixXd& controlPoints); // find collision segment of current control points
-		void pathSearch();
-		void assignPVpairs();
+		void pathSearch(const std::vector<std::pair<int, int>>& collisionSeg);
+		void assignGuidePoints();
+		bool isReguideRequired(std::vector<std::pair<int, int>>& reguideCollisionSeg);
+		void reassignGuidePoints();
 		void optimizeTrajectory();
 		int optimize(); // optimize once
 
@@ -98,6 +100,7 @@ namespace trajPlanner{
 		inline bool findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint);
 		inline bool adjustGuidePoint(const Eigen::Vector3d& controlPoint, Eigen::Vector3d& guidePoint);
 		inline bool hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints);
+		inline void compareCollisionSeg(const std::vector<std::pair<int, int>>& prevCollisionSeg, const std::vector<std::pair<int, int>>& newCollisionSeg, std::vector<int>& newCollisionPoints, std::vector<int>& overlappedCollisionPoints);
 	};
 	inline bool bsplineTraj::findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
 		size_t initIdx = int(path.size()/2); // start from the middle point of the path
@@ -171,6 +174,12 @@ namespace trajPlanner{
 		}
 		return false;
 	}
+
+	inline void bsplineTraj::compareCollisionSeg(const std::vector<std::pair<int, int>>& prevCollisionSeg, const std::vector<std::pair<int, int>>& newCollisionSeg, 
+									std::vector<int>& newCollisionPoints, std::vector<int>& overlappedCollisionPoints){
+		// TODO
+	}
+
 
 }
 
