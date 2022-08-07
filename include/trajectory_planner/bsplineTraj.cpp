@@ -133,7 +133,7 @@ namespace trajPlanner{
 
 		cout << "start solving..." << endl;
 		// step 4. call solver
-		this->optimize();
+		this->optimizeTrajectory();
 
 		ros::Time endTime = ros::Time::now();
 		cout << "time: " << (endTime - startTime).toSec() << endl;
@@ -229,7 +229,33 @@ namespace trajPlanner{
 		}
 	}
 
-	void bsplineTraj::optimize(){
+	void bsplineTraj::optimizeTrajectory(){
+		ros::Time startTime = ros::Time::now();
+		// ros::Rate r (1);
+		this->optimize();
+		int count = 2;
+		double weightDistance0 = this->weightDistance_;
+		while (ros::ok() and this->hasCollisionTrajectory(this->optData_.controlPoints)){
+			cout << "optimization: " << count << endl;
+			this->optimize();
+
+			// if not collision free, we increase weight for distance
+			this->weightDistance_ *= 2.0;
+
+			// this->publishCurrTraj();
+			// this->publishControlPoints();
+			// this->publishAstarPath();
+			// this->publishGuidePoints();
+			// cout << "optimization done." << endl;
+			++count;
+			// r.sleep();
+		}
+		this->weightDistance_ = weightDistance0;
+		ros::Time endTime = ros::Time::now();
+		cout << "total optimization time: " << (endTime - startTime).toSec() << endl;
+	}
+
+	int bsplineTraj::optimize(){
 		// optimize information
 		int variableNum = 3 * (this->optData_.controlPoints.cols() - 2*bsplineDegree);
 		double x[variableNum]; int startID = bsplineDegree;
@@ -260,6 +286,8 @@ namespace trajPlanner{
 		else{
 			cout << "solver error" << endl;
 		}
+
+		return optimizeResult;
 	}
 
 	double bsplineTraj::solverCostFunction(void* func_data, const double* x, double* grad, const int n){

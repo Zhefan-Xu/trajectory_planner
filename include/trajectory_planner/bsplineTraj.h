@@ -69,7 +69,8 @@ namespace trajPlanner{
 		void findCollisionSeg(const Eigen::MatrixXd& controlPoints); // find collision segment of current control points
 		void pathSearch();
 		void assignPVpairs();
-		void optimize();
+		void optimizeTrajectory();
+		int optimize(); // optimize once
 
 		// cost functions
 		static double solverCostFunction(void* func_data, const double* x, double* grad, const int n); // deal with solver
@@ -96,6 +97,7 @@ namespace trajPlanner{
 		// inline function
 		inline bool findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint);
 		inline bool adjustGuidePoint(const Eigen::Vector3d& controlPoint, Eigen::Vector3d& guidePoint);
+		inline bool hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints);
 	};
 	inline bool bsplineTraj::findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
 		size_t initIdx = int(path.size()/2); // start from the middle point of the path
@@ -112,8 +114,6 @@ namespace trajPlanner{
 			guidePoint = path[initIdx];
 			return true;
 		}
-
-		// TODO: CORNER CASE: ONLY ONE SEGMENT IS NOT COLLISION FREE!!!!!!!!!!!!!!!!
 
 		// start search for the best guide point
 		double prevDotProduct = dotProduct;
@@ -157,6 +157,17 @@ namespace trajPlanner{
 		}
 		else{
 			return false;
+		}
+		return false;
+	}
+
+	inline bool bsplineTraj::hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints){
+		std::vector<Eigen::Vector3d> trajectory = this->evalTraj();
+		for (Eigen::Vector3d p : trajectory){
+			bool hasCollision = this->map_->isInflatedOccupied(p);
+			if (hasCollision){
+				return true;
+			}
 		}
 		return false;
 	}
