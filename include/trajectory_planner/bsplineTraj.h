@@ -100,7 +100,10 @@ namespace trajPlanner{
 		inline bool findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint);
 		inline bool adjustGuidePoint(const Eigen::Vector3d& controlPoint, Eigen::Vector3d& guidePoint);
 		inline bool hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints);
+		inline bool indexInCollisionSeg(const std::vector<std::pair<int, int>>& collisionSeg, int idx);
 		inline void compareCollisionSeg(const std::vector<std::pair<int, int>>& prevCollisionSeg, const std::vector<std::pair<int, int>>& newCollisionSeg, std::vector<int>& newCollisionPoints, std::vector<int>& overlappedCollisionPoints);
+		inline int findCollisionSegIndex(const std::vector<std::pair<int, int>>& collisionSeg, int idx);
+		inline bool isControlPointRequireNewGuide(int controlPointIdx);
 	};
 	inline bool bsplineTraj::findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
 		size_t initIdx = int(path.size()/2); // start from the middle point of the path
@@ -175,9 +178,54 @@ namespace trajPlanner{
 		return false;
 	}
 
+	inline bool bsplineTraj::indexInCollisionSeg(const std::vector<std::pair<int, int>>& collisionSeg, int idx){
+		for (std::pair<int, int> seg : collisionSeg){
+			if (idx > seg.first and idx < seg.second){
+				return true;
+			}
+		}
+		return false;
+	}
+
 	inline void bsplineTraj::compareCollisionSeg(const std::vector<std::pair<int, int>>& prevCollisionSeg, const std::vector<std::pair<int, int>>& newCollisionSeg, 
-									std::vector<int>& newCollisionPoints, std::vector<int>& overlappedCollisionPoints){
-		// TODO
+												 std::vector<int>& newCollisionPoints, std::vector<int>& overlappedCollisionPoints){
+		// compare two collision segments
+		for (std::pair<int, int> newSeg : newCollisionSeg){
+			for (int i=newSeg.first+1; i<=newSeg.second-1; ++i){
+				if (this->indexInCollisionSeg(prevCollisionSeg, i)){
+					overlappedCollisionPoints.push_back(i);
+				}
+				else{
+					newCollisionPoints.push_back(i);
+				}
+			}
+		}
+	}
+
+	inline int bsplineTraj::findCollisionSegIndex(const std::vector<std::pair<int, int>>& collisionSeg, int idx){
+		int countIdx = 0;
+		for (std::pair<int, int> seg : collisionSeg){
+			if (idx > seg.first and idx < seg.second){
+				return countIdx;
+			}
+			++countIdx;
+		}
+		ROS_ERROR("Index ERROR. Not exist.");
+		return -1;
+	}	
+
+	inline bool bsplineTraj::isControlPointRequireNewGuide(int controlPointIdx){
+		Eigen::Vector3d controlPoint = this->optData_.controlPoints.col(controlPointIdx);
+		for (size_t i=0; i<this->optData_.guidePoints[controlPointIdx].size(); ++i){
+			Eigen::Vector3d guidePoint = this->optData_.guidePoints[controlPointIdx][i];
+			Eigen::Vector3d guideDirection = this->optData_.guideDirections[controlPointIdx][i];
+			double dist = (controlPoint - guidePoint).dot(guideDirection);
+			double distErr = this->dthresh_ - dist;
+			if (distErr > 0){ // still can be adjusted by increasing distance weight
+ 				return false;
+			}
+		}
+		return true;
 	}
 
 

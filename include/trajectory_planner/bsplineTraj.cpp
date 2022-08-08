@@ -63,7 +63,7 @@ namespace trajPlanner{
 		}	
 
 		// optimization weight for smoothness
-		if (not this->nh_.getParam("bspline_traj/weight_distance", this->weightSmoothness_)){
+		if (not this->nh_.getParam("bspline_traj/weight_smoothness", this->weightSmoothness_)){
 			this->weightSmoothness_ = 1.0;
 			cout << "[BsplineTraj]" << ": No weight smoothness. Use default: 1.0." << endl;
 		}
@@ -168,6 +168,10 @@ namespace trajPlanner{
 				this->astarPaths_.push_back(this->pathSearch_->getPath());
 			}
 			else{
+				cout << "from: " << endl;
+				cout << pStart << endl;
+				cout << "to" << endl;
+				cout << pEnd << endl;
 				cout << "[BsplineTraj]: Path Search Error. Force return." << endl;
 				return; 
 			}
@@ -230,11 +234,32 @@ namespace trajPlanner{
 		std::vector<int> overlappedCollisionPoints; // old collision points which both appears in previous segment and new segment 
 		this->compareCollisionSeg(prevCollisionSeg, this->collisionSeg_, newCollisionPoints, overlappedCollisionPoints);
 
-
-
+		std::set<int> collisionSegIndices;
 		// for having new collision points: need to reguide and find its corresponding segment
+		for (int newCollisionPointIdx : newCollisionPoints){
+			// find its corresponding collision segment
+			int segIdx = this->findCollisionSegIndex(this->collisionSeg_, newCollisionPointIdx);
+			collisionSegIndices.insert(segIdx);
+		}
 
 		// for overlapped collision points: check its distance to current guide point: if larger than threshold, it means we need to reuide and find its corresponding segment
+		for (int overlappedCollisionPointIdx : overlappedCollisionPoints){
+			// determine whether needs new guide points
+			if (this->isControlPointRequireNewGuide(overlappedCollisionPointIdx)){
+				int segIdx = this->findCollisionSegIndex(this->collisionSeg_, overlappedCollisionPointIdx);
+				collisionSegIndices.insert(segIdx);
+			}
+		}
+
+		if (collisionSegIndices.size() == 0){
+			return false;
+		}
+
+		// convert collisionSegIndices into reguideCollisionSeg
+		for (int reguideSegIdx : collisionSegIndices){
+			reguideCollisionSeg.push_back(this->collisionSeg_[reguideSegIdx]);
+			cout << "reguide control point id: " << this->collisionSeg_[reguideSegIdx].first << " " << this->collisionSeg_[reguideSegIdx].second << endl;
+		}
 
 		return true;
 	}
@@ -245,7 +270,7 @@ namespace trajPlanner{
 
 	void bsplineTraj::optimizeTrajectory(){
 		ros::Time startTime = ros::Time::now();
-		// ros::Rate r (1);
+		ros::Rate r (1);
 		this->optimize();
 		int count = 2;
 		double weightDistance0 = this->weightDistance_;
@@ -255,6 +280,7 @@ namespace trajPlanner{
 			if (this->isReguideRequired(reguideCollisionSeg)){
 				this->pathSearch(reguideCollisionSeg);
 				this->assignGuidePoints();
+				cout << "reguide happens" << endl;
 			}
 			else{
 				this->weightDistance_ *= 2.0; // no need reguide: this means weight is not big enough	
@@ -268,7 +294,7 @@ namespace trajPlanner{
 			// this->publishControlPoints();
 			// this->publishAstarPath();
 			// this->publishGuidePoints();
-			// cout << "optimization done." << endl;
+			cout << "optimization done. distance weight: " << this->weightDistance_ << endl;
 			++count;
 			// r.sleep();
 		}
@@ -553,63 +579,68 @@ namespace trajPlanner{
 			int collisionStartIdx = this->collisionSeg_[i].first+1;
 			int collisionEndIdx = this->collisionSeg_[i].second-1;
 			for (int j=collisionStartIdx; j<=collisionEndIdx; ++j){
-				Eigen::Vector3d p = this->optData_.guidePoints[j].back(); // only visualize the latest one
-				point.header.frame_id = "map";
-				point.header.stamp = ros::Time::now();
-				point.ns = "guide_points";
-				point.id = numGuidedPoints;
-				point.type = visualization_msgs::Marker::SPHERE;
-				point.action = visualization_msgs::Marker::ADD;
-				point.pose.position.x = p(0);
-				point.pose.position.y = p(1);
-				point.pose.position.z = p(2);
-				point.lifetime = ros::Duration(0.5);
-				point.scale.x = 0.05;
-				point.scale.y = 0.05;
-				point.scale.z = 0.05;
-				point.color.a = 1.0;
-				point.color.r = 1.0;
-				point.color.g = 0.0;
-				point.color.b = 1.0;
-				msgVec.push_back(point);				
-				++numGuidedPoints;
+				visualization_msgs::Marker pointG;
+				for (size_t k=0; k<this->optData_.guidePoints[j].size(); ++k){
+					Eigen::Vector3d p = this->optData_.guidePoints[j][k]; // only visualize the latest one
+					pointG.header.frame_id = "map";
+					pointG.header.stamp = ros::Time::now();
+					pointG.ns = "guide_points";
+					pointG.id = numGuidedPoints;
+					pointG.type = visualization_msgs::Marker::SPHERE;
+					pointG.action = visualization_msgs::Marker::ADD;
+					pointG.pose.position.x = p(0);
+					pointG.pose.position.y = p(1);
+					pointG.pose.position.z = p(2);
+					pointG.lifetime = ros::Duration(0.5);
+					pointG.scale.x = 0.05;
+					pointG.scale.y = 0.05;
+					pointG.scale.z = 0.05;
+					pointG.color.a = 1.0;
+					pointG.color.r = 1.0;
+					pointG.color.g = 0.0;
+					pointG.color.b = 1.0;
+					msgVec.push_back(pointG);				
+					++numGuidedPoints;
+				}
 			}
 		}
 
 		// guide directions
 		int numGuideDirections = 0;
-		visualization_msgs::Marker arrow;
 		for (size_t i=0; i<this->collisionSeg_.size(); ++i){
 			int collisionStartIdx = this->collisionSeg_[i].first+1;
 			int collisionEndIdx = this->collisionSeg_[i].second-1;
 			for (int j=collisionStartIdx; j<=collisionEndIdx; ++j){
-				Eigen::Vector3d p = this->optData_.controlPoints.col(j);
-				Eigen::Vector3d pGuide = this->optData_.guidePoints[j].back(); // only visualize the latest one
-				geometry_msgs::Point p1, p2;
-				p1.x = p(0);
-				p1.y = p(1);
-				p1.z = p(2);
-				p2.x = pGuide(0);
-				p2.y = pGuide(1);
-				p2.z = pGuide(2);
-				std::vector<geometry_msgs::Point> pointsVec {p1, p2};
-				// Eigen::Vector3d direction = p_ - p;
-				arrow.points = pointsVec;
-				arrow.header.frame_id = "map";
-				arrow.header.stamp = ros::Time::now();
-				arrow.ns = "guide_direction";
-				arrow.id = numGuideDirections;
-				arrow.type = visualization_msgs::Marker::ARROW;
-				arrow.lifetime = ros::Duration(0.5);
-				arrow.scale.x = 0.05;
-				arrow.scale.y = 0.05;
-				arrow.scale.z = 0.05;
-				arrow.color.a = 0.5;
-				arrow.color.r = 0.0;
-				arrow.color.g = 1.0;
-				arrow.color.b = 0.0;
-				msgVec.push_back(arrow);				
-				++numGuideDirections;
+				visualization_msgs::Marker arrow;
+				for (size_t k=0; k<this->optData_.guideDirections[j].size(); ++k){
+					Eigen::Vector3d p = this->optData_.controlPoints.col(j);
+					Eigen::Vector3d pGuide = this->optData_.guidePoints[j][k]; // only visualize the latest one
+					geometry_msgs::Point p1, p2;
+					p1.x = p(0);
+					p1.y = p(1);
+					p1.z = p(2);
+					p2.x = pGuide(0);
+					p2.y = pGuide(1);
+					p2.z = pGuide(2);
+					std::vector<geometry_msgs::Point> pointsVec {p1, p2};
+					// Eigen::Vector3d direction = p_ - p;
+					arrow.points = pointsVec;
+					arrow.header.frame_id = "map";
+					arrow.header.stamp = ros::Time::now();
+					arrow.ns = "guide_direction";
+					arrow.id = numGuideDirections;
+					arrow.type = visualization_msgs::Marker::ARROW;
+					arrow.lifetime = ros::Duration(0.5);
+					arrow.scale.x = 0.05;
+					arrow.scale.y = 0.05;
+					arrow.scale.z = 0.05;
+					arrow.color.a = 0.5;
+					arrow.color.r = 0.0;
+					arrow.color.g = 1.0;
+					arrow.color.b = 0.0;
+					msgVec.push_back(arrow);				
+					++numGuideDirections;
+				}
 			}
 		}
 
