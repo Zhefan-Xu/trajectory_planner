@@ -11,11 +11,12 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/Quaternion.h>
 #include <global_planner/Point.h>
+#include <Eigen/Eigen>
 
-#define PI_const 3.1415926
     
 
-namespace trajPlanner{    
+namespace trajPlanner{   
+    const double PI_const = 3.1415926;
     struct pose{
         double x;
         double y;
@@ -78,6 +79,10 @@ namespace trajPlanner{
             delta = 2 * PI_const - delta;
         }
         return delta;
+    }
+
+    inline double angleBetweenVectors(const Eigen::Vector3d& a, const Eigen::Vector3d& b){
+        return std::atan2(a.cross(b).norm(), a.dot(b));
     }
 
     template <size_t N>
