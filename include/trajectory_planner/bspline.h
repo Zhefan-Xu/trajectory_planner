@@ -25,6 +25,7 @@ namespace trajPlanner{
 		void initKnots();
 		Eigen::VectorXd at(double t);
 		double getDuration();
+		bspline getDerivative();
 
 		static void parameterizeToBspline(double ts, 
 										  const std::vector<Eigen::Vector3d>& points, 

@@ -718,6 +718,9 @@ namespace trajPlanner{
 		ps.pose.position.z = p(2);
 
 		// orientation: TODO
+		trajPlanner::bspline velBspline = this->bspline_.getDerivative();
+		Eigen::Vector3d vel = velBspline.at(t);
+		ps.pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, atan2(vel(1), vel(0)));
 
 		return ps;
 	}

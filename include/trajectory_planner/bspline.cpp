@@ -61,6 +61,16 @@ namespace trajPlanner{
 		return this->duration_;
 	}
 
+	bspline bspline::getDerivative(){
+    	Eigen::MatrixXd ctp(this->controlPoints_.rows(), this->controlPoints_.cols() - 1);
+    	for (int i=0; i<ctp.cols(); ++i){
+			ctp.col(i) = this->degree_ * (this->controlPoints_.col(i + 1) - this->controlPoints_.col(i)) / (this->knots_(i + this->degree_ + 1) - this->knots_(i + 1));
+    	}
+
+    	bspline derivative (this->degree_-1, ctp, this->ts_);
+    	return derivative;
+	}
+
 	void bspline::parameterizeToBspline(double ts, 
 										const std::vector<Eigen::Vector3d>& points, 
 										const std::vector<Eigen::Vector3d>& startEndCondition,
