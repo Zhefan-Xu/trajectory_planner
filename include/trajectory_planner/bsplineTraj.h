@@ -29,7 +29,7 @@ namespace trajPlanner{
 	class bsplineTraj{
 	private:
 		ros::NodeHandle nh_;
-		// ros::Timer visTimer_;
+		ros::Timer visTimer_;
 		ros::Publisher controlPointsVisPub_;
 		ros::Publisher currTrajVisPub_;
 		ros::Publisher astarVisPub_;
@@ -59,7 +59,7 @@ namespace trajPlanner{
 		bool init_ = false;
 
 	public:
-		std::thread visualizationWorker_;
+		// std::thread visualizationWorker_;
 
 		bsplineTraj();
 		bsplineTraj(const ros::NodeHandle& nh);
@@ -91,7 +91,8 @@ namespace trajPlanner{
 
 
 		// visualization
-		void startVisualization();
+		// void startVisualization();
+		void visCB(const ros::TimerEvent&);
 		void publishControlPoints();
 		void publishCurrTraj();
 		void publishAstarPath();
@@ -100,6 +101,7 @@ namespace trajPlanner{
 		// user functions
 		geometry_msgs::PoseStamped getPose(double t);
 		double getDuration();
+		bool isCurrTrajValid();
 
 		// helper functionin
 		std::vector<Eigen::Vector3d> evalTraj();

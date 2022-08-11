@@ -91,11 +91,11 @@ namespace trajPlanner{
 		this->currTrajVisPub_ = this->nh_.advertise<nav_msgs::Path>("bspline_traj/trajectory", 10);
 		this->astarVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("bspline_traj/astar_path", 10);
 		this->guidePointsVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("bspline_traj/guide_points_and_directions", 10);
-		this->visualizationWorker_ = std::thread(&bsplineTraj::startVisualization, this);
+		// this->visualizationWorker_ = std::thread(&bsplineTraj::startVisualization, this);
 	}
 
 	void bsplineTraj::registerCallback(){
-		// this->visTimer_ = this->nh_.createTimer(ros::Duration(0.1), &bsplineTraj::visCB, this);
+		this->visTimer_ = this->nh_.createTimer(ros::Duration(0.1), &bsplineTraj::visCB, this);
 	}
 
 	void bsplineTraj::setMap(const std::shared_ptr<mapManager::occMap>& map){
@@ -161,6 +161,7 @@ namespace trajPlanner{
 		collisionSeg.clear();
 		bool previousHasCollision = false;
 		double checkRatio = 2/3;
+		// double checkRatio = 1.0;
 		int endIdx = int((controlPoints.cols() - bsplineDegree - 1) - checkRatio * (controlPoints.cols() - 2*bsplineDegree));
 		int pairStartIdx = bsplineDegree;
 		int pairEndIdx = bsplineDegree;
@@ -316,7 +317,6 @@ namespace trajPlanner{
 
 	void bsplineTraj::optimizeTrajectory(){
 		ros::Time startTime = ros::Time::now();
-		ros::Rate r (0.1);
 
 		cout << "before first optimization: " << endl;
 
@@ -509,22 +509,31 @@ namespace trajPlanner{
 		}
 	}
 
-	void bsplineTraj::startVisualization(){
-		ros::Rate r (10);
-		while (not this->init_){
-			r.sleep();
-		}
-
+	void bsplineTraj::visCB(const ros::TimerEvent&){
 		if (this->init_){
-			while (ros::ok()){
-				this->publishControlPoints();
-				this->publishCurrTraj();
-				this->publishAstarPath();
-				this->publishGuidePoints();
-				r.sleep();
-			}
+			this->publishControlPoints();
+			this->publishCurrTraj();
+			this->publishAstarPath();
+			this->publishGuidePoints();
 		}
 	}
+
+	// void bsplineTraj::startVisualization(){
+	// 	ros::Rate r (10);
+	// 	while (not this->init_){
+	// 		r.sleep();
+	// 	}
+
+	// 	if (this->init_){
+	// 		while (ros::ok()){
+	// 			this->publishControlPoints();
+	// 			this->publishCurrTraj();
+	// 			this->publishAstarPath();
+	// 			this->publishGuidePoints();
+	// 			r.sleep();
+	// 		}
+	// 	}
+	// }
 
 	void bsplineTraj::publishControlPoints(){
 		visualization_msgs::MarkerArray msg;
@@ -731,6 +740,7 @@ namespace trajPlanner{
 		this->guidePointsVisPub_.publish(msg);
 	}
 
+
 	geometry_msgs::PoseStamped bsplineTraj::getPose(double t){
 		geometry_msgs::PoseStamped ps;
 		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->ts_);
@@ -764,6 +774,13 @@ namespace trajPlanner{
 		}
 		return traj;
 	}	
+
+	bool bsplineTraj::isCurrTrajValid(){
+		if (not this->init_){
+			return false;
+		}
+		return not this->hasCollisionTrajectory(this->optData_.controlPoints);
+	}
 
 	nav_msgs::Path bsplineTraj::evalTrajToMsg(){
 		std::vector<Eigen::Vector3d> trajTemp = this->evalTraj();
