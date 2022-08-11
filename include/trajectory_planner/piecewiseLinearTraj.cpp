@@ -208,6 +208,10 @@ namespace trajPlanner{
 		}
 	}
 
+	double pwlTraj::getDesiredVel(){
+		return this->desiredVel_;
+	}
+
 	geometry_msgs::PoseStamped pwlTraj::getFirstPose(){
 		double yaw = this->path_[0].yaw;
 		geometry_msgs::Quaternion quat = trajPlanner::quaternion_from_rpy(0, 0, yaw);

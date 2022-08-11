@@ -8,6 +8,12 @@
 namespace trajPlanner{
 	bsplineTraj::bsplineTraj(){}
 
+	bsplineTraj::bsplineTraj(const ros::NodeHandle& nh) : nh_(nh){
+		this->initParam();
+		this->registerPub();
+		this->registerCallback();
+	}
+
 	void bsplineTraj::init(const ros::NodeHandle& nh){
 		this->nh_ = nh;
 		this->initParam();
@@ -128,9 +134,23 @@ namespace trajPlanner{
 		cout << "start solving..." << endl;
 		// step 4. call solver
 		this->optimizeTrajectory();
+		this->clear();
 
 		ros::Time endTime = ros::Time::now();
 		cout << "time: " << (endTime - startTime).toSec() << endl;
+	}
+
+	void bsplineTraj::makePlan(nav_msgs::Path& trajectory){
+		this->makePlan();
+		trajectory = this->evalTrajToMsg();
+	}
+
+	void bsplineTraj::clear(){
+		this->optData_.guidePoints.clear();
+		this->optData_.guideDirections.clear();
+		this->collisionSeg_.clear();
+		this->astarPaths_.clear();
+		this->astarPathsSC_.clear();
 	}
 
 	void bsplineTraj::findCollisionSeg(const Eigen::MatrixXd& controlPoints, std::vector<std::pair<int, int>>& collisionSeg){
@@ -517,7 +537,7 @@ namespace trajPlanner{
 			point.pose.position.x = this->optData_.controlPoints(0, i);
 			point.pose.position.y = this->optData_.controlPoints(1, i);
 			point.pose.position.z = this->optData_.controlPoints(2, i);
-			// point.lifetime = ros::Duration(0.5);
+			point.lifetime = ros::Duration(0.5);
 			point.scale.x = 0.1;
 			point.scale.y = 0.1;
 			point.scale.z = 0.1;

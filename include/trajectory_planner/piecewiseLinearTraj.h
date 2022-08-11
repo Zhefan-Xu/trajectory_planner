@@ -37,6 +37,7 @@ namespace trajPlanner{
 		geometry_msgs::PoseStamped getPose(double t);
 		std::vector<double> getTimeKnot();
 		double getDuration();
+		double getDesiredVel();
 		geometry_msgs::PoseStamped getFirstPose();
 	};
 }

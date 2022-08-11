@@ -62,6 +62,7 @@ namespace trajPlanner{
 		std::thread visualizationWorker_;
 
 		bsplineTraj();
+		bsplineTraj(const ros::NodeHandle& nh);
 		void init(const ros::NodeHandle& nh);
 		void initParam();
 		void registerPub();
@@ -70,6 +71,8 @@ namespace trajPlanner{
 		void updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition); // used to initialize control points
 		
 		void makePlan();
+		void makePlan(nav_msgs::Path& trajectory);
+		void clear();
 		void findCollisionSeg(const Eigen::MatrixXd& controlPoints, std::vector<std::pair<int, int>>& collisionSeg); // find collision segment of current control points
 		void pathSearch(const std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths);
 		void assignGuidePoints();
