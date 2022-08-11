@@ -68,7 +68,7 @@ namespace trajPlanner{
 		void registerPub();
 		void registerCallback();
 		void setMap(const std::shared_ptr<mapManager::occMap>& map); // update occuapncy grid map
-		void updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition); // used to initialize control points
+		bool updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition); // used to initialize control points
 		
 		void makePlan();
 		void makePlan(nav_msgs::Path& trajectory);

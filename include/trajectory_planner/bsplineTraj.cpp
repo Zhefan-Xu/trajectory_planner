@@ -104,7 +104,10 @@ namespace trajPlanner{
 		this->pathSearch_->initGridMap(map, Eigen::Vector3i(100, 100, 100), 2.0);
 	}
 
-	void bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition){
+	bool bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition){
+		if (path.poses.size() < 4){
+			return false;
+		}
 		Eigen::MatrixXd controlPoints;
 		std::vector<Eigen::Vector3d> curveFitPoints;
 		this->pathMsgToEigenPoints(path, curveFitPoints);
@@ -115,6 +118,7 @@ namespace trajPlanner{
 		this->optData_.guideDirections.resize(controlPointNum);
 		this->optData_.findGuidePoint.resize(controlPointNum, false);
 		this->init_ = true;
+		return true;
 	}
 
 
@@ -765,6 +769,15 @@ namespace trajPlanner{
 		std::vector<Eigen::Vector3d> trajTemp = this->evalTraj();
 		nav_msgs::Path traj;
 		this->eigenPointsToPathMsg(trajTemp, traj);
+		trajPlanner::bspline velBspline = this->bspline_.getDerivative();
+		size_t i = 0;
+		while (i < traj.poses.size()){
+			double t = (double) i * this->ts_;
+			Eigen::Vector3d vel = velBspline.at(t);
+			traj.poses[i].pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, atan2(vel(1), vel(0)));
+			++i;
+		}
+
 		return traj;
 	}
 
