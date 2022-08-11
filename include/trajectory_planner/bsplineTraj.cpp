@@ -101,7 +101,7 @@ namespace trajPlanner{
 	void bsplineTraj::setMap(const std::shared_ptr<mapManager::occMap>& map){
 		this->map_ = map;
 		this->pathSearch_.reset(new AStar);
-		this->pathSearch_->initGridMap(map, Eigen::Vector3i(100, 100, 100), 2.0);
+		this->pathSearch_->initGridMap(map, Eigen::Vector3i(100, 100, 100), 0.5, 2.0);
 	}
 
 	bool bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition){

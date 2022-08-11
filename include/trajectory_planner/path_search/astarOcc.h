@@ -76,7 +76,7 @@ public:
 	AStar(){};
 	~AStar();
 
-	void initGridMap(std::shared_ptr<mapManager::occMap> occ_map, const Eigen::Vector3i pool_size, double maxHeight=3.0);
+	void initGridMap(std::shared_ptr<mapManager::occMap> occ_map, const Eigen::Vector3i pool_size, double minHeight=0.0, double maxHeight=3.0);
 	bool AstarSearch(const double step_size, Eigen::Vector3d start_pt, Eigen::Vector3d end_pt);
 	std::vector<Eigen::Vector3d> getPath();
 };
@@ -112,10 +112,11 @@ AStar::~AStar(){
                 delete GridNodeMap_[i][j][k];
 }
 
-void AStar::initGridMap(std::shared_ptr<mapManager::occMap> occ_map, const Eigen::Vector3i pool_size, double maxHeight){
+void AStar::initGridMap(std::shared_ptr<mapManager::occMap> occ_map, const Eigen::Vector3i pool_size, double minHeight,  double maxHeight){
     POOL_SIZE_ = pool_size;
     CENTER_IDX_ = pool_size / 2;
     maxHeight_ = maxHeight;
+    minHeight_ = minHeight;
 
     GridNodeMap_ = new GridNodePtr **[POOL_SIZE_(0)];
     for (int i = 0; i < POOL_SIZE_(0); i++)
