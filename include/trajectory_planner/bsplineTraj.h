@@ -76,9 +76,7 @@ namespace trajPlanner{
 		void clear();
 		void findCollisionSeg(const Eigen::MatrixXd& controlPoints, std::vector<std::pair<int, int>>& collisionSeg); // find collision segment of current control points
 		bool pathSearch(const std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths);
-		void assignGuidePoints();
-		void assignGuidePointsSemiCircle(const std::vector<std::vector<Eigen::Vector3d>>& paths, const std::vector<std::pair<int, int>>& collisionSeg);
-		bool findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint);
+		bool findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint); // not used
 		void findGuidePointSemiCircle(int controlPointIdx, const std::pair<int, int>& seg, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint);
 		bool isReguideRequired(std::vector<std::pair<int, int>>& reguideCollisionSeg);
 		bool optimizeTrajectory();
@@ -117,8 +115,10 @@ namespace trajPlanner{
 		inline bool isGoalValid();
 		inline bool checkCollisionLine(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2);
 		inline void shortcutPath(const std::vector<Eigen::Vector3d>& path, std::vector<Eigen::Vector3d>& pathSC);
-		inline void shortcutPaths(const std::vector<std::vector<Eigen::Vector3d>>& paths, std::vector<std::vector<Eigen::Vector3d>>& pathsSC);
-		inline bool adjustGuidePoint(const Eigen::Vector3d& controlPoint, Eigen::Vector3d& guidePoint);
+		inline void shortcutPaths(const std::vector<std::vector<Eigen::Vector3d>>& paths, std::vector<std::vector<Eigen::Vector3d>>& pathsSC); 
+		inline bool adjustGuidePoint(const Eigen::Vector3d& controlPoint, Eigen::Vector3d& guidePoint); // not used
+		inline void assignGuidePoints(); // not used
+		inline void assignGuidePointsSemiCircle(const std::vector<std::vector<Eigen::Vector3d>>& paths, const std::vector<std::pair<int, int>>& collisionSeg);
 		inline bool hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints);
 		inline bool hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints, Eigen::Vector3d& firstCollisionPos);
 		inline bool indexInCollisionSeg(const std::vector<std::pair<int, int>>& collisionSeg, int idx);
@@ -215,6 +215,97 @@ namespace trajPlanner{
 		}
 		return false;
 	}
+
+	inline bool bsplineTraj::findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
+		size_t initIdx = int(path.size()/2); // start from the middle point of the path
+		Eigen::Vector3d pathPointDirection = path[initIdx] - controlPoint;
+		double dotProduct = tangentDirection.dot(pathPointDirection);
+		int searchDirection = 1;
+		if (dotProduct > 0){ // need to backward search
+			searchDirection = -1;
+		}
+		else if (dotProduct < 0){ // need to do forward search
+			searchDirection = 1;
+		}
+		else{ // happen to find our guide point
+			guidePoint = path[initIdx];
+			return true;
+		}
+
+		// start search for the best guide point
+		double prevDotProduct = dotProduct;
+		for (size_t i=initIdx+searchDirection; i>=0 and i<path.size(); i+=searchDirection){
+			pathPointDirection = path[i] - controlPoint;
+			dotProduct = tangentDirection.dot(pathPointDirection); 
+			if (dotProduct == 0){ // find the exact control point
+				guidePoint = path[i];
+				return true;
+			}
+			else if (dotProduct * prevDotProduct < 0){
+				// interpolate those two points in path
+				Eigen::Vector3d currPoint = path[i];
+				Eigen::Vector3d prevPoint = path[i-searchDirection];
+				double currLength = std::abs(dotProduct);
+				double totalLength = std::abs(dotProduct) + std::abs(prevDotProduct);
+				Eigen::Vector3d interPoint = currPoint + (prevPoint - currPoint) * (currLength / totalLength);
+				guidePoint = interPoint;
+				bool successAdjustment = this->adjustGuidePoint(controlPoint, guidePoint);
+				return successAdjustment;
+
+			}
+			prevDotProduct = dotProduct;
+		}
+		return false;
+	}
+
+	inline void bsplineTraj::findGuidePointSemiCircle(int controlPointIdx, const std::pair<int, int>& seg, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
+		int numControlpoints = seg.second - seg.first - 1; // number of segment
+		double targetAngle = (controlPointIdx - seg.first) * PI_const/(numControlpoints+2); // angle incremental interval
+		Eigen::Vector3d firstControlPoint = this->optData_.controlPoints.col(seg.first);
+		Eigen::Vector3d controlPoint = this->optData_.controlPoints.col(controlPointIdx);
+		Eigen::Vector3d direction = firstControlPoint - controlPoint;
+
+		// calculate angle to each point in the shortcut path
+		for (size_t i=0; i<path.size()-1; ++i){
+			Eigen::Vector3d wpCurr = path[i];
+			Eigen::Vector3d wpNext = path[i+1];
+			double angleCurr = trajPlanner::angleBetweenVectors(direction, wpCurr - controlPoint);
+			double angleNext = trajPlanner::angleBetweenVectors(direction, wpNext - controlPoint);
+			if (targetAngle >= angleCurr and targetAngle <= angleNext){ // search point in this range
+				double prevAngleDiff = 0.0;
+				Eigen::Vector3d prevTempPoint;
+				for (double a=1.0; a>=0.0; a-=0.1){
+					Eigen::Vector3d tempPoint = a * wpCurr + (1-a) * wpNext;
+					double tempAngle = trajPlanner::angleBetweenVectors(direction, tempPoint - controlPoint);
+					double angleDiff = tempAngle - targetAngle;
+					if (angleDiff == 0){ // we find the guide point
+						guidePoint = tempPoint;
+						return;
+					}
+
+					if (angleDiff * prevAngleDiff < 0){ // the guide point is between two
+						double totalDiff = std::abs(angleDiff) + std::abs(prevAngleDiff);
+						guidePoint = std::abs(prevAngleDiff)/totalDiff * (tempPoint - prevTempPoint) + prevTempPoint;
+						return;
+					}
+
+					prevAngleDiff = angleDiff;
+					prevTempPoint = tempPoint;
+				}
+			}
+
+			// corner case: first and last point
+			if (targetAngle < angleCurr and i==0){
+				guidePoint = path[0];
+				return;
+			}	
+
+			if (targetAngle > angleNext and i==path.size()-1){
+				guidePoint = path.back();
+				return;
+			}
+		}
+	};
 
 	inline bool bsplineTraj::hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints){
 		std::vector<Eigen::Vector3d> trajectory = this->evalTraj();
