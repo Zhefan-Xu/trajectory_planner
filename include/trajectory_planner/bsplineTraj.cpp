@@ -122,31 +122,43 @@ namespace trajPlanner{
 	}
 
 
-	void bsplineTraj::makePlan(){
+	bool bsplineTraj::makePlan(){
+		if (not this->isGoalValid()){
+			cout << "[BsplineTraj]: Goal is not collision free. Force Return." << endl;
+			return false;
+		}
+
 		ros::Time startTime = ros::Time::now();
 		// step 1. find collision segment
-		cout << "start make plan" << endl;
 		this->findCollisionSeg(this->optData_.controlPoints, this->collisionSeg_); // upodate collision seg
 
 		// step 2. A* to find collision free path
-		this->pathSearch(this->collisionSeg_, this->astarPaths_);
+		bool pathSearchSuccess = this->pathSearch(this->collisionSeg_, this->astarPaths_);
+		if (not pathSearchSuccess){
+			this->clear();
+			return false;
+		}
 
 		// step 3. Assign guide point and directions
 		// this->assignGuidePoints();
-		this->assignGuidePointsSemiCircle();
+		this->assignGuidePointsSemiCircle(this->astarPaths_, this->collisionSeg_);
 
-		cout << "start solving..." << endl;
 		// step 4. call solver
-		this->optimizeTrajectory();
+		bool optimizationSuccess = this->optimizeTrajectory();
 		this->clear();
+		if (not optimizationSuccess){
+			return false;
+		}
 
 		ros::Time endTime = ros::Time::now();
-		cout << "time: " << (endTime - startTime).toSec() << endl;
+		cout << "[BsplineTraj]: Total time: " << (endTime - startTime).toSec() << endl;
+		return true;
 	}
 
-	void bsplineTraj::makePlan(nav_msgs::Path& trajectory){
-		this->makePlan();
+	bool bsplineTraj::makePlan(nav_msgs::Path& trajectory){
+		bool success = this->makePlan();
 		trajectory = this->evalTrajToMsg();
+		return success;
 	}
 
 	void bsplineTraj::clear(){
@@ -154,15 +166,12 @@ namespace trajPlanner{
 		this->optData_.guideDirections.clear();
 		this->collisionSeg_.clear();
 		this->astarPaths_.clear();
-		this->astarPathsSC_.clear();
 	}
 
 	void bsplineTraj::findCollisionSeg(const Eigen::MatrixXd& controlPoints, std::vector<std::pair<int, int>>& collisionSeg){
 		collisionSeg.clear();
 		bool previousHasCollision = false;
-		double checkRatio = 2/3;
-		// double checkRatio = 1.0;
-		int endIdx = int((controlPoints.cols() - bsplineDegree - 1) - checkRatio * (controlPoints.cols() - 2*bsplineDegree));
+		int endIdx = int((controlPoints.cols() - bsplineDegree - 1) - this->notCheckRatio_ * (controlPoints.cols() - 2*bsplineDegree));
 		int pairStartIdx = bsplineDegree;
 		int pairEndIdx = bsplineDegree;
 		for (int i=bsplineDegree; i<endIdx; ++i){
@@ -185,7 +194,7 @@ namespace trajPlanner{
 		}
 	}
 
-	void bsplineTraj::pathSearch(const std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths){
+	bool bsplineTraj::pathSearch(const std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths){
 		paths.clear();
 		for (std::pair<int, int> seg : collisionSeg){
 			Eigen::Vector3d pStart (this->optData_.controlPoints.col(seg.first));
@@ -194,14 +203,11 @@ namespace trajPlanner{
 				paths.push_back(this->pathSearch_->getPath());
 			}
 			else{
-				cout << "from: " << endl;
-				cout << pStart << endl;
-				cout << "to" << endl;
-				cout << pEnd << endl;
-				cout << "[BsplineTraj]: Path Search Error. Force return." << endl;
-				return; 
+				// cout << "[BsplineTraj]: Path Search Error. Force return." << endl;
+				return false; 
 			}
 		}	
+		return true;
 	}
 
 	void bsplineTraj::assignGuidePoints(){
@@ -248,34 +254,125 @@ namespace trajPlanner{
 
 				}
 			}
-			else{
-				cout << "fail to add new guide points" << endl;
-			}
-
 		}
 	}
 
-	void bsplineTraj::assignGuidePointsSemiCircle(){
+	void bsplineTraj::assignGuidePointsSemiCircle(const std::vector<std::vector<Eigen::Vector3d>>& paths, const std::vector<std::pair<int, int>>& collisionSeg){
 		// step 1 shortcut A* path to get representative waypoints
-		this->shortcutPaths(this->astarPaths_, this->astarPathsSC_);
+		std::vector<std::vector<Eigen::Vector3d>> astarPathsSC;
+		this->shortcutPaths(paths, astarPathsSC);
 
 		// step 2: find corresponding path and collision segment
-		for (size_t i=0; i<this->collisionSeg_.size(); ++i){
-			std::pair<int, int> seg = this->collisionSeg_[i];
-			std::vector<Eigen::Vector3d> path = this->astarPaths_[i];
+		std::pair<int, int> seg;
+		std::vector<Eigen::Vector3d> path;
+		Eigen::Vector3d guidePoint, guideDirection;
+
+		for (size_t i=0; i<collisionSeg.size(); ++i){
+			seg = collisionSeg[i];
+			path = astarPathsSC[i];
 			for (int controlPointIdx=seg.first+1; controlPointIdx<=seg.second; ++controlPointIdx){ // iterate through all collision control points
-				Eigen::Vector3d guidePoint;
 				this->findGuidePointSemiCircle(controlPointIdx, seg, path, guidePoint);
 				this->optData_.guidePoints[controlPointIdx].push_back(guidePoint);
-				Eigen::Vector3d guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx))/(guidePoint - this->optData_.controlPoints.col(controlPointIdx)).norm();
+				guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx))/(guidePoint - this->optData_.controlPoints.col(controlPointIdx)).norm();
 				this->optData_.guideDirections[controlPointIdx].push_back(guideDirection);
 			}
 		}
 
 	}
 
+	bool bsplineTraj::findGuidePointFromPath(const Eigen::Vector3d& controlPoint, const Vector3d& tangentDirection, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
+		size_t initIdx = int(path.size()/2); // start from the middle point of the path
+		Eigen::Vector3d pathPointDirection = path[initIdx] - controlPoint;
+		double dotProduct = tangentDirection.dot(pathPointDirection);
+		int searchDirection = 1;
+		if (dotProduct > 0){ // need to backward search
+			searchDirection = -1;
+		}
+		else if (dotProduct < 0){ // need to do forward search
+			searchDirection = 1;
+		}
+		else{ // happen to find our guide point
+			guidePoint = path[initIdx];
+			return true;
+		}
+
+		// start search for the best guide point
+		double prevDotProduct = dotProduct;
+		for (size_t i=initIdx+searchDirection; i>=0 and i<path.size(); i+=searchDirection){
+			pathPointDirection = path[i] - controlPoint;
+			dotProduct = tangentDirection.dot(pathPointDirection); 
+			if (dotProduct == 0){ // find the exact control point
+				guidePoint = path[i];
+				return true;
+			}
+			else if (dotProduct * prevDotProduct < 0){
+				// interpolate those two points in path
+				Eigen::Vector3d currPoint = path[i];
+				Eigen::Vector3d prevPoint = path[i-searchDirection];
+				double currLength = std::abs(dotProduct);
+				double totalLength = std::abs(dotProduct) + std::abs(prevDotProduct);
+				Eigen::Vector3d interPoint = currPoint + (prevPoint - currPoint) * (currLength / totalLength);
+				guidePoint = interPoint;
+				bool successAdjustment = this->adjustGuidePoint(controlPoint, guidePoint);
+				return successAdjustment;
+
+			}
+			prevDotProduct = dotProduct;
+		}
+		return false;
+	}
+
+	void bsplineTraj::findGuidePointSemiCircle(int controlPointIdx, const std::pair<int, int>& seg, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
+		int numControlpoints = seg.second - seg.first - 1; // number of segment
+		double targetAngle = (controlPointIdx - seg.first) * PI_const/(numControlpoints+2); // angle incremental interval
+		Eigen::Vector3d firstControlPoint = this->optData_.controlPoints.col(seg.first);
+		Eigen::Vector3d controlPoint = this->optData_.controlPoints.col(controlPointIdx);
+		Eigen::Vector3d direction = firstControlPoint - controlPoint;
+
+		// calculate angle to each point in the shortcut path
+		for (size_t i=0; i<path.size()-1; ++i){
+			Eigen::Vector3d wpCurr = path[i];
+			Eigen::Vector3d wpNext = path[i+1];
+			double angleCurr = trajPlanner::angleBetweenVectors(direction, wpCurr - controlPoint);
+			double angleNext = trajPlanner::angleBetweenVectors(direction, wpNext - controlPoint);
+			if (targetAngle >= angleCurr and targetAngle <= angleNext){ // search point in this range
+				double prevAngleDiff = 0.0;
+				Eigen::Vector3d prevTempPoint;
+				for (double a=1.0; a>=0.0; a-=0.1){
+					Eigen::Vector3d tempPoint = a * wpCurr + (1-a) * wpNext;
+					double tempAngle = trajPlanner::angleBetweenVectors(direction, tempPoint - controlPoint);
+					double angleDiff = tempAngle - targetAngle;
+					if (angleDiff == 0){ // we find the guide point
+						guidePoint = tempPoint;
+						return;
+					}
+
+					if (angleDiff * prevAngleDiff < 0){ // the guide point is between two
+						double totalDiff = std::abs(angleDiff) + std::abs(prevAngleDiff);
+						guidePoint = std::abs(prevAngleDiff)/totalDiff * (tempPoint - prevTempPoint) + prevTempPoint;
+						return;
+					}
+
+					prevAngleDiff = angleDiff;
+					prevTempPoint = tempPoint;
+				}
+			}
+
+			// corner case: first and last point
+			if (targetAngle < angleCurr and i==0){
+				guidePoint = path[0];
+				return;
+			}	
+
+			if (targetAngle > angleNext and i==path.size()-1){
+				guidePoint = path.back();
+				return;
+			}
+		}
+	};
+
 	bool bsplineTraj::isReguideRequired(std::vector<std::pair<int, int>>& reguideCollisionSeg){
-		std::vector<std::pair<int, int>> prevCollisionSeg; // previous collision segment
+		std::vector<std::pair<int, int>> prevCollisionSeg = this->collisionSeg_; // previous collision segment
 		this->findCollisionSeg(this->optData_.controlPoints, this->collisionSeg_); // new collision segment
 
 		std::vector<int> newCollisionPoints; // new collision controlpoints
@@ -288,7 +385,6 @@ namespace trajPlanner{
 			// find its corresponding collision segment
 			int segIdx = this->findCollisionSegIndex(this->collisionSeg_, newCollisionPointIdx);
 			collisionSegIndices.insert(segIdx);
-			cout << "got new collision control points" << endl;
 		}
 
 		// for overlapped collision points: check its distance to current guide point: if larger than threshold, it means we need to reuide and find its corresponding segment
@@ -297,7 +393,6 @@ namespace trajPlanner{
 			if (this->isControlPointRequireNewGuide(overlappedCollisionPointIdx)){
 				int segIdx = this->findCollisionSegIndex(this->collisionSeg_, overlappedCollisionPointIdx);
 				collisionSegIndices.insert(segIdx);
-				cout << "old control points get new collisions" << endl;
 			}
 		}
 
@@ -308,47 +403,56 @@ namespace trajPlanner{
 		// convert collisionSegIndices into reguideCollisionSeg
 		for (int reguideSegIdx : collisionSegIndices){
 			reguideCollisionSeg.push_back(this->collisionSeg_[reguideSegIdx]);
-			cout << "reguide control point id: " << this->collisionSeg_[reguideSegIdx].first << " " << this->collisionSeg_[reguideSegIdx].second << endl;
 		}
 
 		return true;
 	}
 
 
-	void bsplineTraj::optimizeTrajectory(){
-		ros::Time startTime = ros::Time::now();
-
-		cout << "before first optimization: " << endl;
-
-		// std::cin.get();
-		this->optimize();
-		int count = 2;
+	bool bsplineTraj::optimizeTrajectory(){
+		int solverResult = this->optimize();
 		double weightDistance0 = this->weightDistance_;
+		int failCount = 0; 
+		std::vector<vector<Eigen::Vector3d>> tempAstarPaths; // in case path search fail
 		while (ros::ok() and this->hasCollisionTrajectory(this->optData_.controlPoints)){
+			if (failCount >= 4){
+				this->weightDistance_ = weightDistance0;
+				return false;
+			}
+
 			// need to determine whether the reguide is required
 			std::vector<std::pair<int, int>> reguideCollisionSeg;
-			if (this->isReguideRequired(reguideCollisionSeg)){
-				this->pathSearch(reguideCollisionSeg, this->astarPaths_);
-				// this->assignGuidePoints();
-				this->assignGuidePointsSemiCircle();
-				cout << "reguide happens" << endl;
+			if (this->isReguideRequired(reguideCollisionSeg)){ // this will update collision segment for next iteration
+				bool pathSearchSuccess = this->pathSearch(reguideCollisionSeg, tempAstarPaths);
+				
+				if (pathSearchSuccess){
+					// this->assignGuidePoints();
+					this->astarPaths_ = tempAstarPaths; 
+					this->assignGuidePointsSemiCircle(tempAstarPaths, reguideCollisionSeg);
+				}
+				else{
+					this->weightDistance_ *= 2.0;
+					++failCount;
+				}
 			}
 			else{
 				this->weightDistance_ *= 2.0; // no need reguide: this means weight is not big enough	
+				++failCount;
 			}
 
-			cout << "optimization: " << count << endl;
-			// std::cin.get();
 
-			this->optimize();
+			solverResult = this->optimize();
+			if (solverResult == lbfgs::LBFGS_CONVERGENCE or solverResult == lbfgs::LBFGSERR_MAXIMUMITERATION or
+				solverResult == lbfgs::LBFGS_ALREADY_MINIMIZED or solverResult == lbfgs::LBFGS_STOP or solverResult == lbfgs::LBFGSERR_CANCELED){
 
-
-			cout << "optimization done. distance weight: " << this->weightDistance_ << endl;
-			++count;
+			}
+			else{
+				this->weightDistance_ = weightDistance0;
+				return false;
+			}
 		}
 		this->weightDistance_ = weightDistance0;
-		ros::Time endTime = ros::Time::now();
-		cout << "total optimization time: " << (endTime - startTime).toSec() << endl;
+		return true;
 	}
 
 	int bsplineTraj::optimize(){
@@ -365,23 +469,19 @@ namespace trajPlanner{
 		solverParams.max_iterations = 200;
 		solverParams.g_epsilon = 0.01;
 
-		ros::Time startTime = ros::Time::now();
 		int optimizeResult = lbfgs::lbfgs_optimize(variableNum, x, &finalCost, bsplineTraj::solverCostFunction, NULL, bsplineTraj::solverForceStop, this, &solverParams);
-		ros::Time endTime = ros::Time::now();
-		cout << "final cost is: " << finalCost << endl;
-		cout << "solver time: " << (endTime - startTime).toSec() << endl;
 
 		// check solvers' condition
-		if (optimizeResult == lbfgs::LBFGS_CONVERGENCE or optimizeResult == lbfgs::LBFGSERR_MAXIMUMITERATION or
-			optimizeResult == lbfgs::LBFGS_ALREADY_MINIMIZED or optimizeResult == lbfgs::LBFGS_STOP){
-			cout << "solver succeed!" << endl;
-		}
-		else if (optimizeResult == lbfgs::LBFGSERR_CANCELED){
-			cout << "solver force stopped" << endl;
-		}
-		else{
-			cout << "solver error" << endl;
-		}
+		// if (optimizeResult == lbfgs::LBFGS_CONVERGENCE or optimizeResult == lbfgs::LBFGSERR_MAXIMUMITERATION or
+		// 	optimizeResult == lbfgs::LBFGS_ALREADY_MINIMIZED or optimizeResult == lbfgs::LBFGS_STOP){
+		// 	cout << "solver succeed!" << endl;
+		// }
+		// else if (optimizeResult == lbfgs::LBFGSERR_CANCELED){
+		// 	cout << "solver force stopped" << endl;
+		// }
+		// else{
+		// 	cout << "solver error" << endl;
+		// }
 
 		return optimizeResult;
 	}
@@ -601,32 +701,6 @@ namespace trajPlanner{
 			}
 		}
 
-		// for shorcut A* paths
-		for (size_t i=0; i<this->astarPathsSC_.size(); ++i){
-			std::vector<Eigen::Vector3d> path = this->astarPathsSC_[i];
-			for (size_t j=0; j<path.size(); ++j){
-				Eigen::Vector3d p = path[j];
-				point.header.frame_id = "map";
-				point.header.stamp = ros::Time::now();
-				point.ns = "astar_path";
-				point.id = pointCount;
-				point.type = visualization_msgs::Marker::CUBE;
-				point.action = visualization_msgs::Marker::ADD;
-				point.pose.position.x = p(0);
-				point.pose.position.y = p(1);
-				point.pose.position.z = p(2);
-				point.lifetime = ros::Duration(0.5);
-				point.scale.x = 0.1;
-				point.scale.y = 0.1;
-				point.scale.z = 0.1;
-				point.color.a = 0.5;
-				point.color.r = 1.0;
-				point.color.g = 0.0;
-				point.color.b = 0.0;
-				pointVec.push_back(point);
-				++pointCount;	
-			}
-		}
 
 		msg.markers = pointVec;
 		this->astarVisPub_.publish(msg);
@@ -780,6 +854,13 @@ namespace trajPlanner{
 			return false;
 		}
 		return not this->hasCollisionTrajectory(this->optData_.controlPoints);
+	}
+
+	bool bsplineTraj::isCurrTrajValid(Eigen::Vector3d& firstCollisionPos){
+		if (not this->init_){
+			return false;
+		}
+		return not this->hasCollisionTrajectory(this->optData_.controlPoints, firstCollisionPos);
 	}
 
 	nav_msgs::Path bsplineTraj::evalTrajToMsg(){
