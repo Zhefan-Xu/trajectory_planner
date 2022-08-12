@@ -140,7 +140,6 @@ namespace trajPlanner{
 		}
 
 		// step 3. Assign guide point and directions
-		// this->assignGuidePoints();
 		this->assignGuidePointsSemiCircle(this->astarPaths_, this->collisionSeg_);
 
 		// step 4. call solver
@@ -210,52 +209,6 @@ namespace trajPlanner{
 		return true;
 	}
 
-	void bsplineTraj::assignGuidePoints(){
-		for (int i=0; i<this->optData_.controlPoints.cols(); ++i){
-			this->optData_.findGuidePoint[i] = false;
-		}
-
-
-		for (size_t i=0; i<this->collisionSeg_.size(); ++i){ // go through each collision segment
-			int collisionStartIdx = this->collisionSeg_[i].first;
-			int collisionEndIdx = this->collisionSeg_[i].second;
-			std::vector<Eigen::Vector3d> path = this->astarPaths_[i];
-			bool successOnce = false; int successIdx = -1;
-			for (int j=collisionStartIdx+1; j<collisionEndIdx; ++j){ // for each collision control point, we assign p v pair to it
-				Eigen::Vector3d tangentDirection = this->optData_.controlPoints.col(j+1) - this->optData_.controlPoints.col(j-1);
-				Eigen::Vector3d guidePoint;
-				bool success = this->findGuidePointFromPath(this->optData_.controlPoints.col(j), tangentDirection, path, guidePoint);
-				if (success){
-					this->optData_.guidePoints[j].push_back(guidePoint);
-					Eigen::Vector3d guideDirection = (guidePoint - this->optData_.controlPoints.col(j))/(guidePoint - this->optData_.controlPoints.col(j)).norm();
-					this->optData_.guideDirections[j].push_back(guideDirection);
-					this->optData_.findGuidePoint[j] = true; 
-					successOnce = true; successIdx = j;
-				}
-				else{
-					this->optData_.findGuidePoint[j] = false;
-				}
-			}
-
-			// by the previous step some point will fail to get their guide point, so we need to assign guide point from its neighbor
-			if (successOnce){
-				for (int k=successIdx+1; k<collisionEndIdx; ++k){ // from success point forward to the end
-					if (this->optData_.findGuidePoint[k] == false){ // this control point does not find a guide point
-						this->optData_.guidePoints[k].push_back((this->optData_.guidePoints[k-1]).back()); // previous control points' guide point
-						this->optData_.guideDirections[k].push_back((this->optData_.guideDirections[k-1]).back());
-					}
-				}
-
-				for (int k=successIdx-1; k>collisionStartIdx; --k){ // from success point backward to the end
-					if (this->optData_.findGuidePoint[k] == false){
-						this->optData_.guidePoints[k].push_back((this->optData_.guidePoints[k+1]).back());
-						this->optData_.guideDirections[k].push_back((this->optData_.guideDirections[k+1]).back());
-					} 
-
-				}
-			}
-		}
-	}
 
 	void bsplineTraj::assignGuidePointsSemiCircle(const std::vector<std::vector<Eigen::Vector3d>>& paths, const std::vector<std::pair<int, int>>& collisionSeg){
 		// step 1 shortcut A* path to get representative waypoints
@@ -335,7 +288,6 @@ namespace trajPlanner{
 				bool pathSearchSuccess = this->pathSearch(reguideCollisionSeg, tempAstarPaths);
 				
 				if (pathSearchSuccess){
-					// this->assignGuidePoints();
 					this->astarPaths_ = tempAstarPaths; 
 					this->assignGuidePointsSemiCircle(tempAstarPaths, reguideCollisionSeg);
 				}
