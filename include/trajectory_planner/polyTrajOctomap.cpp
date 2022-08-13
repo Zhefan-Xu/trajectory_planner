@@ -271,6 +271,9 @@ namespace trajPlanner{
 		}
 		this->setDefaultInit(); // vel acc
 		this->trajSolver_ = this->initSolver();
+		this->trajSolver_->updateInitVel(this->initVel_);
+		this->trajSolver_->updateInitAcc(this->initAcc_);
+		this->trajSolver_->updatePath(this->path_);
 		int countIter = 0;
 		bool valid = false;
 		ros::Time startTime = ros::Time::now();
@@ -281,9 +284,9 @@ namespace trajPlanner{
 				break;
 			}
 
-			this->trajSolver_->updateInitVel(this->initVel_);
-			this->trajSolver_->updateInitAcc(this->initAcc_);
-			this->trajSolver_->updatePath(this->path_);
+			// this->trajSolver_->updateInitVel(this->initVel_);
+			// this->trajSolver_->updateInitAcc(this->initAcc_);
+			// this->trajSolver_->updatePath(this->path_);
 			if (this->softConstraint_){
 				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);
 			}
@@ -332,6 +335,9 @@ namespace trajPlanner{
 
 		this->setDefaultInit(); // vel acc
 		this->trajSolver_ = this->initSolver();
+		this->trajSolver_->updateInitVel(this->initVel_);
+		this->trajSolver_->updateInitAcc(this->initAcc_);
+		this->trajSolver_->updatePath(this->path_);
 		int countIter = 0;
 		bool valid = false;
 		ros::Time startTime = ros::Time::now();
@@ -342,9 +348,9 @@ namespace trajPlanner{
 				break;
 			}
 
-			this->trajSolver_->updateInitVel(this->initVel_);
-			this->trajSolver_->updateInitAcc(this->initAcc_);
-			this->trajSolver_->updatePath(this->path_);
+			// this->trajSolver_->updateInitVel(this->initVel_);
+			// this->trajSolver_->updateInitAcc(this->initAcc_);
+			// this->trajSolver_->updatePath(this->path_);
 			if (this->softConstraint_){
 				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);
 			}
@@ -396,10 +402,12 @@ namespace trajPlanner{
 		this->setDefaultInit(); // vel acc
 		this->trajSolver_ = this->initSolver();
 		this->trajSolver_->updatePath(this->path_);
+		this->trajSolver_->updateInitVel(this->initVel_);
+		this->trajSolver_->updateInitAcc(this->initAcc_);
 
 		double corridorSize = this->initR_;
 		std::vector<double> corridorSizeVec;
-		for (int i=0; i<this->path_.size()-1; ++i){
+		for (size_t i=0; i<this->path_.size()-1; ++i){
 			corridorSizeVec.push_back(corridorSize);
 		} 
 
@@ -412,8 +420,8 @@ namespace trajPlanner{
 				cout << "[Trajectory Planner INFO]: Timeout." << endl;
 				break;
 			}
-			this->trajSolver_->updateInitVel(this->initVel_);
-			this->trajSolver_->updateInitAcc(this->initAcc_);
+			// this->trajSolver_->updateInitVel(this->initVel_);
+			// this->trajSolver_->updateInitAcc(this->initAcc_);
 			this->trajSolver_->setCorridorConstraint(corridorSizeVec, this->corridorRes_);
 			if (this->softConstraint_){
 				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);
@@ -477,10 +485,12 @@ namespace trajPlanner{
 		this->setDefaultInit(); // vel acc
 		this->trajSolver_ = this->initSolver();
 		this->trajSolver_->updatePath(this->path_);
+		this->trajSolver_->updateInitVel(this->initVel_);
+		this->trajSolver_->updateInitAcc(this->initAcc_);
 
 		double corridorSize = this->initR_;
 		std::vector<double> corridorSizeVec;
-		for (int i=0; i<this->path_.size()-1; ++i){
+		for (size_t i=0; i<this->path_.size()-1; ++i){
 			corridorSizeVec.push_back(corridorSize);
 		} 
 
@@ -493,8 +503,8 @@ namespace trajPlanner{
 				cout << "[Trajectory Planner INFO]: Timeout." << endl;
 				break;
 			}
-			this->trajSolver_->updateInitVel(this->initVel_);
-			this->trajSolver_->updateInitAcc(this->initAcc_);
+			// this->trajSolver_->updateInitVel(this->initVel_);
+			// this->trajSolver_->updateInitAcc(this->initAcc_);
 			this->trajSolver_->setCorridorConstraint(corridorSizeVec, this->corridorRes_);
 			if (this->softConstraint_){
 				this->trajSolver_->setSoftConstraint(this->softConstraintRadius_, this->softConstraintRadius_, 0);
@@ -631,7 +641,7 @@ namespace trajPlanner{
 			this->pose2Octomap(pTraj, p);
 			if (this->checkCollision(p)){
 				hasColllision = true;
-				for (int i=0; i<timeKnot.size()-1; ++i){
+				for (size_t i=0; i<timeKnot.size()-1; ++i){
 					double startTime = timeKnot[i];
 					double endTime = timeKnot[i+1];
 					if ((t>=startTime) and (t<=endTime)){
@@ -773,7 +783,7 @@ namespace trajPlanner{
 		std::vector<visualization_msgs::Marker> corridorVec;
 		visualization_msgs::Marker box;
 		int boxCount = 0;
-		for (int i=0; i<this->path_.size()-1; ++i){
+		for (size_t i=0; i<this->path_.size()-1; ++i){
 			std::unordered_map<double, trajPlanner::pose> timeToPose = segToTimePose[i];
 			for (auto itr: timeToPose){
 				trajPlanner::pose p = itr.second;
