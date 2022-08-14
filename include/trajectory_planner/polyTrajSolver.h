@@ -37,9 +37,9 @@ namespace trajPlanner{
 		geometry_msgs::Twist initVel_;
 		geometry_msgs::Twist initAcc_;
 
-		OsqpEigen::Solver* xSolver_; // QP Solver
-		OsqpEigen::Solver* ySolver_; 
-		OsqpEigen::Solver* zSolver_;
+		std::shared_ptr<OsqpEigen::Solver> xSolver_; // QP Solver
+		std::shared_ptr<OsqpEigen::Solver> ySolver_; 
+		std::shared_ptr<OsqpEigen::Solver> zSolver_;
 
 		Eigen::VectorXd xSol_;
 		Eigen::VectorXd ySol_;

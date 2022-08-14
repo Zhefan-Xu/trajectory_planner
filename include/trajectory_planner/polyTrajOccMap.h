@@ -17,10 +17,13 @@ namespace trajPlanner{
 	class polyTrajOccMap{
 	private:
 		ros::NodeHandle nh_;
+		ros::Timer visTimer_;
+		ros::Publisher trajVisPub_;
 		std::shared_ptr<mapManager::occMap> map_;
 		std::shared_ptr<trajPlanner::polyTrajSolver> trajSolver_;
 		std::shared_ptr<trajPlanner::pwlTraj> pwlTrajSolver_;
 		std::vector<pose> path_;
+		nav_msgs::Path trajVisMsg_;
 		geometry_msgs::Twist initVel_;
 		geometry_msgs::Twist initAcc_;
 
@@ -31,6 +34,13 @@ namespace trajPlanner{
 		double desiredVel_;
 		double initR_; // initial corridor constraint radius
 		double timeout_;
+		double corridorRes_;
+		double fs_;
+		bool softConstraint_;
+		double softConstraintRadius_;
+		double delT_;
+		int maxIter_;
+		bool usePWL_;
 
 		// status
 		bool findValidTraj_ = false;
@@ -38,6 +48,8 @@ namespace trajPlanner{
 	public:
 		polyTrajOccMap(const ros::NodeHandle& nh);
 		void initParam();
+		void registerPub();
+		void registerCallback();
 		void setMap(const std::shared_ptr<mapManager::occMap>& map);
 		void initSolver();
 		void initPWLSolver();
@@ -53,7 +65,18 @@ namespace trajPlanner{
 		void updateInitAcc(const geometry_msgs::Twist& a);
 		void setDefaultInit();
 
-		void makePlan();
+		void makePlan(std::vector<pose>& trajectory);
+		void makePlan(nav_msgs::Path& trajectory);
+
+		// visualization
+		void visCB(const ros::TimerEvent&);
+		void publishTrajVis();
+		
+		geometry_msgs::PoseStamped getPose(double t);
+		double getDuration();
+		bool checkCollisionTraj(const std::vector<pose>& trajectory, double delT, std::set<int>& collisionSeg);
+		void adjustCorridorSize(const std::set<int>& collisionSeg, std::vector<double>& corridorSizeVec);
+		void trajMsgConverter(const std::vector<pose>& trajectoryTemp, nav_msgs::Path& trajectory);
 	};
 }
 

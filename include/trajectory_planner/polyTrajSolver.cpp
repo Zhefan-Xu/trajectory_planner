@@ -11,9 +11,9 @@ namespace trajPlanner{
 
 	polyTrajSolver::polyTrajSolver(int polyDegree, int diffDegree, int continuityDegree, double desiredVel)
 	: polyDegree_(polyDegree), diffDegree_(diffDegree), continuityDegree_(continuityDegree), desiredVel_(desiredVel){
-		this->xSolver_ = new OsqpEigen::Solver ();
-		this->ySolver_ = new OsqpEigen::Solver ();
-		this->zSolver_ = new OsqpEigen::Solver ();
+		this->xSolver_.reset(new OsqpEigen::Solver ());
+		this->ySolver_.reset(new OsqpEigen::Solver ());
+		this->zSolver_.reset(new OsqpEigen::Solver ());
 
 		// Soft constraint for waypoint (default: fasle)
 		this->softConstraint_ = false;
@@ -79,7 +79,7 @@ namespace trajPlanner{
 		this->desiredTime_.clear();
 		this->desiredTime_.push_back(totalTime);
 		double distance;
-		for (int i=0; i<this->path_.size(); ++i){
+		for (size_t i=0; i<this->path_.size(); ++i){
 			if (i != 0){
 				distance = trajPlanner::getPoseDistance(this->path_[i], this->path_[i-1]);
 				double duration = (double) distance/this->desiredVel_;
@@ -92,7 +92,7 @@ namespace trajPlanner{
 	void polyTrajSolver::equalTimeAllocation(){
 		this->desiredTime_.clear();
 		double totalDistance = 0.0;
-		for (int i=0; i<this->path_.size(); ++i){
+		for (size_t i=0; i<this->path_.size(); ++i){
 			if (i != 0){
 				double distance = trajPlanner::getPoseDistance(this->path_[i], this->path_[i-1]);
 				totalDistance += distance;
@@ -100,7 +100,7 @@ namespace trajPlanner{
 		}
 
 		double totalTime = totalDistance / this->desiredVel_;
-		for (int i=0; i<this->path_.size(); ++i){
+		for (size_t i=0; i<this->path_.size(); ++i){
 			this->desiredTime_.push_back(i * totalTime/(this->path_.size()-1));
 		}
 	}
@@ -206,7 +206,7 @@ namespace trajPlanner{
 		// construct the coefficient matrix
 		// each segment
 		// cout << "diff degree: " << this->diffDegree_ << endl;
-		for (int n=0; n<this->path_.size()-1; ++n){
+		for (size_t n=0; n<this->path_.size()-1; ++n){
 			for (int i=this->diffDegree_; i<this->polyDegree_+1; ++i){
 				for (int j=this->diffDegree_; j<this->polyDegree_+1; ++j){
 					double factor = 1.0;
@@ -298,7 +298,7 @@ namespace trajPlanner{
 			// ==================K-1 midpoint=============================
 			{
 				// Note: midpoint is only for first k-1 path segment, it is the right point on the path segment
-				for (int i=0; i<this->path_.size()-2; ++i){
+				for (size_t i=0; i<this->path_.size()-2; ++i){
 					double currTime = 1.0;
 					int currStartIdx = (this->polyDegree_+1) * i;
 					for (int d=0; d<this->polyDegree_+1; ++d){
@@ -314,7 +314,7 @@ namespace trajPlanner{
 			// ==================K-1 Continuity===========================
 			{
 				// from "LEFT" t0 "RIGHT"
-				for (int i=0; i<this->path_.size()-2; ++i){
+				for (size_t i=0; i<this->path_.size()-2; ++i){
 					double leftTime = 1.0; // time for "left" piece of polynomial
 					double rightTime = 0.0; // time for "right" piece of polynomial
 					int leftStartIdx = (this->polyDegree_+1) * i;
@@ -368,7 +368,7 @@ namespace trajPlanner{
 
 			// ================K-1 Continuity===========================
 			{
-				for (int i=0; i<this->path_.size()-2; ++i){
+				for (size_t i=0; i<this->path_.size()-2; ++i){
 					double leftTime = 1.0;
 					double rightTime = 0.0;
 					double dtLeft = this->desiredTime_[i+1] - this->desiredTime_[i];
@@ -415,7 +415,7 @@ namespace trajPlanner{
 
 			// ===============K-1 Continuity============================
 			{
-				for (int i=0; i<this->path_.size()-2; ++i){
+				for (size_t i=0; i<this->path_.size()-2; ++i){
 					double leftTime = 1.0;
 					double rightTime = 0.0;
 					int leftStartIdx = (this->polyDegree_+1) * i;
@@ -443,7 +443,7 @@ namespace trajPlanner{
 		{
 			//=================K-1 Continuity in Jerk===================
 			if (this->continuityDegree_ >= 3){
-				for (int i=0; i<this->path_.size()-2; ++i){
+				for (size_t i=0; i<this->path_.size()-2; ++i){
 					double leftTime = 1.0;
 					double rightTime = 0.0;
 					int leftStartIdx = (this->polyDegree_+1) * i;
@@ -468,7 +468,7 @@ namespace trajPlanner{
 
 			//=================K-1 Conitnuity in Snap===================
 			if (this->continuityDegree_ >= 4){
-				for (int i=0; i<this->path_.size()-2; ++i){
+				for (size_t i=0; i<this->path_.size()-2; ++i){
 					double leftTime = 1.0;
 					double rightTime = 0.0;
 					int leftStartIdx = (this->polyDegree_+1) * i;
@@ -497,7 +497,7 @@ namespace trajPlanner{
 		{
 			if (this->corridorConstraint_){
 				// go through each path segment and apply constraints
-				for (int i=0; i<this->path_.size()-1; ++i){
+				for (size_t i=0; i<this->path_.size()-1; ++i){
 					if (this->corridorSizeVec_[i] == 0.0){
 						continue;
 					}
@@ -566,7 +566,7 @@ namespace trajPlanner{
  			{
  				// Hard constraints:
  				if (not this->softConstraint_){
- 					for (int i=0; i<this->path_.size()-2; ++i){
+ 					for (size_t i=0; i<this->path_.size()-2; ++i){
 		 				int pathIdx = i+1;
 		 				// cout << this->path_[pathIdx] << endl;
 		 				lx(countConstraint) = this->path_[pathIdx].x;
@@ -582,7 +582,7 @@ namespace trajPlanner{
 	 				}
  				}
  				else{
- 					for (int i=0; i<this->path_.size()-2; ++i){
+ 					for (size_t i=0; i<this->path_.size()-2; ++i){
 		 				int pathIdx = i+1;
 		 				// cout << this->path_[pathIdx] << endl;
 		 				lx(countConstraint) = this->path_[pathIdx].x - this->scDeviation_[0];
@@ -603,8 +603,7 @@ namespace trajPlanner{
 
  			// ================k-1 Continuity=====================
 			{
-				for (int i=0; i<this->path_.size()-2; ++i){
-					int pathIdx = i+1;
+				for (size_t i=0; i<this->path_.size()-2; ++i){
 					lx(countConstraint) = 0.0;
 	 				ux(countConstraint) = 0.0;
 	 				
@@ -652,8 +651,7 @@ namespace trajPlanner{
 
 			// ================K-1 Continuity===================
 			{
-				for (int i=0; i<this->path_.size()-2; ++i){
-					int pathIdx = i+1;
+				for (size_t i=0; i<this->path_.size()-2; ++i){
 					lx(countConstraint) = 0.0;
 	 				ux(countConstraint) = 0.0;
 	 				
@@ -689,8 +687,7 @@ namespace trajPlanner{
 
 			// ================K-1 Continuity===================
 			{
-				for (int i=0; i<this->path_.size()-2; ++i){
-					int pathIdx = i+1;
+				for (size_t i=0; i<this->path_.size()-2; ++i){
 					lx(countConstraint) = 0.0;
 	 				ux(countConstraint) = 0.0;
 	 				
@@ -711,8 +708,7 @@ namespace trajPlanner{
 			// Jerk Bound: k-1 
 			if (this->continuityDegree_ >= 3){
 				// ================K-1 Continuity===================
-				for (int i=0; i<this->path_.size()-2; ++i){
-					int pathIdx = i+1;
+				for (size_t i=0; i<this->path_.size()-2; ++i){
 					lx(countConstraint) = 0.0;
 	 				ux(countConstraint) = 0.0;
 	 				
@@ -730,8 +726,7 @@ namespace trajPlanner{
 			// Snap Bound: k-1
 			if (this->continuityDegree_ >= 4){
 				// ================K-1 Continuity===================
-				for (int i=0; i<this->path_.size()-2; ++i){
-					int pathIdx = i+1;
+				for (size_t i=0; i<this->path_.size()-2; ++i){
 					lx(countConstraint) = 0.0;
 	 				ux(countConstraint) = 0.0;
 	 				
@@ -750,7 +745,7 @@ namespace trajPlanner{
 		{
 			if (this->corridorConstraint_){
 				// go through each path segment and apply constraints
-				for (int i=0; i<this->path_.size()-1; ++i){
+				for (size_t i=0; i<this->path_.size()-1; ++i){
 					if (this->corridorSizeVec_[i] == 0.0){
 						continue;
 					}
@@ -804,7 +799,7 @@ namespace trajPlanner{
 		if (this->xSolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
 		this->xSol_ = this->xSolver_->getSolution();
 		// cout << "x sol: " << this->xSol_ << endl;
-		for (int n=0; n<this->path_.size()-1; ++n){
+		for (size_t n=0; n<this->path_.size()-1; ++n){
 			for (int d=0; d<=this->polyDegree_; ++d){
 			 	this->xSol_(n*(this->polyDegree_+1) + d) /= pow((this->desiredTime_[n+1] - this->desiredTime_[n]), d);
 			}
@@ -816,7 +811,7 @@ namespace trajPlanner{
 		if (this->ySolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
 		this->ySol_ = this->ySolver_->getSolution();
 		// cout << "y sol: " << this->ySol_ << endl;
-		for (int n=0; n<this->path_.size()-1; ++n){
+		for (size_t n=0; n<this->path_.size()-1; ++n){
 			for (int d=0; d<=this->polyDegree_; ++d){
 			 	this->ySol_(n*(this->polyDegree_+1) + d) /= pow((this->desiredTime_[n+1] - this->desiredTime_[n]), d);
 			}
@@ -828,7 +823,7 @@ namespace trajPlanner{
  		if (this->zSolver_->solveProblem() != OsqpEigen::ErrorExitFlag::NoError) return;
  		this->zSol_ = this->zSolver_->getSolution();
  		// cout << "z sol: " << this->zSol_ << endl;
-		for (int n=0; n<this->path_.size()-1; ++n){
+		for (size_t n=0; n<this->path_.size()-1; ++n){
 			for (int d=0; d<=this->polyDegree_; ++d){
 			 	this->zSol_(n*(this->polyDegree_+1) + d) /= pow((this->desiredTime_[n+1] - this->desiredTime_[n]), d);
 			}
@@ -864,7 +859,7 @@ namespace trajPlanner{
 
 		// evaluate each segment legnth of raw path
 		std::vector<double> pathLegnthVec;
-		for (int i=0; i<this->path_.size()-1; ++i){
+		for (size_t i=0; i<this->path_.size()-1; ++i){
 			trajPlanner::pose p1 = this->path_[i];
 			trajPlanner::pose p2 = this->path_[i+1];
 			double pathLength = trajPlanner::getPoseDistance(p1, p2);
@@ -909,7 +904,7 @@ namespace trajPlanner{
 			return;
 		}
 		std::vector<double> corridorSizeVec;
-		for (int i=0; i<this->path_.size()-1; ++i){
+		for (size_t i=0; i<this->path_.size()-1; ++i){
 			corridorSizeVec.push_back(corridorSize);
 		}
 		this->setCorridorConstraint(corridorSizeVec, corridorRes);
@@ -919,7 +914,7 @@ namespace trajPlanner{
 		// update number of constraint, determine which time each segment needs to consider
 		this->segToTimePose_.clear();
 		int countCorridorConstraint = 0;
-		for (int i=0; i<this->path_.size()-1; ++i){ // go through each path segment
+		for (size_t i=0; i<this->path_.size()-1; ++i){ // go through each path segment
 			if (this->corridorSizeVec_[i] == 0.0){ // this segment does not need corridor constraint
 				std::unordered_map<double, trajPlanner::pose> timeToPose;
 				this->segToTimePose_.push_back(timeToPose);// dummy for index matching
@@ -940,7 +935,6 @@ namespace trajPlanner{
 
 			this->segToTimePose_.push_back(timeToPose);
 		}
-		int pathSegNum = this->path_.size()-1;
 		if (this->continuityDegree_ - 2 < 0){this->continuityDegree_ = 2;}
 		this->constraintNum_ = this->getConstraintNum() + countCorridorConstraint;
 	}
@@ -959,7 +953,7 @@ namespace trajPlanner{
 
 	trajPlanner::pose polyTrajSolver::getPose(double t){
 		trajPlanner::pose p;
-		for (int i=0; i<this->desiredTime_.size()-1; ++i){
+		for (size_t i=0; i<this->desiredTime_.size()-1; ++i){
 			double startTime = this->desiredTime_[i];
 			double endTime = this->desiredTime_[i+1];
 			if ((t >= startTime) and (t <= endTime)){
