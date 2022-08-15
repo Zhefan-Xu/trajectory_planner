@@ -49,6 +49,7 @@ namespace trajPlanner{
 		double notCheckRatio_ = 0.0;
 		double minHeight_;
 		double maxHeight_;
+		double uncertainAwareFactor_;
 
 		// occupancy grid map and path search
 		std::shared_ptr<mapManager::occMap> map_;

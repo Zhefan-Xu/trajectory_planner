@@ -103,7 +103,14 @@ namespace trajPlanner{
 			cout << "[BsplineTraj]" << ": Max Height: " << this->maxHeight_ << endl;
 		}
 
-
+		// uncertain aware factor
+		if (not this->nh_.getParam("bspline_traj/uncertain_aware_factor", this->uncertainAwareFactor_)){
+			this->uncertainAwareFactor_ = 2.0;
+			cout << "[BsplineTraj]" << ": No uncertain aware factor. Use default: 2.0." << endl;
+		}
+		else{
+			cout << "[BsplineTraj]" << ": Uncertain aware factor: " << this->uncertainAwareFactor_ << endl;
+		}
 	}
 
 	void bsplineTraj::registerPub(){
@@ -408,13 +415,19 @@ namespace trajPlanner{
 		*/
 
 		cost = 0.0; // initialize cost
-		Eigen::Vector3d controlPoint;
-		std::vector<Eigen::Vector3d>  guidePoints, guideDirections;
-		double a = 3.0 * this->dthresh_; double b = -3 * pow(this->dthresh_, 2); double c = pow(this->dthresh_, 3);
+		double a, b, c;
 		for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){ // for each control points
 			for (size_t j=0; j<this->optData_.guidePoints[i].size(); ++j){ // each control points we check all the guide points and guide directions
+				if (not this->map_->isUnknown(this->optData_.guidePoints[i][j])){
+					a = 3.0 * this->dthresh_; b = -3 * pow(this->dthresh_, 2); c = pow(this->dthresh_, 3);
+				}
+				else{
+					a = 3.0 * this->uncertainAwareFactor_ * this->dthresh_; b = -3 * pow(this->uncertainAwareFactor_ * this->dthresh_, 2); c = pow(this->uncertainAwareFactor_ * this->dthresh_, 3);
+				}
+
 				double dist = (controlPoints.col(i) - this->optData_.guidePoints[i][j]).dot(this->optData_.guideDirections[i][j]);
 				double distErr = this->dthresh_ - dist;
+
 				if (distErr <= 0){
 					// no punishment	
 				}
