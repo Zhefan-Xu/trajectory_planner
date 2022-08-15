@@ -783,16 +783,17 @@ namespace trajPlanner{
 			this->updateProblem();
 		}
 
-		this->xWorker_ = std::thread(&polyTrajSolver::solveX, this);
-		this->yWorker_ = std::thread(&polyTrajSolver::solveY, this);
-		this->zWorker_ = std::thread(&polyTrajSolver::solveZ, this);
+		// this->xWorker_ = std::thread(&polyTrajSolver::solveX, this);
+		// this->yWorker_ = std::thread(&polyTrajSolver::solveY, this);
+		// this->zWorker_ = std::thread(&polyTrajSolver::solveZ, this);
 
-		this->xWorker_.join();
-		this->yWorker_.join();
-		this->zWorker_.join();
+		// this->xWorker_.join();
+		// this->yWorker_.join();
+		// this->zWorker_.join();
+		this->solveX();
+		this->solveY();
+		this->solveZ();
 
-		// this->evalTrajectory();
-		this->setDefaultInit();
 	}
 
 	void polyTrajSolver::solveX(){

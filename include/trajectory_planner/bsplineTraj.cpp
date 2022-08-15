@@ -84,6 +84,26 @@ namespace trajPlanner{
 		else{
 			cout << "[BsplineTraj]" << ": Weight feasibility: " << this->weightFeasibility_ << endl;
 		}	
+
+		// min height
+		if (not this->nh_.getParam("bspline_traj/min_height", this->minHeight_)){
+			this->minHeight_ = 0.5;
+			cout << "[BsplineTraj]" << ": No min height. Use default: 0.5 m." << endl;
+		}
+		else{
+			cout << "[BsplineTraj]" << ": Min height: " << this->minHeight_ << endl;
+		}
+
+		// max height
+		if (not this->nh_.getParam("bspline_traj/max_height", this->maxHeight_)){
+			this->maxHeight_ = 2.0;
+			cout << "[BsplineTraj]" << ": No max height. Use default: 2.0 m." << endl;
+		}
+		else{
+			cout << "[BsplineTraj]" << ": Max Height: " << this->maxHeight_ << endl;
+		}
+
+
 	}
 
 	void bsplineTraj::registerPub(){
@@ -101,7 +121,7 @@ namespace trajPlanner{
 	void bsplineTraj::setMap(const std::shared_ptr<mapManager::occMap>& map){
 		this->map_ = map;
 		this->pathSearch_.reset(new AStar);
-		this->pathSearch_->initGridMap(map, Eigen::Vector3i(100, 100, 100), 0.5, 1.5);
+		this->pathSearch_->initGridMap(map, Eigen::Vector3i(100, 100, 100), this->minHeight_, this->maxHeight_);
 	}
 
 	bool bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition){
@@ -680,6 +700,7 @@ namespace trajPlanner{
 		geometry_msgs::PoseStamped ps;
 		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->ts_);
 		Eigen::Vector3d p = this->bspline_.at(t);
+
 		ps.header.frame_id = "map";
 		ps.header.stamp = ros::Time::now();
 		ps.pose.position.x = p(0);

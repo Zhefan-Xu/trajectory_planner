@@ -47,6 +47,8 @@ namespace trajPlanner{
 		double weightSmoothness_;
 		double weightFeasibility_;
 		double notCheckRatio_ = 0.0;
+		double minHeight_;
+		double maxHeight_;
 
 		// occupancy grid map and path search
 		std::shared_ptr<mapManager::occMap> map_;
@@ -241,6 +243,9 @@ namespace trajPlanner{
 	inline bool bsplineTraj::hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints){
 		std::vector<Eigen::Vector3d> trajectory = this->evalTraj();
 		for (Eigen::Vector3d p : trajectory){
+			if (p(2) > this->maxHeight_ or p(2) < this->minHeight_){
+				return true;
+			}
 			bool hasCollision = this->map_->isInflatedOccupied(p);
 			if (hasCollision){
 				return true;
@@ -252,7 +257,11 @@ namespace trajPlanner{
 	inline bool bsplineTraj::hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints, Eigen::Vector3d& firstCollisionPos){
 		std::vector<Eigen::Vector3d> trajectory = this->evalTraj();
 		for (Eigen::Vector3d p : trajectory){
-			bool hasCollision = this->map_->isInflatedOccupied(p);
+			bool hasCollision = false;
+			hasCollision = this->map_->isInflatedOccupied(p);
+			if (p(2) > this->maxHeight_ or p(2) < this->minHeight_){
+				hasCollision = true;
+			}
 			if (hasCollision){
 				firstCollisionPos = p;
 				return true;
