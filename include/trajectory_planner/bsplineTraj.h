@@ -83,6 +83,7 @@ namespace trajPlanner{
 		bool isReguideRequired(std::vector<std::pair<int, int>>& reguideCollisionSeg);
 		bool optimizeTrajectory();
 		int optimize(); // optimize once
+		void adjustTrajFeasibility(nav_msgs::Path& traj);
 
 		// cost functions
 		static double solverCostFunction(void* func_data, const double* x, double* grad, const int n); // deal with solver

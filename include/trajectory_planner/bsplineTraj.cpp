@@ -184,6 +184,7 @@ namespace trajPlanner{
 	bool bsplineTraj::makePlan(nav_msgs::Path& trajectory){
 		bool success = this->makePlan();
 		trajectory = this->evalTrajToMsg();
+		this->adjustTrajFeasibility(trajectory);
 		return success;
 	}
 
@@ -372,6 +373,34 @@ namespace trajPlanner{
 		// }
 
 		return optimizeResult;
+	}
+
+	void bsplineTraj::adjustTrajFeasibility(nav_msgs::Path& traj){
+		std::vector<geometry_msgs::PoseStamped> rawTraj = traj.poses;
+		std::vector<geometry_msgs::PoseStamped> newTraj;
+		geometry_msgs::PoseStamped currPs, nextPs, insertPs;
+		Eigen::Vector3d currP, nextP, direction, insertP;
+		for (size_t i=0; i<rawTraj.size()-1; ++i){
+			currPs = rawTraj[i];
+			nextPs = rawTraj[i+1];
+			currP = Eigen::Vector3d (currPs.pose.position.x, currPs.pose.position.y, currPs.pose.position.z);
+			nextP = Eigen::Vector3d (nextPs.pose.position.x, nextPs.pose.position.y, nextPs.pose.position.z);
+
+			newTraj.push_back(currPs);
+			double dist = (nextP - currP).norm();
+			direction = (nextP - currP)/dist;
+			int numInsert = ceil(dist/this->ts_*this->maxVel_) - 1;
+			for (int n=1; n<=numInsert; ++n){
+				insertP = n * dist/(numInsert+1) * direction + currP;
+				insertPs.pose.position.x = insertP(0);
+				insertPs.pose.position.y = insertP(1);
+				insertPs.pose.position.z = insertP(2);
+				insertPs.pose.orientation = currPs.pose.orientation;
+				newTraj.push_back(insertPs);
+			}
+		}
+		newTraj.push_back(rawTraj.back());
+		traj.poses = newTraj;
 	}
 
 	double bsplineTraj::solverCostFunction(void* func_data, const double* x, double* grad, const int n){
@@ -720,7 +749,7 @@ namespace trajPlanner{
 		ps.pose.position.y = p(1);
 		ps.pose.position.z = p(2);
 
-		// orientation: TODO
+		// orientation:
 		trajPlanner::bspline velBspline = this->bspline_.getDerivative();
 		Eigen::Vector3d vel = velBspline.at(t);
 		ps.pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, atan2(vel(1), vel(0)));
