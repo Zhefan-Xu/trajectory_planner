@@ -134,6 +134,7 @@ include_directories(
 # add_library(pwlTraj include/${PROJECT_NAME}/piecewiseLinearTraj.cpp)
 add_library(
 	${PROJECT_NAME} 
+  include/${PROJECT_NAME}/path_search/astarOcc.cpp
 	include/${PROJECT_NAME}/polyTrajSolver.cpp 
 	include/${PROJECT_NAME}/polyTrajOctomap.cpp
 	include/${PROJECT_NAME}/piecewiseLinearTraj.cpp
