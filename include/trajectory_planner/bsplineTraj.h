@@ -22,6 +22,9 @@ namespace trajPlanner{
 		std::vector<std::vector<Eigen::Vector3d>> guidePoints; // p
 		std::vector<std::vector<Eigen::Vector3d>> guideDirections; // v
 		std::vector<bool> findGuidePoint;
+		std::vector<Eigen::Vector3d> dynamicObstaclesPos;
+		std::vector<Eigen::Vector3d> dynamicObstaclesVel;
+		std::vector<Eigen::Vector3d> dynamicObstaclesSize;
 	};
 
 
@@ -46,10 +49,13 @@ namespace trajPlanner{
 		double weightDistance_;
 		double weightSmoothness_;
 		double weightFeasibility_;
+		double weightDynamicObstacle_;
 		double notCheckRatio_ = 0.0;
 		double minHeight_;
 		double maxHeight_;
 		double uncertainAwareFactor_;
+		double predHorizon_; // prediction horizon for dynamic obstacles in seconds
+		double distThreshDynamic_; // distance threshold to keep with dynamic obstacles
 
 		// occupancy grid map and path search
 		std::shared_ptr<mapManager::occMap> map_;
@@ -73,7 +79,8 @@ namespace trajPlanner{
 		void registerCallback();
 		void setMap(const std::shared_ptr<mapManager::occMap>& map); // update occuapncy grid map
 		bool updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition); // used to initialize control points
-		
+		void updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize); // position, velocity, size
+
 		bool makePlan();
 		bool makePlan(nav_msgs::Path& trajectory);
 		void clear();
@@ -87,12 +94,11 @@ namespace trajPlanner{
 
 		// cost functions
 		static double solverCostFunction(void* func_data, const double* x, double* grad, const int n); // deal with solver
-		static int solverForceStop(void* func_data, const double* x, const double* grad, const double fx, const double xnorm, const double gnorm, const double step, int n, int k, int ls);
 		double costFunction(const double* x, double* grad, const int n);
 		void getDistanceCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // collision
 		void getSmoothnessCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // trajectory
 		void getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // velocity and acceleration
-
+		void getDynamicObstacleCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // dynamic obstacle
 
 		// visualization
 		// void startVisualization();

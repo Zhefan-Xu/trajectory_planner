@@ -85,6 +85,15 @@ namespace trajPlanner{
 			cout << "[BsplineTraj]" << ": Weight feasibility: " << this->weightFeasibility_ << endl;
 		}	
 
+		// optimization weight for dynamic obstacles
+		if (not this->nh_.getParam("bspline_traj/weight_dynamic_obstacle", this->weightDynamicObstacle_)){
+			this->weightDynamicObstacle_ = 1.0;
+			cout << "[BsplineTraj]" << ": No weight dynamic obstacle. Use default: 2.0." << endl;
+		}
+		else{
+			cout << "[BsplineTraj]" << ": Weight dynamic obstacle: " << this->weightDynamicObstacle_ << endl;
+		}	
+
 		// min height
 		if (not this->nh_.getParam("bspline_traj/min_height", this->minHeight_)){
 			this->minHeight_ = 0.5;
@@ -110,6 +119,24 @@ namespace trajPlanner{
 		}
 		else{
 			cout << "[BsplineTraj]" << ": Uncertain aware factor: " << this->uncertainAwareFactor_ << endl;
+		}
+
+		// prediction horizon
+		if (not this->nh_.getParam("bspline_traj/prediction_horizon", this->predHorizon_)){
+			this->predHorizon_ = 2.0;
+			cout << "[BsplineTraj]" << ": No prediction horizon. Use default: 2.0 s." << endl;
+		}
+		else{
+			cout << "[BsplineTraj]" << ": Prediction horizon: " << this->predHorizon_ << endl;
+		}
+
+		// distance threshold for dynamic obstacle
+		if (not this->nh_.getParam("bspline_traj/distance_threshold_dynamic", this->distThreshDynamic_)){
+			this->distThreshDynamic_ = 1.0;
+			cout << "[BsplineTraj]" << ": No dynamic obstacle distance threshold. Use default: 2.0 s." << endl;
+		}
+		else{
+			cout << "[BsplineTraj]" << ": Dynamic obstacle distance: " << this->distThreshDynamic_ << endl;
 		}
 	}
 
@@ -146,6 +173,12 @@ namespace trajPlanner{
 		this->optData_.findGuidePoint.resize(controlPointNum, false);
 		this->init_ = true;
 		return true;
+	}
+
+	void bsplineTraj::updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize){
+		this->optData_.dynamicObstaclesPos = obstaclesPos;
+		this->optData_.dynamicObstaclesVel = obstaclesVel;
+		this->optData_.dynamicObstaclesSize = obstaclesSize;
 	}
 
 
@@ -191,6 +224,9 @@ namespace trajPlanner{
 	void bsplineTraj::clear(){
 		this->optData_.guidePoints.clear();
 		this->optData_.guideDirections.clear();
+		this->optData_.dynamicObstaclesPos.clear();
+		this->optData_.dynamicObstaclesVel.clear();
+		this->optData_.dynamicObstaclesSize.clear();
 		this->collisionSeg_.clear();
 		this->astarPaths_.clear();
 	}
@@ -358,7 +394,7 @@ namespace trajPlanner{
 		solverParams.max_iterations = 200;
 		solverParams.g_epsilon = 0.01;
 
-		int optimizeResult = lbfgs::lbfgs_optimize(variableNum, x, &finalCost, bsplineTraj::solverCostFunction, NULL, bsplineTraj::solverForceStop, this, &solverParams);
+		int optimizeResult = lbfgs::lbfgs_optimize(variableNum, x, &finalCost, bsplineTraj::solverCostFunction, NULL, NULL, this, &solverParams);
 
 		// check solvers' condition
 		// if (optimizeResult == lbfgs::LBFGS_CONVERGENCE or optimizeResult == lbfgs::LBFGSERR_MAXIMUMITERATION or
@@ -409,26 +445,23 @@ namespace trajPlanner{
 		return cost;
 	}
 
-	int bsplineTraj::solverForceStop(void* func_data, const double* x, const double* grad, const double fx, const double xnorm, const double gnorm, const double step, int n, int k, int ls){
-		// TODO implement force stop
-		return 0;
-	}
-
 	double bsplineTraj::costFunction(const double* x, double* grad, const int n){
 		memcpy(this->optData_.controlPoints.data()+3*bsplineDegree, x, n*sizeof(x[0])); // copy current optimized data into control points
 
 		// get costs with their gradients
-		double distanceCost, smoothnessCost, feasibilityCost;
+		double distanceCost, smoothnessCost, feasibilityCost, dynamicObstacleCost;
 		Eigen::MatrixXd distanceGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
 		Eigen::MatrixXd smoothnessGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
 		Eigen::MatrixXd feasibilityGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		Eigen::MatrixXd dynamicObstacleGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
 		this->getDistanceCost(this->optData_.controlPoints, distanceCost, distanceGradient);
 		this->getSmoothnessCost(this->optData_.controlPoints, smoothnessCost, smoothnessGradient);
 		this->getFeasibilityCost(this->optData_.controlPoints, feasibilityCost, feasibilityGradient);
+		this->getDynamicObstacleCost(this->optData_.controlPoints, dynamicObstacleCost, dynamicObstacleGradient);
 
 		// total cost and gradient
-		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + this->weightFeasibility_ * feasibilityCost;
-		Eigen::MatrixXd totalGradient = this->weightDistance_ * distanceGradient + this->weightSmoothness_ * smoothnessGradient + this->weightFeasibility_ * feasibilityGradient;
+		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + this->weightFeasibility_ * feasibilityCost + this->weightDynamicObstacle_ * dynamicObstacleCost;
+		Eigen::MatrixXd totalGradient = this->weightDistance_ * distanceGradient + this->weightSmoothness_ * smoothnessGradient + this->weightFeasibility_ * feasibilityGradient + this->weightDynamicObstacle_ * dynamicObstacleGradient;
 
 		// update gradient
 		memcpy(grad, totalGradient.data()+3*bsplineDegree, n*sizeof(grad[0]));
@@ -527,6 +560,40 @@ namespace trajPlanner{
 					gradient(j, i) += 2 * (ai(j) + this->maxAcc_) * tsInvSqr;
 					gradient(j, i+1) += -4 * (ai(j) + this->maxAcc_) * tsInvSqr;
 					gradient(j, i+2) += 2 * (ai(j) + this->maxAcc_) * tsInvSqr;
+				}
+			}
+		}
+	}
+
+	void bsplineTraj::getDynamicObstacleCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
+		cost = 0;
+		if (this->optData_.dynamicObstaclesPos.size() == 0) return;
+
+		// iterate through each control points
+		double a, b, c;
+		a = 3.0 * this->dthresh_; b = -3 * pow(this->dthresh_, 2); c = pow(this->dthresh_, 3);
+		for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){
+			Eigen::Vector3d controlPoint = controlPoints.col(i);
+			for (size_t j=0; j<this->optData_.dynamicObstaclesPos.size(); ++j){
+				double size = pow(pow(this->optData_.dynamicObstaclesSize[j](0), 2) + pow(this->optData_.dynamicObstaclesSize[j](1), 2), 0.5);
+				Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j];
+				Eigen::Vector3d diff = controlPoint - obstaclesPos;
+				diff(2) = 0.0; // ignore z difference
+				double dist = diff.norm();
+				double distErr = this->distThreshDynamic_ + size - dist;
+				Eigen::Vector3d grad = 2.0 * diff/diff.norm();
+
+
+				if (distErr <= 0){
+					// no punishment	
+				}
+				else if (distErr > 0 and distErr <= this->distThreshDynamic_ + size){
+					cost += pow(distErr, 3);
+					gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
+				}
+				else if (distErr >= this->distThreshDynamic_ + size){
+					cost += a * pow(distErr, 2) + b * distErr + c;
+					gradient.col(i) += -(2 * a * distErr + b) * grad;
 				}
 			}
 		}
