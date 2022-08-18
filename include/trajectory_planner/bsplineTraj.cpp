@@ -593,32 +593,59 @@ namespace trajPlanner{
 		if (this->optData_.dynamicObstaclesPos.size() == 0) return;
 
 		// iterate through each control points
+		const int skipFactor = 2.0;
+		int predictionNum = int(this->predHorizon_/this->ts_);
 		double a, b, c;
 		a = 3.0 * this->dthresh_; b = -3 * pow(this->dthresh_, 2); c = pow(this->dthresh_, 3);
 		for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){
 			Eigen::Vector3d controlPoint = controlPoints.col(i);
 			for (size_t j=0; j<this->optData_.dynamicObstaclesPos.size(); ++j){
 				double size = pow(pow(this->optData_.dynamicObstaclesSize[j](0)/2, 2) + pow(this->optData_.dynamicObstaclesSize[j](1), 2)/2, 0.5);
-				Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j];
-				Eigen::Vector3d diff = controlPoint - obstaclesPos;
-				diff(2) = 0.0; // ignore z difference
-				double dist = diff.norm() - size; // actual distance to obstacle (need to minus obstacle size)
-				double distThresh = this->distThreshDynamic_;
-				double distErr = distThresh - dist;
-				Eigen::Vector3d grad = 2.0 * diff/diff.norm();
+				Eigen::Vector3d obstaclesVel = this->optData_.dynamicObstaclesVel[j];
+				for (int n=0; n<=predictionNum; n+=skipFactor){
+					Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j] + double(n * this->ts_) * obstaclesVel; // predicted obstacle state
+					double distThresh = (1 - double(n/predictionNum) * 0.5) * this->distThreshDynamic_; // linearly decrease to half
+					Eigen::Vector3d diff = controlPoint - obstaclesPos;
+					diff(2) = 0.0; // ignore z difference
+					double dist = diff.norm() - size; // actual distance to obstacle (need to minus obstacle size)
+					double distErr = distThresh - dist;
+					Eigen::Vector3d grad = 2.0 * diff/diff.norm();
 
 
-				if (distErr <= 0){
-					// no punishment	
+					if (distErr <= 0){
+						// no punishment	
+					}
+					else if (distErr > 0 and distErr <= distThresh){
+						cost += pow(distErr, 3);
+						gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
+					}
+					else if (distErr >= distThresh){
+						cost += (a * pow(distErr, 2) + b * distErr + c);
+						gradient.col(i) += -(2 * a * distErr + b) * grad;
+					}
 				}
-				else if (distErr > 0 and distErr <= distThresh){
-					cost += pow(distErr, 3);
-					gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
-				}
-				else if (distErr >= distThresh){
-					cost += a * pow(distErr, 2) + b * distErr + c;
-					gradient.col(i) += -(2 * a * distErr + b) * grad;
-				}
+
+
+				// Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j];
+				// Eigen::Vector3d diff = controlPoint - obstaclesPos;
+				// diff(2) = 0.0; // ignore z difference
+				// double dist = diff.norm() - size; // actual distance to obstacle (need to minus obstacle size)
+				// double distThresh = this->distThreshDynamic_;
+				// double distErr = distThresh - dist;
+				// Eigen::Vector3d grad = 2.0 * diff/diff.norm();
+
+
+				// if (distErr <= 0){
+				// 	// no punishment	
+				// }
+				// else if (distErr > 0 and distErr <= distThresh){
+				// 	cost += pow(distErr, 3);
+				// 	gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
+				// }
+				// else if (distErr >= distThresh){
+				// 	cost += a * pow(distErr, 2) + b * distErr + c;
+				// 	gradient.col(i) += -(2 * a * distErr + b) * grad;
+				// }
 			}
 		}
 	}

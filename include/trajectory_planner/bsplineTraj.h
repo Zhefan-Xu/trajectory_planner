@@ -247,6 +247,7 @@ namespace trajPlanner{
 				return;
 			}
 		}
+
 	};
 
 	inline bool bsplineTraj::hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints){
