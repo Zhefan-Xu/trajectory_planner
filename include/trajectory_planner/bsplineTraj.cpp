@@ -575,7 +575,7 @@ namespace trajPlanner{
 		for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){
 			Eigen::Vector3d controlPoint = controlPoints.col(i);
 			for (size_t j=0; j<this->optData_.dynamicObstaclesPos.size(); ++j){
-				double size = pow(pow(this->optData_.dynamicObstaclesSize[j](0), 2) + pow(this->optData_.dynamicObstaclesSize[j](1), 2), 0.5);
+				double size = pow(pow(this->optData_.dynamicObstaclesSize[j](0)/2, 2) + pow(this->optData_.dynamicObstaclesSize[j](1), 2)/2, 0.5);
 				Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j];
 				Eigen::Vector3d diff = controlPoint - obstaclesPos;
 				diff(2) = 0.0; // ignore z difference
