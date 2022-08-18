@@ -338,33 +338,46 @@ namespace trajPlanner{
 	bool bsplineTraj::optimizeTrajectory(){
 		int solverResult = this->optimize();
 		double weightDistance0 = this->weightDistance_;
+		double weightDynamicObstacle0 = this->weightDynamicObstacle_;
 		int failCount = 0; 
 		std::vector<vector<Eigen::Vector3d>> tempAstarPaths; // in case path search fail
-		while (ros::ok() and this->hasCollisionTrajectory(this->optData_.controlPoints)){
-			if (failCount >= 4){
-				this->weightDistance_ = weightDistance0;
-				return false;
+		bool hasCollision = this->hasCollisionTrajectory(this->optData_.controlPoints);
+		bool hasDynamicCollision = this->hasDynamicCollisionTrajectory(this->optData_.controlPoints);
+		while (ros::ok()){
+			if (not hasCollision and not hasDynamicCollision){
+				break;
 			}
 
-			// need to determine whether the reguide is required
-			std::vector<std::pair<int, int>> reguideCollisionSeg;
-			if (this->isReguideRequired(reguideCollisionSeg)){ // this will update collision segment for next iteration
-				bool pathSearchSuccess = this->pathSearch(reguideCollisionSeg, tempAstarPaths);
-				
-				if (pathSearchSuccess){
-					this->astarPaths_ = tempAstarPaths; 
-					this->assignGuidePointsSemiCircle(tempAstarPaths, reguideCollisionSeg);
+			if (failCount >= 4){
+				this->weightDistance_ = weightDistance0;
+				this->weightDynamicObstacle_ = weightDynamicObstacle0;
+				return false;
+			}
+			if (hasCollision){
+				// need to determine whether the reguide is required
+				std::vector<std::pair<int, int>> reguideCollisionSeg;
+				if (this->isReguideRequired(reguideCollisionSeg)){ // this will update collision segment for next iteration
+					bool pathSearchSuccess = this->pathSearch(reguideCollisionSeg, tempAstarPaths);
+					
+					if (pathSearchSuccess){
+						this->astarPaths_ = tempAstarPaths; 
+						this->assignGuidePointsSemiCircle(tempAstarPaths, reguideCollisionSeg);
+					}
+					else{
+						this->weightDistance_ *= 2.0;
+						++failCount;
+					}
 				}
 				else{
-					this->weightDistance_ *= 2.0;
+					this->weightDistance_ *= 2.0; // no need reguide: this means weight is not big enough	
 					++failCount;
 				}
 			}
-			else{
-				this->weightDistance_ *= 2.0; // no need reguide: this means weight is not big enough	
-				++failCount;
-			}
 
+			if (hasDynamicCollision){
+				this->weightDynamicObstacle_ *= 2.0;
+				cout << "weight dynamic obstacle: " << this->weightDynamicObstacle_ << endl;
+			}
 
 			solverResult = this->optimize();
 			if (solverResult == lbfgs::LBFGS_CONVERGENCE or solverResult == lbfgs::LBFGSERR_MAXIMUMITERATION or
@@ -373,10 +386,12 @@ namespace trajPlanner{
 			}
 			else{
 				this->weightDistance_ = weightDistance0;
+				this->weightDynamicObstacle_ = weightDynamicObstacle0;
 				return false;
 			}
 		}
 		this->weightDistance_ = weightDistance0;
+		this->weightDynamicObstacle_ = weightDynamicObstacle0;
 		return true;
 	}
 
@@ -579,19 +594,20 @@ namespace trajPlanner{
 				Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j];
 				Eigen::Vector3d diff = controlPoint - obstaclesPos;
 				diff(2) = 0.0; // ignore z difference
-				double dist = diff.norm();
-				double distErr = this->distThreshDynamic_ + size - dist;
+				double dist = diff.norm() - size; // actual distance to obstacle (need to minus obstacle size)
+				double distThresh = this->distThreshDynamic_;
+				double distErr = distThresh - dist;
 				Eigen::Vector3d grad = 2.0 * diff/diff.norm();
 
 
 				if (distErr <= 0){
 					// no punishment	
 				}
-				else if (distErr > 0 and distErr <= this->distThreshDynamic_ + size){
+				else if (distErr > 0 and distErr <= distThresh){
 					cost += pow(distErr, 3);
 					gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
 				}
-				else if (distErr >= this->distThreshDynamic_ + size){
+				else if (distErr >= distThresh){
 					cost += a * pow(distErr, 2) + b * distErr + c;
 					gradient.col(i) += -(2 * a * distErr + b) * grad;
 				}

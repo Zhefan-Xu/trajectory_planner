@@ -128,6 +128,7 @@ namespace trajPlanner{
 		inline void assignGuidePointsSemiCircle(const std::vector<std::vector<Eigen::Vector3d>>& paths, const std::vector<std::pair<int, int>>& collisionSeg);
 		inline bool hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints);
 		inline bool hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints, Eigen::Vector3d& firstCollisionPos);
+		inline bool hasDynamicCollisionTrajectory(const Eigen::MatrixXd& controlPoints);
 		inline bool indexInCollisionSeg(const std::vector<std::pair<int, int>>& collisionSeg, int idx);
 		inline void compareCollisionSeg(const std::vector<std::pair<int, int>>& prevCollisionSeg, const std::vector<std::pair<int, int>>& newCollisionSeg, std::vector<int>& newCollisionPoints, std::vector<int>& overlappedCollisionPoints);
 		inline int findCollisionSegIndex(const std::vector<std::pair<int, int>>& collisionSeg, int idx);
@@ -274,6 +275,31 @@ namespace trajPlanner{
 				firstCollisionPos = p;
 				return true;
 			}
+		}
+		return false;
+	}
+
+	inline bool bsplineTraj::hasDynamicCollisionTrajectory(const Eigen::MatrixXd& controlPoints){
+		std::vector<Eigen::Vector3d> trajectory = this->evalTraj();
+		for (Eigen::Vector3d p : trajectory){
+			if (p(2) > this->maxHeight_ or p(2) < this->minHeight_){
+				return true;
+			}
+
+			// iterate through each dynamic obstacles
+			Eigen::Vector3d obstaclePos, obstacleSize, diff;
+			double size, dist;
+			for (size_t i=0; i<this->optData_.dynamicObstaclesPos.size(); ++i){
+				obstaclePos = this->optData_.dynamicObstaclesPos[i];
+				obstacleSize = this->optData_.dynamicObstaclesSize[i];
+				size = pow(pow(obstacleSize(0)/2, 2) + pow(obstacleSize(1)/2, 2), 0.5);
+				diff = p - obstaclePos;
+				diff(2) = 0.0;
+				dist = diff.norm() - size;
+				if (dist < 0){
+					return true;
+				}
+			} 
 		}
 		return false;
 	}
