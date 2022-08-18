@@ -341,9 +341,17 @@ namespace trajPlanner{
 		double weightDynamicObstacle0 = this->weightDynamicObstacle_;
 		int failCount = 0; 
 		std::vector<vector<Eigen::Vector3d>> tempAstarPaths; // in case path search fail
-		bool hasCollision = this->hasCollisionTrajectory(this->optData_.controlPoints);
-		bool hasDynamicCollision = this->hasDynamicCollisionTrajectory(this->optData_.controlPoints);
+		bool hasCollision, hasDynamicCollision;
 		while (ros::ok()){
+			hasCollision = this->hasCollisionTrajectory(this->optData_.controlPoints);
+			if (this->optData_.dynamicObstaclesPos.size() != 0){
+				hasDynamicCollision = this->hasDynamicCollisionTrajectory(this->optData_.controlPoints);
+			}
+			else{
+				hasDynamicCollision = false;
+			}
+
+
 			if (not hasCollision and not hasDynamicCollision){
 				break;
 			}
