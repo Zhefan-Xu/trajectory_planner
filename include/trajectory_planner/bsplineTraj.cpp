@@ -196,6 +196,7 @@ namespace trajPlanner{
 		bool pathSearchSuccess = this->pathSearch(this->collisionSeg_, this->astarPaths_);
 		if (not pathSearchSuccess){
 			this->clear();
+			cout << "[BsplineTraj]: Fail because of A* failure." << endl;
 			return false;
 		}
 
@@ -206,6 +207,7 @@ namespace trajPlanner{
 		bool optimizationSuccess = this->optimizeTrajectory();
 		this->clear();
 		if (not optimizationSuccess){
+			cout << "[BsplineTraj]: Fail because of optimizer not finding a solution." << endl; 
 			return false;
 		}
 
@@ -266,7 +268,11 @@ namespace trajPlanner{
 				paths.push_back(this->pathSearch_->getPath());
 			}
 			else{
-				// cout << "[BsplineTraj]: Path Search Error. Force return." << endl;
+				cout << "[BsplineTraj]: Path Search Error. Force return." << endl;
+				cout << "start: " << endl;
+				cout << pStart << endl;
+				cout << "end: " << endl;
+				cout << pEnd << endl;
 				return false; 
 			}
 		}	
@@ -384,7 +390,6 @@ namespace trajPlanner{
 
 			if (hasDynamicCollision){
 				this->weightDynamicObstacle_ *= 2.0;
-				cout << "weight dynamic obstacle: " << this->weightDynamicObstacle_ << endl;
 			}
 
 			solverResult = this->optimize();
@@ -501,6 +506,8 @@ namespace trajPlanner{
 
 		cost = 0.0; // initialize cost
 		double a, b, c;
+		const double heightDistThresh = 0.2;
+		double ah = 3.0 * heightDistThresh, bh = -3 * pow(heightDistThresh, 2), ch = pow(heightDistThresh, 3);
 		for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){ // for each control points
 			for (size_t j=0; j<this->optData_.guidePoints[i].size(); ++j){ // each control points we check all the guide points and guide directions
 				if (not this->map_->isUnknown(this->optData_.guidePoints[i][j])){
@@ -513,17 +520,54 @@ namespace trajPlanner{
 				double dist = (controlPoints.col(i) - this->optData_.guidePoints[i][j]).dot(this->optData_.guideDirections[i][j]);
 				double distErr = this->dthresh_ - dist;
 
+				Eigen::Vector3d grad = this->optData_.guideDirections[i][j];
+				// grad(2) = 0;
+
 				if (distErr <= 0){
 					// no punishment	
 				}
 				else if (distErr > 0 and distErr <= this->dthresh_){
 					cost += pow(distErr, 3);
-					gradient.col(i) += -3.0 * pow(distErr, 2) * this->optData_.guideDirections[i][j];
+					gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
 				}
 				else if (distErr >= this->dthresh_){
 					cost += a * pow(distErr, 2) + b * distErr + c;
-					gradient.col(i) += -(2 * a * distErr + b) * this->optData_.guideDirections[i][j];
+					gradient.col(i) += -(2 * a * distErr + b) * grad;
 				}
+			}
+
+			
+			// minimum and maximum height cost 
+			double heightDistMin = controlPoints.col(i)(2) - this->minHeight_;
+			double heightDistMax = controlPoints.col(i)(2) - this->maxHeight_;
+			if (heightDistMin < 0){
+				double distErr = heightDistThresh - heightDistMin;
+				cost += ah * pow(distErr, 2) + bh * distErr + ch;
+				gradient.col(i) += -(2 * ah * distErr + bh) * Eigen::Vector3d (-1.0, 0.0, 0.0);
+
+			}
+			else if (heightDistMin >= 0 and heightDistMax < heightDistThresh){
+				double distErr = heightDistThresh - heightDistMin;
+				cost += pow(distErr, 3);
+				gradient.col(i) += -3.0 * pow(distErr, 2) * Eigen::Vector3d (-1.0, 0.0, 0.0);
+			}
+			else if (heightDistMin >= heightDistThresh){
+				// no punishment
+			}
+
+
+			if (heightDistMax > 0){
+				double distErr = heightDistThresh + heightDistMax;
+				cost += ah * pow(distErr, 2) + bh * distErr + ch;
+				gradient.col(i) += -(2 * ah * distErr + bh) * Eigen::Vector3d (1.0, 0.0, 0.0);
+			}
+			else if (heightDistMax <=0 and heightDistMax >= -heightDistThresh){
+				double distErr = heightDistThresh + heightDistMax;
+				cost += pow(distErr, 3);
+				gradient.col(i) += -3.0 * pow(distErr, 2) * Eigen::Vector3d (1.0, 0.0, 0.0);
+			} 
+			else if (heightDistMax < -heightDistThresh){
+				// no punishment
 			}
 		}
 	}
