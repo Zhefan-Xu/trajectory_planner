@@ -151,13 +151,13 @@ namespace trajPlanner{
 					double yawDiff = pTarget.yaw - pCurr.yaw; // difference between yaw
 					double direction = 1.0;
 					double yawDiffAbs = std::abs(yawDiff);
-					if ((yawDiffAbs <= PI_const) and (yawDiff>0)){
+					if ((yawDiffAbs <= PI_const) and (yawDiff>=0)){
 						direction = 1.0; // counter clockwise
 					} 
 					else if ((yawDiffAbs <= PI_const) and (yawDiff<0)){
 						direction = -1.0; // clockwise
 					}
-					else if ((yawDiffAbs > PI_const) and (yawDiff>0)){
+					else if ((yawDiffAbs > PI_const) and (yawDiff>=0)){
 						direction = -1.0; // rotate in clockwise direction
 						yawDiffAbs = 2 * PI_const - yawDiffAbs;
 					}
@@ -173,16 +173,22 @@ namespace trajPlanner{
 					double currYaw = pCurr.yaw + direction * (t-startTime)/(endTime-startTime) * yawDiffAbs;
 					geometry_msgs::Quaternion quat = trajPlanner::quaternion_from_rpy(0, 0, currYaw);
 					ps.pose.orientation = quat; 
+
 				}
 				else{ // it is in forward motion period
 					int pointIdx = i / 2;
 					trajPlanner::pose pCurr = this->path_[pointIdx];
 					trajPlanner::pose pTarget = this->path_[pointIdx+1];
-
-					ps.pose.position.x = pCurr.x +  (t-startTime) * (pTarget.x - pCurr.x)/(endTime-startTime);
-					ps.pose.position.y = pCurr.y +  (t-startTime) * (pTarget.y - pCurr.y)/(endTime-startTime);
-					ps.pose.position.z = pCurr.z +  (t-startTime) * (pTarget.z - pCurr.z)/(endTime-startTime);
-
+					if (endTime - startTime < 1e-3){
+						ps.pose.position.x = pCurr.x; 
+						ps.pose.position.y = pCurr.y; 
+						ps.pose.position.z = pCurr.z;				
+					}
+					else{
+						ps.pose.position.x = pCurr.x +  (t-startTime) * (pTarget.x - pCurr.x)/(endTime-startTime);
+						ps.pose.position.y = pCurr.y +  (t-startTime) * (pTarget.y - pCurr.y)/(endTime-startTime);
+						ps.pose.position.z = pCurr.z +  (t-startTime) * (pTarget.z - pCurr.z)/(endTime-startTime);
+					}
 					double currYaw = pCurr.yaw;
 					geometry_msgs::Quaternion quat = trajPlanner::quaternion_from_rpy(0, 0, currYaw);
 					ps.pose.orientation = quat; 

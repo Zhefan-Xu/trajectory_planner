@@ -183,10 +183,10 @@ namespace trajPlanner{
 
 
 	bool bsplineTraj::makePlan(){
-		if (not this->isGoalValid()){
-			cout << "[BsplineTraj]: Goal is not collision free. Force Return." << endl;
-			return false;
-		}
+		// if (not this->isGoalValid()){
+		// 	cout << "[BsplineTraj]: Goal is not collision free. Force Return." << endl;
+		// 	return false;
+		// }
 
 		ros::Time startTime = ros::Time::now();
 		// step 1. find collision segment
@@ -268,11 +268,11 @@ namespace trajPlanner{
 				paths.push_back(this->pathSearch_->getPath());
 			}
 			else{
-				cout << "[BsplineTraj]: Path Search Error. Force return." << endl;
-				cout << "start: " << endl;
-				cout << pStart << endl;
-				cout << "end: " << endl;
-				cout << pEnd << endl;
+				// cout << "[BsplineTraj]: Path Search Error. Force return." << endl;
+				// cout << "start: " << endl;
+				// cout << pStart << endl;
+				// cout << "end: " << endl;
+				// cout << pEnd << endl;
 				return false; 
 			}
 		}	
@@ -342,7 +342,7 @@ namespace trajPlanner{
 
 
 	bool bsplineTraj::optimizeTrajectory(){
-		int solverResult = this->optimize();
+		this->optimize();
 		double weightDistance0 = this->weightDistance_;
 		double weightDynamicObstacle0 = this->weightDynamicObstacle_;
 		int failCount = 0; 
@@ -392,16 +392,7 @@ namespace trajPlanner{
 				this->weightDynamicObstacle_ *= 2.0;
 			}
 
-			solverResult = this->optimize();
-			if (solverResult == lbfgs::LBFGS_CONVERGENCE or solverResult == lbfgs::LBFGSERR_MAXIMUMITERATION or
-				solverResult == lbfgs::LBFGS_ALREADY_MINIMIZED or solverResult == lbfgs::LBFGS_STOP or solverResult == lbfgs::LBFGSERR_CANCELED){
-
-			}
-			else{
-				this->weightDistance_ = weightDistance0;
-				this->weightDynamicObstacle_ = weightDynamicObstacle0;
-				return false;
-			}
+			this->optimize();
 		}
 		this->weightDistance_ = weightDistance0;
 		this->weightDynamicObstacle_ = weightDynamicObstacle0;
