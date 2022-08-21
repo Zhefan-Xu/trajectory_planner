@@ -183,10 +183,10 @@ namespace trajPlanner{
 
 
 	bool bsplineTraj::makePlan(){
-		// if (not this->isGoalValid()){
-		// 	cout << "[BsplineTraj]: Goal is not collision free. Force Return." << endl;
-		// 	return false;
-		// }
+		if (not this->isGoalValid()){
+			cout << "[BsplineTraj]: Goal is not collision free. Force Return." << endl;
+			return false;
+		}
 
 		ros::Time startTime = ros::Time::now();
 		// step 1. find collision segment
