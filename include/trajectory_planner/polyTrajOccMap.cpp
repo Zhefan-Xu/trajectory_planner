@@ -286,17 +286,18 @@ namespace trajPlanner{
 			else{
 				ps = this->pwlTrajSolver_->getPose(t);
 			}
+			return ps;
 		}
 		
-		// geometry_msgs::PoseStamped ps;
-		// trajPlanner::pose p = this->trajSolver_->getPose(t);
-		// ps.pose.position.x = p.x;
-		// ps.pose.position.y = p.y;
-		// ps.pose.position.z = p.z;
-		// geometry_msgs::Quaternion quat = quaternion_from_rpy(0, 0, p.yaw);
-		// ps.pose.orientation = quat;
-		// ps.header.stamp = ros::Time();
-		// ps.header.frame_id = "map";
+		geometry_msgs::PoseStamped ps;
+		trajPlanner::pose p = this->trajSolver_->getPose(t);
+		ps.pose.position.x = p.x;
+		ps.pose.position.y = p.y;
+		ps.pose.position.z = p.z;
+		geometry_msgs::Quaternion quat = quaternion_from_rpy(0, 0, p.yaw);
+		ps.pose.orientation = quat;
+		ps.header.stamp = ros::Time();
+		ps.header.frame_id = "map";
 
 		return ps;
 	}
