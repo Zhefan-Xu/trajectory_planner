@@ -293,7 +293,8 @@ namespace trajPlanner{
 			for (size_t i=0; i<this->optData_.dynamicObstaclesPos.size(); ++i){
 				obstaclePos = this->optData_.dynamicObstaclesPos[i];
 				obstacleSize = this->optData_.dynamicObstaclesSize[i];
-				size = pow(pow(obstacleSize(0)/2, 2) + pow(obstacleSize(1)/2, 2), 0.5);
+				// size = pow(pow(obstacleSize(0)/2, 2) + pow(obstacleSize(1)/2, 2), 0.5);
+				size = std::min(obstacleSize(0)/2, obstacleSize(1)/2);
 				diff = p - obstaclePos;
 				diff(2) = 0.0;
 				dist = diff.norm() - size;

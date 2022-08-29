@@ -362,11 +362,22 @@ namespace trajPlanner{
 				break;
 			}
 
-			if (failCount >= 4){
+			if (failCount == 4){
+				std::vector<std::pair<int, int>> collisionSeg;
+				this->findCollisionSeg(this->optData_.controlPoints, collisionSeg);
+				bool pathSearchSuccess = this->pathSearch(collisionSeg, tempAstarPaths);	
+				if (pathSearchSuccess){
+					this->astarPaths_ = tempAstarPaths; 
+					this->assignGuidePointsSemiCircle(tempAstarPaths, collisionSeg);
+				}				
+			}
+
+			if (failCount >= 8){
 				this->weightDistance_ = weightDistance0;
 				this->weightDynamicObstacle_ = weightDynamicObstacle0;
 				return false;
 			}
+
 			if (hasCollision){
 				// need to determine whether the reguide is required
 				std::vector<std::pair<int, int>> reguideCollisionSeg;
@@ -635,7 +646,8 @@ namespace trajPlanner{
 		for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){
 			Eigen::Vector3d controlPoint = controlPoints.col(i);
 			for (size_t j=0; j<this->optData_.dynamicObstaclesPos.size(); ++j){
-				double size = pow(pow(this->optData_.dynamicObstaclesSize[j](0)/2, 2) + pow(this->optData_.dynamicObstaclesSize[j](1), 2)/2, 0.5);
+				// double size = pow(pow(this->optData_.dynamicObstaclesSize[j](0)/2, 2) + pow(this->optData_.dynamicObstaclesSize[j](1), 2)/2, 0.5);
+				double size = std::min(this->optData_.dynamicObstaclesSize[j](0)/2, this->optData_.dynamicObstaclesSize[j](1)/2);
 				Eigen::Vector3d obstaclesVel = this->optData_.dynamicObstaclesVel[j];
 				for (int n=0; n<=predictionNum; n+=skipFactor){
 					Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j] + double(n * this->ts_) * obstaclesVel; // predicted obstacle state
