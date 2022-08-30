@@ -205,11 +205,11 @@ namespace trajPlanner{
 	}
 
 	inline bool bsplineTraj::findGuidePointSemiCircle(int controlPointIdx, const std::pair<int, int>& seg, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
-		// double minAngle = PI_const*1.0/4.0; double maxAngle = PI_const*3.0/4.0;
+		double minAngle = PI_const*1.0/4.0; double maxAngle = PI_const*3.0/4.0;
 		int numControlpoints = seg.second - seg.first - 1; // number of segment
 		int controlPointOrder = controlPointIdx - seg.first;
 		double targetAngle = (controlPointIdx - seg.first) * PI_const/(numControlpoints+2); // angle incremental interval
-		// targetAngle = std::min(std::max(minAngle, targetAngle), maxAngle);
+		targetAngle = std::min(std::max(minAngle, targetAngle), maxAngle);
 
 		double ratio = double(controlPointOrder)/double(numControlpoints+1.0);
 		Eigen::Vector3d psudoControlPoint = ratio * (path.back() - path[0]) + path[0];
@@ -251,9 +251,9 @@ namespace trajPlanner{
 	inline bool bsplineTraj::hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints){
 		std::vector<Eigen::Vector3d> trajectory = this->evalTraj();
 		for (Eigen::Vector3d p : trajectory){
-			if (p(2) > this->maxHeight_ or p(2) < this->minHeight_){
-				return true;
-			}
+			// if (p(2) > this->maxHeight_ or p(2) < this->minHeight_){
+			// 	return true;
+			// }
 			bool hasCollision = this->map_->isInflatedOccupied(p);
 			if (hasCollision){
 				return true;
@@ -267,9 +267,9 @@ namespace trajPlanner{
 		for (Eigen::Vector3d p : trajectory){
 			bool hasCollision = false;
 			hasCollision = this->map_->isInflatedOccupied(p);
-			if (p(2) > this->maxHeight_ or p(2) < this->minHeight_){
-				hasCollision = true;
-			}
+			// if (p(2) > this->maxHeight_ or p(2) < this->minHeight_){
+			// 	hasCollision = true;
+			// }
 			if (hasCollision){
 				firstCollisionPos = p;
 				return true;
@@ -281,9 +281,9 @@ namespace trajPlanner{
 	inline bool bsplineTraj::hasDynamicCollisionTrajectory(const Eigen::MatrixXd& controlPoints){
 		std::vector<Eigen::Vector3d> trajectory = this->evalTraj();
 		for (Eigen::Vector3d p : trajectory){
-			if (p(2) > this->maxHeight_ or p(2) < this->minHeight_){
-				return true;
-			}
+			// if (p(2) > this->maxHeight_ or p(2) < this->minHeight_){
+			// 	return true;
+			// }
 
 			// iterate through each dynamic obstacles
 			Eigen::Vector3d obstaclePos, obstacleSize, diff;
