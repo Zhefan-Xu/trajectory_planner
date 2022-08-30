@@ -205,11 +205,11 @@ namespace trajPlanner{
 	}
 
 	inline bool bsplineTraj::findGuidePointSemiCircle(int controlPointIdx, const std::pair<int, int>& seg, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
-		double minAngle = PI_const*1.0/4.0; double maxAngle = PI_const*3.0/4.0;
+		// double minAngle = PI_const*1.0/4.0; double maxAngle = PI_const*3.0/4.0;
 		int numControlpoints = seg.second - seg.first - 1; // number of segment
 		int controlPointOrder = controlPointIdx - seg.first;
 		double targetAngle = (controlPointIdx - seg.first) * PI_const/(numControlpoints+2); // angle incremental interval
-		targetAngle = std::min(std::max(minAngle, targetAngle), maxAngle);
+		// targetAngle = std::min(std::max(minAngle, targetAngle), maxAngle);
 
 		double ratio = double(controlPointOrder)/double(numControlpoints+1.0);
 		Eigen::Vector3d psudoControlPoint = ratio * (path.back() - path[0]) + path[0];

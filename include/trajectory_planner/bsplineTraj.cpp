@@ -904,73 +904,67 @@ namespace trajPlanner{
 
 		// guide points
 		int numGuidedPoints = 0;
-		for (size_t i=0; i<this->collisionSeg_.size(); ++i){
-			int collisionStartIdx = this->collisionSeg_[i].first+1;
-			int collisionEndIdx = this->collisionSeg_[i].second-1;
-			for (int j=collisionStartIdx; j<=collisionEndIdx; ++j){
+		for (int i=0; i<this->optData_.controlPoints.cols(); ++i){
+			for (size_t j=0; j<this->optData_.guidePoints[i].size(); ++j){
 				visualization_msgs::Marker pointG;
-				for (size_t k=0; k<this->optData_.guidePoints[j].size(); ++k){
-					Eigen::Vector3d p = this->optData_.guidePoints[j][k]; // only visualize the latest one
-					pointG.header.frame_id = "map";
-					pointG.header.stamp = ros::Time::now();
-					pointG.ns = "guide_points";
-					pointG.id = numGuidedPoints;
-					pointG.type = visualization_msgs::Marker::SPHERE;
-					pointG.action = visualization_msgs::Marker::ADD;
-					pointG.pose.position.x = p(0);
-					pointG.pose.position.y = p(1);
-					pointG.pose.position.z = p(2);
-					pointG.lifetime = ros::Duration(0.5);
-					pointG.scale.x = 0.05;
-					pointG.scale.y = 0.05;
-					pointG.scale.z = 0.05;
-					pointG.color.a = 1.0;
-					pointG.color.r = 1.0;
-					pointG.color.g = 0.0;
-					pointG.color.b = 1.0;
-					msgVec.push_back(pointG);				
-					++numGuidedPoints;
-				}
+				Eigen::Vector3d p = this->optData_.guidePoints[i][j]; 
+				pointG.header.frame_id = "map";
+				pointG.header.stamp = ros::Time::now();
+				pointG.ns = "guide_points";
+				pointG.id = numGuidedPoints;
+				pointG.type = visualization_msgs::Marker::SPHERE;
+				pointG.action = visualization_msgs::Marker::ADD;
+				pointG.pose.position.x = p(0);
+				pointG.pose.position.y = p(1);
+				pointG.pose.position.z = p(2);
+				pointG.lifetime = ros::Duration(0.5);
+				pointG.scale.x = 0.05;
+				pointG.scale.y = 0.05;
+				pointG.scale.z = 0.05;
+				pointG.color.a = 1.0;
+				pointG.color.r = 1.0;
+				pointG.color.g = 0.0;
+				pointG.color.b = 1.0;
+				msgVec.push_back(pointG);				
+				++numGuidedPoints;
 			}
 		}
 
+
 		// guide directions
 		int numGuideDirections = 0;
-		for (size_t i=0; i<this->collisionSeg_.size(); ++i){
-			int collisionStartIdx = this->collisionSeg_[i].first+1;
-			int collisionEndIdx = this->collisionSeg_[i].second-1;
-			for (int j=collisionStartIdx; j<=collisionEndIdx; ++j){
+		for (int i=0; i<this->optData_.controlPoints.cols(); ++i){
+			for (size_t j=0; j<this->optData_.guidePoints[i].size(); ++j){
 				visualization_msgs::Marker arrow;
-				Eigen::Vector3d p = this->optData_.controlPoints.col(j);
-				for (size_t k=0; k<this->optData_.guideDirections[j].size(); ++k){
-					Eigen::Vector3d pGuide = this->optData_.guidePoints[j][k]; // only visualize the latest one
-					geometry_msgs::Point p1, p2;
-					p1.x = p(0);
-					p1.y = p(1);
-					p1.z = p(2);
-					p2.x = pGuide(0);
-					p2.y = pGuide(1);
-					p2.z = pGuide(2);
-					std::vector<geometry_msgs::Point> pointsVec {p1, p2};
-					arrow.points = pointsVec;
-					arrow.header.frame_id = "map";
-					arrow.header.stamp = ros::Time::now();
-					arrow.ns = "guide_direction";
-					arrow.id = numGuideDirections;
-					arrow.type = visualization_msgs::Marker::ARROW;
-					arrow.lifetime = ros::Duration(0.5);
-					arrow.scale.x = 0.05;
-					arrow.scale.y = 0.05;
-					arrow.scale.z = 0.05;
-					arrow.color.a = 0.5;
-					arrow.color.r = 0.0;
-					arrow.color.g = 1.0;
-					arrow.color.b = 0.0;
-					msgVec.push_back(arrow);				
-					++numGuideDirections;
-				}
+				Eigen::Vector3d pGuide = this->optData_.guidePoints[i][j]; 
+				Eigen::Vector3d p = this->optData_.controlPoints.col(i); 
+				geometry_msgs::Point p1, p2;
+				p1.x = p(0);
+				p1.y = p(1);
+				p1.z = p(2);
+				p2.x = pGuide(0);
+				p2.y = pGuide(1);
+				p2.z = pGuide(2);
+				std::vector<geometry_msgs::Point> pointsVec {p1, p2};
+				arrow.points = pointsVec;
+				arrow.header.frame_id = "map";
+				arrow.header.stamp = ros::Time::now();
+				arrow.ns = "guide_direction";
+				arrow.id = numGuideDirections;
+				arrow.type = visualization_msgs::Marker::ARROW;
+				arrow.lifetime = ros::Duration(0.5);
+				arrow.scale.x = 0.05;
+				arrow.scale.y = 0.05;
+				arrow.scale.z = 0.05;
+				arrow.color.a = 0.5;
+				arrow.color.r = 0.0;
+				arrow.color.g = 1.0;
+				arrow.color.b = 0.0;
+				msgVec.push_back(arrow);			
+				++numGuideDirections;
 			}
 		}
+
 
 		msg.markers = msgVec;
 		this->guidePointsVisPub_.publish(msg);
