@@ -162,6 +162,7 @@ namespace trajPlanner{
 		if (path.poses.size() < 4){
 			return false;
 		}
+		this->clear();
 		Eigen::MatrixXd controlPoints;
 		std::vector<Eigen::Vector3d> curveFitPoints;
 		this->pathMsgToEigenPoints(path, curveFitPoints);
@@ -195,7 +196,7 @@ namespace trajPlanner{
 		// step 2. A* to find collision free path
 		bool pathSearchSuccess = this->pathSearch(this->collisionSeg_, this->astarPaths_);
 		if (not pathSearchSuccess){
-			this->clear();
+			// this->clear();
 			cout << "[BsplineTraj]: Fail because of A* failure." << endl;
 			return false;
 		}
@@ -203,9 +204,9 @@ namespace trajPlanner{
 		// step 3. Assign guide point and directions
 		this->assignGuidePointsSemiCircle(this->astarPaths_, this->collisionSeg_);
 
-		// step 4. call solver
+		// // step 4. call solver
 		bool optimizationSuccess = this->optimizeTrajectory();
-		this->clear();
+		// this->clear();
 		if (not optimizationSuccess){
 			cout << "[BsplineTraj]: Fail because of optimizer not finding a solution." << endl; 
 			return false;
@@ -265,7 +266,11 @@ namespace trajPlanner{
 			Eigen::Vector3d pStart (this->optData_.controlPoints.col(seg.first));
 			Eigen::Vector3d pEnd (this->optData_.controlPoints.col(seg.second));
 			if (this->pathSearch_->AstarSearch(0.1, pStart, pEnd)){
-				paths.push_back(this->pathSearch_->getPath());
+				std::vector<Eigen::Vector3d> searchedPath = this->pathSearch_->getPath();
+				searchedPath[0] = pStart;
+				searchedPath[searchedPath.size()-1] = pEnd;
+				paths.push_back(searchedPath);
+				
 			}
 			else{
 				// cout << "[BsplineTraj]: Path Search Error. Force return." << endl;
@@ -276,6 +281,8 @@ namespace trajPlanner{
 				return false; 
 			}
 		}	
+
+
 		return true;
 	}
 
@@ -293,11 +300,14 @@ namespace trajPlanner{
 		for (size_t i=0; i<collisionSeg.size(); ++i){
 			seg = collisionSeg[i];
 			path = astarPathsSC[i];
-			for (int controlPointIdx=seg.first+1; controlPointIdx<=seg.second; ++controlPointIdx){ // iterate through all collision control points
-				this->findGuidePointSemiCircle(controlPointIdx, seg, path, guidePoint);
+			for (int controlPointIdx=seg.first+1; controlPointIdx<seg.second; ++controlPointIdx){ // iterate through all collision control points
+				bool findGuidePoint = this->findGuidePointSemiCircle(controlPointIdx, seg, path, guidePoint);
 				this->optData_.guidePoints[controlPointIdx].push_back(guidePoint);
 				guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx))/(guidePoint - this->optData_.controlPoints.col(controlPointIdx)).norm();
 				this->optData_.guideDirections[controlPointIdx].push_back(guideDirection);
+				if (not findGuidePoint){
+					ROS_ERROR("[BsplineTraj]: Impossible Assignment. Something wrong!");
+				}
 			}
 		}
 
@@ -402,7 +412,6 @@ namespace trajPlanner{
 			if (hasDynamicCollision){
 				this->weightDynamicObstacle_ *= 2.0;
 			}
-
 			this->optimize();
 		}
 		this->weightDistance_ = weightDistance0;
@@ -634,6 +643,69 @@ namespace trajPlanner{
 		}
 	}
 
+	// void bsplineTraj::getDynamicObstacleCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
+	// 	cost = 0;
+	// 	if (this->optData_.dynamicObstaclesPos.size() == 0) return;
+
+	// 	// iterate through each control points
+	// 	const int skipFactor = 2.0;
+	// 	int predictionNum = int(this->predHorizon_/this->ts_);
+	// 	double a, b, c;
+	// 	a = 3.0 * this->dthresh_; b = -3 * pow(this->dthresh_, 2); c = pow(this->dthresh_, 3);
+	// 	for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){
+	// 		Eigen::Vector3d controlPoint = controlPoints.col(i);
+	// 		for (size_t j=0; j<this->optData_.dynamicObstaclesPos.size(); ++j){
+	// 			// double size = pow(pow(this->optData_.dynamicObstaclesSize[j](0)/2, 2) + pow(this->optData_.dynamicObstaclesSize[j](1), 2)/2, 0.5);
+	// 			double size = std::min(this->optData_.dynamicObstaclesSize[j](0)/2, this->optData_.dynamicObstaclesSize[j](1)/2);
+	// 			Eigen::Vector3d obstaclesVel = this->optData_.dynamicObstaclesVel[j];
+	// 			for (int n=0; n<=predictionNum; n+=skipFactor){
+	// 				Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j] + double(n * this->ts_) * obstaclesVel; // predicted obstacle state
+	// 				double distThresh = (1 - double(n/predictionNum) * 0.5) * this->distThreshDynamic_; // linearly decrease to half
+	// 				Eigen::Vector3d diff = controlPoint - obstaclesPos;
+	// 				diff(2) = 0.0; // ignore z difference
+	// 				double dist = diff.norm() - size; // actual distance to obstacle (need to minus obstacle size)
+	// 				double distErr = distThresh - dist;
+	// 				Eigen::Vector3d grad = 2.0 * diff/diff.norm();
+
+
+	// 				if (distErr <= 0){
+	// 					// no punishment	
+	// 				}
+	// 				else if (distErr > 0 and distErr <= distThresh){
+	// 					cost += pow(distErr, 3);
+	// 					gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
+	// 				}
+	// 				else if (distErr >= distThresh){
+	// 					cost += (a * pow(distErr, 2) + b * distErr + c);
+	// 					gradient.col(i) += -(2 * a * distErr + b) * grad;
+	// 				}
+	// 			}
+
+
+	// 			// Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j];
+	// 			// Eigen::Vector3d diff = controlPoint - obstaclesPos;
+	// 			// diff(2) = 0.0; // ignore z difference
+	// 			// double dist = diff.norm() - size; // actual distance to obstacle (need to minus obstacle size)
+	// 			// double distThresh = this->distThreshDynamic_;
+	// 			// double distErr = distThresh - dist;
+	// 			// Eigen::Vector3d grad = 2.0 * diff/diff.norm();
+
+
+	// 			// if (distErr <= 0){
+	// 			// 	// no punishment	
+	// 			// }
+	// 			// else if (distErr > 0 and distErr <= distThresh){
+	// 			// 	cost += pow(distErr, 3);
+	// 			// 	gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
+	// 			// }
+	// 			// else if (distErr >= distThresh){
+	// 			// 	cost += a * pow(distErr, 2) + b * distErr + c;
+	// 			// 	gradient.col(i) += -(2 * a * distErr + b) * grad;
+	// 			// }
+	// 		}
+	// 	}
+	// }
+
 	void bsplineTraj::getDynamicObstacleCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
 		cost = 0;
 		if (this->optData_.dynamicObstaclesPos.size() == 0) return;
@@ -762,6 +834,8 @@ namespace trajPlanner{
 		visualization_msgs::MarkerArray msg;
 		std::vector<visualization_msgs::Marker> pointVec;
 		visualization_msgs::Marker point;
+		std::vector<std::vector<Eigen::Vector3d>> astarPathsSC;
+		// this->shortcutPaths(this->astarPaths_, astarPathsSC);
 		int pointCount = 0;
 		for (size_t i=0; i<this->astarPaths_.size(); ++i){
 			std::vector<Eigen::Vector3d> path = this->astarPaths_[i];

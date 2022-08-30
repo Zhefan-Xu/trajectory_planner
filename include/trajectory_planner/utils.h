@@ -82,7 +82,8 @@ namespace trajPlanner{
     }
 
     inline double angleBetweenVectors(const Eigen::Vector3d& a, const Eigen::Vector3d& b){
-        return std::atan2(a.cross(b).norm(), a.dot(b));
+        double result = std::atan2(a.cross(b).norm(), a.dot(b));
+        return result;
     }
 
     template <size_t N>
