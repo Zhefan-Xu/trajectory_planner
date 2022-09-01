@@ -304,6 +304,7 @@ namespace trajPlanner{
 				bool findGuidePoint = this->findGuidePointSemiCircle(controlPointIdx, seg, path, guidePoint);
 				this->optData_.guidePoints[controlPointIdx].push_back(guidePoint);
 				guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx))/(guidePoint - this->optData_.controlPoints.col(controlPointIdx)).norm();
+				// guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx));
 				this->optData_.guideDirections[controlPointIdx].push_back(guideDirection);
 				if (not findGuidePoint){
 					ROS_ERROR("[BsplineTraj]: Impossible Assignment. Something wrong!");
@@ -516,34 +517,51 @@ namespace trajPlanner{
 		*/
 
 		cost = 0.0; // initialize cost
+		double costTemp;
+		Eigen::Vector3d gradientTemp;
 		double a, b, c;
+		a = 3.0 * this->dthresh_; b = -3 * pow(this->dthresh_, 2); c = pow(this->dthresh_, 3);
 		const double heightDistThresh = 0.2;
 		double ah = 3.0 * heightDistThresh, bh = -3 * pow(heightDistThresh, 2), ch = pow(heightDistThresh, 3);
 		for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){ // for each control points
 			for (size_t j=0; j<this->optData_.guidePoints[i].size(); ++j){ // each control points we check all the guide points and guide directions
-				if (not this->map_->isUnknown(this->optData_.guidePoints[i][j])){
-					a = 3.0 * this->dthresh_; b = -3 * pow(this->dthresh_, 2); c = pow(this->dthresh_, 3);
-				}
-				else{
-					a = 3.0 * this->uncertainAwareFactor_ * this->dthresh_; b = -3 * pow(this->uncertainAwareFactor_ * this->dthresh_, 2); c = pow(this->uncertainAwareFactor_ * this->dthresh_, 3);
-				}
-
 				double dist = (controlPoints.col(i) - this->optData_.guidePoints[i][j]).dot(this->optData_.guideDirections[i][j]);
+				bool unknownGuidePoint = this->map_->isUnknown(this->optData_.guidePoints[i][j]);
+
 				double distErr = this->dthresh_ - dist;
 
 				Eigen::Vector3d grad = this->optData_.guideDirections[i][j];
+				// Eigen::Vector3d grad = this->optData_.guidePoints[i][j] - controlPoints.col(i);
 				// grad(2) = 0;
 
 				if (distErr <= 0){
 					// no punishment	
 				}
 				else if (distErr > 0 and distErr <= this->dthresh_){
-					cost += pow(distErr, 3);
-					gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
+					// cost += pow(distErr, 3);
+					// gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
+					costTemp = pow(distErr, 3);
+					gradientTemp = -3.0 * pow(distErr, 2) * grad;
+	
+					if (unknownGuidePoint){
+						costTemp *= this->uncertainAwareFactor_;
+						gradientTemp *= this->uncertainAwareFactor_;
+					}
+					cost += costTemp;
+					gradient.col(i) += gradientTemp;
 				}
 				else if (distErr >= this->dthresh_){
-					cost += a * pow(distErr, 2) + b * distErr + c;
-					gradient.col(i) += -(2 * a * distErr + b) * grad;
+					// cost += a * pow(distErr, 2) + b * distErr + c;
+					// gradient.col(i) += -(2 * a * distErr + b) * grad;
+					costTemp = a * pow(distErr, 2) + b * distErr + c;
+					gradientTemp = -(2 * a * distErr + b) * grad;
+					
+					if (unknownGuidePoint){
+						costTemp *= this->uncertainAwareFactor_;
+						gradientTemp *= this->uncertainAwareFactor_;
+					}
+					cost += costTemp;
+					gradient.col(i) += gradientTemp;
 				}
 			}
 
@@ -643,69 +661,6 @@ namespace trajPlanner{
 		}
 	}
 
-	// void bsplineTraj::getDynamicObstacleCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
-	// 	cost = 0;
-	// 	if (this->optData_.dynamicObstaclesPos.size() == 0) return;
-
-	// 	// iterate through each control points
-	// 	const int skipFactor = 2.0;
-	// 	int predictionNum = int(this->predHorizon_/this->ts_);
-	// 	double a, b, c;
-	// 	a = 3.0 * this->dthresh_; b = -3 * pow(this->dthresh_, 2); c = pow(this->dthresh_, 3);
-	// 	for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){
-	// 		Eigen::Vector3d controlPoint = controlPoints.col(i);
-	// 		for (size_t j=0; j<this->optData_.dynamicObstaclesPos.size(); ++j){
-	// 			// double size = pow(pow(this->optData_.dynamicObstaclesSize[j](0)/2, 2) + pow(this->optData_.dynamicObstaclesSize[j](1), 2)/2, 0.5);
-	// 			double size = std::min(this->optData_.dynamicObstaclesSize[j](0)/2, this->optData_.dynamicObstaclesSize[j](1)/2);
-	// 			Eigen::Vector3d obstaclesVel = this->optData_.dynamicObstaclesVel[j];
-	// 			for (int n=0; n<=predictionNum; n+=skipFactor){
-	// 				Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j] + double(n * this->ts_) * obstaclesVel; // predicted obstacle state
-	// 				double distThresh = (1 - double(n/predictionNum) * 0.5) * this->distThreshDynamic_; // linearly decrease to half
-	// 				Eigen::Vector3d diff = controlPoint - obstaclesPos;
-	// 				diff(2) = 0.0; // ignore z difference
-	// 				double dist = diff.norm() - size; // actual distance to obstacle (need to minus obstacle size)
-	// 				double distErr = distThresh - dist;
-	// 				Eigen::Vector3d grad = 2.0 * diff/diff.norm();
-
-
-	// 				if (distErr <= 0){
-	// 					// no punishment	
-	// 				}
-	// 				else if (distErr > 0 and distErr <= distThresh){
-	// 					cost += pow(distErr, 3);
-	// 					gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
-	// 				}
-	// 				else if (distErr >= distThresh){
-	// 					cost += (a * pow(distErr, 2) + b * distErr + c);
-	// 					gradient.col(i) += -(2 * a * distErr + b) * grad;
-	// 				}
-	// 			}
-
-
-	// 			// Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j];
-	// 			// Eigen::Vector3d diff = controlPoint - obstaclesPos;
-	// 			// diff(2) = 0.0; // ignore z difference
-	// 			// double dist = diff.norm() - size; // actual distance to obstacle (need to minus obstacle size)
-	// 			// double distThresh = this->distThreshDynamic_;
-	// 			// double distErr = distThresh - dist;
-	// 			// Eigen::Vector3d grad = 2.0 * diff/diff.norm();
-
-
-	// 			// if (distErr <= 0){
-	// 			// 	// no punishment	
-	// 			// }
-	// 			// else if (distErr > 0 and distErr <= distThresh){
-	// 			// 	cost += pow(distErr, 3);
-	// 			// 	gradient.col(i) += -3.0 * pow(distErr, 2) * grad;
-	// 			// }
-	// 			// else if (distErr >= distThresh){
-	// 			// 	cost += a * pow(distErr, 2) + b * distErr + c;
-	// 			// 	gradient.col(i) += -(2 * a * distErr + b) * grad;
-	// 			// }
-	// 		}
-	// 	}
-	// }
-
 	void bsplineTraj::getDynamicObstacleCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
 		cost = 0;
 		if (this->optData_.dynamicObstaclesPos.size() == 0) return;
@@ -714,7 +669,7 @@ namespace trajPlanner{
 		const int skipFactor = 2.0;
 		int predictionNum = int(this->predHorizon_/this->ts_);
 		double a, b, c;
-		a = 3.0 * this->dthresh_; b = -3 * pow(this->dthresh_, 2); c = pow(this->dthresh_, 3);
+		a = 3.0 * this->distThreshDynamic_; b = -3 * pow(this->distThreshDynamic_, 2); c = pow(this->distThreshDynamic_, 3);
 		for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){
 			Eigen::Vector3d controlPoint = controlPoints.col(i);
 			for (size_t j=0; j<this->optData_.dynamicObstaclesPos.size(); ++j){
@@ -723,7 +678,7 @@ namespace trajPlanner{
 				Eigen::Vector3d obstaclesVel = this->optData_.dynamicObstaclesVel[j];
 				for (int n=0; n<=predictionNum; n+=skipFactor){
 					Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j] + double(n * this->ts_) * obstaclesVel; // predicted obstacle state
-					double distThresh = (1 - double(n/predictionNum) * 0.5) * this->distThreshDynamic_; // linearly decrease to half
+					double distThresh = (1 - double(n/predictionNum) * 0.2) * this->distThreshDynamic_; // linearly decrease to half
 					Eigen::Vector3d diff = controlPoint - obstaclesPos;
 					diff(2) = 0.0; // ignore z difference
 					double dist = diff.norm() - size; // actual distance to obstacle (need to minus obstacle size)
@@ -768,6 +723,56 @@ namespace trajPlanner{
 			}
 		}
 	}
+
+	// void bsplineTraj::getDynamicObstacleCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
+	// 	cost = 0;
+	// 	if (this->optData_.dynamicObstaclesPos.size() == 0) return;
+
+	// 	// iterate through each control points
+	// 	int predictionNum = int(this->predHorizon_/this->ts_);
+	// 	double a, b, c;
+	// 	a = 3.0 * this->distThreshDynamic_; b = -3 * pow(this->distThreshDynamic_, 2); c = pow(this->distThreshDynamic_, 3);
+	// 	for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){
+	// 		Eigen::Vector3d controlPoint = controlPoints.col(i);
+	// 		for (size_t j=0; j<this->optData_.dynamicObstaclesPos.size(); ++j){
+	// 			// double size = pow(pow(this->optData_.dynamicObstaclesSize[j](0)/2, 2) + pow(this->optData_.dynamicObstaclesSize[j](1), 2)/2, 0.5);
+	// 			double size = std::min(this->optData_.dynamicObstaclesSize[j](0)/2, this->optData_.dynamicObstaclesSize[j](1)/2);
+	// 			Eigen::Vector3d obstaclePos = this->optData_.dynamicObstaclesPos[j];
+	// 			Eigen::Vector3d obstacleVel = this->optData_.dynamicObstaclesVel[j];
+
+	// 			double radius = size+this->distThreshDynamic_;
+	// 			int status =2;
+	// 			// int status = this->isInDistanceField(obstaclePos, obstacleVel, controlPoint, radius);
+	// 			double distErr;
+	// 			Eigen::Vector3d grad;
+	// 			// if (status == 1){ // in the polygon region
+	// 				// this->getDynamicCostAndGradPolygon(obstaclePos, obstacleVel, controlPoint, radius, distErr, grad);
+	// 			// }
+
+	// 			// if (status == 2){ // in the circle region
+	// 				this->getDynamicCostAndGradCircle(obstaclePos, controlPoint, radius, distErr, grad);
+	// 			// }
+
+	// 			if (status == 2){
+	// 				// cost += pow(distErr, 2);
+	// 				// gradient.col(i) += 2.0 * pow(distErr, 1) * grad;
+	// 				if (distErr <= 0){
+	// 					// no punishment	
+	// 				}
+	// 				else if (distErr > 0 and distErr <= this->distThreshDynamic_){
+	// 					cost += pow(distErr, 3);
+	// 					gradient.col(i) += 3.0 * pow(distErr, 2) * grad;
+	// 				}
+	// 				else if (distErr >= this->distThreshDynamic_){
+	// 					cost += a * pow(distErr, 2) + b * distErr + c;
+	// 					gradient.col(i) += (2 * a * distErr + b) * grad;
+	// 				}
+	// 			}
+	// 		}
+
+
+	// 	}
+	// }
 
 	void bsplineTraj::visCB(const ros::TimerEvent&){
 		if (this->init_){

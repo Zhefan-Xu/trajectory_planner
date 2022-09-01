@@ -137,6 +137,12 @@ namespace trajPlanner{
 		inline void compareCollisionSeg(const std::vector<std::pair<int, int>>& prevCollisionSeg, const std::vector<std::pair<int, int>>& newCollisionSeg, std::vector<int>& newCollisionPoints, std::vector<int>& overlappedCollisionPoints);
 		inline int findCollisionSegIndex(const std::vector<std::pair<int, int>>& collisionSeg, int idx);
 		inline bool isControlPointRequireNewGuide(int controlPointIdx);
+		inline double signHelper(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2, const Eigen::Vector2d& p3);
+		inline bool isInTriangle(const Eigen::Vector2d& pt, const Eigen::Vector2d& v1, const Eigen::Vector2d& v2, const Eigen::Vector2d& v3);
+		inline int isInDistanceField(const Eigen::Vector3d& obstaclePos, const Eigen::Vector3d& obstaclesVel, const Eigen::Vector3d& p, double radius);
+		inline void getDynamicCostAndGradCircle(const Eigen::Vector3d& obstaclePos, const Eigen::Vector3d& p, double radius, double& distErrs, Eigen::Vector3d& grad);
+		inline void getDynamicCostAndGradPolygon(const Eigen::Vector3d& obstaclePos, const Eigen::Vector3d& obstaclesVel, const Eigen::Vector3d& p, double radius, double& distErr, Eigen::Vector3d& grad);
+
 	};
 
 	inline bool bsplineTraj::isGoalValid(){
@@ -205,7 +211,8 @@ namespace trajPlanner{
 	}
 
 	inline bool bsplineTraj::findGuidePointSemiCircle(int controlPointIdx, const std::pair<int, int>& seg, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
-		double minAngle = PI_const*1.0/4.0; double maxAngle = PI_const*3.0/4.0;
+		double minAngle = PI_const*0.0/4.0; 
+		double maxAngle = PI_const*4.0/4.0;
 		int numControlpoints = seg.second - seg.first - 1; // number of segment
 		int controlPointOrder = controlPointIdx - seg.first;
 		double targetAngle = (controlPointIdx - seg.first) * PI_const/(numControlpoints+2); // angle incremental interval
@@ -354,6 +361,100 @@ namespace trajPlanner{
 		return true;
 	}
 
+	inline double bsplineTraj::signHelper(const Eigen::Vector2d& p1, const Eigen::Vector2d& p2, const Eigen::Vector2d& p3){
+		return (p1(0) - p3(0)) * (p2(1) - p3(1)) - (p2(0) - p3(0)) * (p1(1) - p3(1));
+	}
+
+	inline bool bsplineTraj::isInTriangle(const Eigen::Vector2d& pt, const Eigen::Vector2d& v1, const Eigen::Vector2d& v2, const Eigen::Vector2d& v3){
+		/*
+			https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
+		*/
+		double d1 = this->signHelper(pt, v1, v2);
+		double d2 = this->signHelper(pt, v2, v3);
+		double d3 = this->signHelper(pt, v1, v3);
+
+		bool hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+		bool hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+		return !(hasNeg && hasPos);
+	}
+
+	
+	inline int bsplineTraj::isInDistanceField(const Eigen::Vector3d& obstaclePos, const Eigen::Vector3d& obstaclesVel, const Eigen::Vector3d& p, double radius){
+		// 0: not in the distance field
+		// 1: in the polygon region
+		// 2: in the circle region
+
+		// 1. first find two triangles' vertex
+		Eigen::Vector3d predPos = obstaclePos + obstaclesVel * this->predHorizon_; 
+		Eigen::Vector2d pTest (p(0), p(1));
+		Eigen::Vector2d pt1 (obstaclePos(0), obstaclePos(1)); // shared one
+		Eigen::Vector2d pt2 (predPos(0), predPos(1)); // shared one
+		double length = (pt2 - pt1).norm();
+		double angle = std::acos(radius/length);
+		Eigen::Matrix2d rotA, rotB;
+		rotA << cos(angle), -sin(angle), sin(angle), cos(angle);
+		rotB << cos(-angle), -sin(-angle), sin(-angle), cos(-angle);
+		Eigen::Vector2d unit12 = (pt2 - pt1)/length;
+		Eigen::Vector2d unit13A =  rotA * unit12;
+		Eigen::Vector2d unit13B =  rotB * unit12;
+		Eigen::Vector2d pt3A = pt1 + radius * unit13A; 
+		Eigen::Vector2d pt3B = pt1 + radius * unit13B;
+
+
+		// in polygon region
+		if (this->isInTriangle(pTest, pt1, pt2, pt3A) or this->isInTriangle(pTest, pt1, pt2, pt3B)){
+			return 1;
+		}
+
+		// in circular region
+		if ((pTest - pt1).norm() < radius){
+			return 2;
+		}
+
+		return 0;
+	}
+
+	inline void bsplineTraj::getDynamicCostAndGradCircle(const Eigen::Vector3d& obstaclePos, const Eigen::Vector3d& p, double radius, double& distErr, Eigen::Vector3d& grad){
+		Eigen::Vector2d pTest (p(0), p(1));
+		Eigen::Vector2d pt1 (obstaclePos(0), obstaclePos(1)); // shared one
+		double distToObstacle = (pTest - pt1).norm();
+		distErr = radius - distToObstacle;
+		Eigen::Vector2d gradTemp = (pt1 - pTest); 
+		grad = Eigen::Vector3d (gradTemp(0), gradTemp(1), 0.0);
+	}
+
+	inline void bsplineTraj::getDynamicCostAndGradPolygon(const Eigen::Vector3d& obstaclePos, const Eigen::Vector3d& obstaclesVel, const Eigen::Vector3d& p, double radius, double& distErr, Eigen::Vector3d& grad){
+		Eigen::Vector3d predPos = obstaclePos + obstaclesVel * this->predHorizon_; 
+		Eigen::Vector2d pTest (p(0), p(1));
+		Eigen::Vector2d pt1 (obstaclePos(0), obstaclePos(1)); // shared one
+		Eigen::Vector2d pt2 (predPos(0), predPos(1)); // shared one
+		double length = (pt2 - pt1).norm();
+		double angle = std::acos(radius/length);
+		Eigen::Matrix2d rotA, rotB;
+		rotA << cos(angle), -sin(angle), sin(angle), cos(angle);
+		rotB << cos(-angle), -sin(-angle), sin(-angle), cos(-angle);
+		Eigen::Vector2d unit12 = (pt2 - pt1)/length;
+		Eigen::Vector2d unit13A =  rotA * unit12;
+		Eigen::Vector2d unit13B =  rotB * unit12;
+		Eigen::Vector2d pt3A = pt1 + radius * unit13A; 
+		Eigen::Vector2d pt3B = pt1 + radius * unit13B;
+		Eigen::Vector2d pointToPt2 = pt2 - pTest;
+
+		if (this->isInTriangle(pTest, pt1, pt2, pt3A)){
+			distErr = pointToPt2.dot(unit13A);
+			Eigen::Vector2d gradTemp = (distErr * unit13A);
+			grad = Eigen::Vector3d (gradTemp(0), gradTemp(1), 0.0);
+			return;
+		}
+
+		if (this->isInTriangle(pTest, pt1, pt2, pt3B)){
+			distErr = pointToPt2.dot(unit13B);
+			Eigen::Vector2d gradTemp = distErr * unit13B;
+			grad = Eigen::Vector3d (gradTemp(0), gradTemp(1), 0.0);
+			return;
+		}
+		
+	}
 
 }
 
