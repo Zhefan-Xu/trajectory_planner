@@ -217,9 +217,9 @@ namespace trajPlanner{
 		return true;
 	}
 
-	bool bsplineTraj::makePlan(nav_msgs::Path& trajectory){
+	bool bsplineTraj::makePlan(nav_msgs::Path& trajectory, bool yaw){
 		bool success = this->makePlan();
-		trajectory = this->evalTrajToMsg();
+		trajectory = this->evalTrajToMsg(yaw);
 		this->adjustTrajFeasibility(trajectory);
 		return success;
 	}
@@ -675,9 +675,10 @@ namespace trajPlanner{
 			for (size_t j=0; j<this->optData_.dynamicObstaclesPos.size(); ++j){
 				// double size = pow(pow(this->optData_.dynamicObstaclesSize[j](0)/2, 2) + pow(this->optData_.dynamicObstaclesSize[j](1), 2)/2, 0.5);
 				double size = std::min(this->optData_.dynamicObstaclesSize[j](0)/2, this->optData_.dynamicObstaclesSize[j](1)/2);
-				Eigen::Vector3d obstaclesVel = this->optData_.dynamicObstaclesVel[j];
+				Eigen::Vector3d obstacleVel = this->optData_.dynamicObstaclesVel[j];
+
 				for (int n=0; n<=predictionNum; n+=skipFactor){
-					Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j] + double(n * this->ts_) * obstaclesVel; // predicted obstacle state
+					Eigen::Vector3d obstaclesPos = this->optData_.dynamicObstaclesPos[j] + double(n * this->ts_) * obstacleVel; // predicted obstacle state
 					double distThresh = (1 - double(n/predictionNum) * 0.2) * this->distThreshDynamic_; // linearly decrease to half
 					Eigen::Vector3d diff = controlPoint - obstaclesPos;
 					diff(2) = 0.0; // ignore z difference
@@ -976,7 +977,7 @@ namespace trajPlanner{
 	}
 
 
-	geometry_msgs::PoseStamped bsplineTraj::getPose(double t){
+	geometry_msgs::PoseStamped bsplineTraj::getPose(double t, bool yaw){
 		geometry_msgs::PoseStamped ps;
 		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->ts_);
 		Eigen::Vector3d p = this->bspline_.at(t);
@@ -987,17 +988,22 @@ namespace trajPlanner{
 		ps.pose.position.y = p(1);
 		ps.pose.position.z = p(2);
 
-		// orientation:
-		trajPlanner::bspline velBspline = this->bspline_.getDerivative();
-		Eigen::Vector3d vel = velBspline.at(t);
-		ps.pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, atan2(vel(1), vel(0)));
-
+		if (yaw){
+			// orientation:
+			trajPlanner::bspline velBspline = this->bspline_.getDerivative();
+			Eigen::Vector3d vel = velBspline.at(t);
+			ps.pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, atan2(vel(1), vel(0)));
+		}
 		return ps;
 	}
 
 	double bsplineTraj::getDuration(){
 		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->ts_);
 		return this->bspline_.getDuration();
+	}
+
+	double bsplineTraj::getTimestep(){
+		return this->ts_;
 	}
 
 	std::vector<Eigen::Vector3d> bsplineTraj::evalTraj(){
@@ -1025,7 +1031,7 @@ namespace trajPlanner{
 		return not this->hasCollisionTrajectory(this->optData_.controlPoints, firstCollisionPos);
 	}
 
-	nav_msgs::Path bsplineTraj::evalTrajToMsg(){
+	nav_msgs::Path bsplineTraj::evalTrajToMsg(bool yaw){
 		std::vector<Eigen::Vector3d> trajTemp = this->evalTraj();
 		nav_msgs::Path traj;
 		this->eigenPointsToPathMsg(trajTemp, traj);
@@ -1034,7 +1040,9 @@ namespace trajPlanner{
 		while (i < traj.poses.size()){
 			double t = (double) i * this->ts_;
 			Eigen::Vector3d vel = velBspline.at(t);
-			traj.poses[i].pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, atan2(vel(1), vel(0)));
+			if (yaw){
+				traj.poses[i].pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, atan2(vel(1), vel(0)));
+			}
 			++i;
 		}
 

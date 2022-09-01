@@ -84,7 +84,7 @@ namespace trajPlanner{
 		void updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize); // position, velocity, size
 
 		bool makePlan();
-		bool makePlan(nav_msgs::Path& trajectory);
+		bool makePlan(nav_msgs::Path& trajectory, bool yaw=true);
 		void clear();
 		void findCollisionSeg(const Eigen::MatrixXd& controlPoints, std::vector<std::pair<int, int>>& collisionSeg); // find collision segment of current control points
 		bool pathSearch(const std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths);
@@ -113,14 +113,15 @@ namespace trajPlanner{
 
 
 		// user functions
-		geometry_msgs::PoseStamped getPose(double t);
+		geometry_msgs::PoseStamped getPose(double t, bool yaw=true);
 		double getDuration();
+		double getTimestep();
 		bool isCurrTrajValid();
 		bool isCurrTrajValid(Eigen::Vector3d& firstCollisionPos);
 
 		// helper functionin
 		std::vector<Eigen::Vector3d> evalTraj();
-		nav_msgs::Path evalTrajToMsg(); // evaluate current trajectory based on the control point
+		nav_msgs::Path evalTrajToMsg(bool yaw=true); // evaluate current trajectory based on the control point
 		void pathMsgToEigenPoints(const nav_msgs::Path& path, std::vector<Eigen::Vector3d>& points);
 		void eigenPointsToPathMsg(const std::vector<Eigen::Vector3d>& points, nav_msgs::Path& path);
 
