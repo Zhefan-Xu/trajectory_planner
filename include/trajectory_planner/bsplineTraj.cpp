@@ -531,7 +531,7 @@ namespace trajPlanner{
 				double distErr = this->dthresh_ - dist;
 
 				Eigen::Vector3d grad = this->optData_.guideDirections[i][j];
-				// Eigen::Vector3d grad = this->optData_.guidePoints[i][j] - controlPoints.col(i);
+				// Eigen::Vector3d grad = (this->optData_.guidePoints[i][j] - controlPoints.col(i))/(this->optData_.guidePoints[i][j] - controlPoints.col(i)).norm();
 				// grad(2) = 0;
 
 				if (distErr <= 0){
@@ -684,7 +684,7 @@ namespace trajPlanner{
 					diff(2) = 0.0; // ignore z difference
 					double dist = diff.norm() - size; // actual distance to obstacle (need to minus obstacle size)
 					double distErr = distThresh - dist;
-					Eigen::Vector3d grad = 2.0 * diff/diff.norm();
+					Eigen::Vector3d grad = diff/diff.norm();
 
 
 					if (distErr <= 0){
@@ -742,19 +742,19 @@ namespace trajPlanner{
 	// 			Eigen::Vector3d obstacleVel = this->optData_.dynamicObstaclesVel[j];
 
 	// 			double radius = size+this->distThreshDynamic_;
-	// 			int status =2;
-	// 			// int status = this->isInDistanceField(obstaclePos, obstacleVel, controlPoint, radius);
+	// 			// int status =2;
+	// 			int status = this->isInDistanceField(obstaclePos, obstacleVel, controlPoint, radius);
 	// 			double distErr;
 	// 			Eigen::Vector3d grad;
-	// 			// if (status == 1){ // in the polygon region
-	// 				// this->getDynamicCostAndGradPolygon(obstaclePos, obstacleVel, controlPoint, radius, distErr, grad);
-	// 			// }
+	// 			if (status == 1){ // in the polygon region
+	// 				this->getDynamicCostAndGradPolygon(obstaclePos, obstacleVel, controlPoint, radius, distErr, grad);
+	// 			}
 
-	// 			// if (status == 2){ // in the circle region
+	// 			if (status == 2){ // in the circle region
 	// 				this->getDynamicCostAndGradCircle(obstaclePos, controlPoint, radius, distErr, grad);
-	// 			// }
+	// 			}
 
-	// 			if (status == 2){
+	// 			if (status != 0){
 	// 				// cost += pow(distErr, 2);
 	// 				// gradient.col(i) += 2.0 * pow(distErr, 1) * grad;
 	// 				if (distErr <= 0){

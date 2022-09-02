@@ -420,7 +420,7 @@ namespace trajPlanner{
 		Eigen::Vector2d pt1 (obstaclePos(0), obstaclePos(1)); // shared one
 		double distToObstacle = (pTest - pt1).norm();
 		distErr = radius - distToObstacle;
-		Eigen::Vector2d gradTemp = (pt1 - pTest); 
+		Eigen::Vector2d gradTemp = (pt1 - pTest)/(pt1 - pTest).norm(); 
 		grad = Eigen::Vector3d (gradTemp(0), gradTemp(1), 0.0);
 	}
 
@@ -443,14 +443,14 @@ namespace trajPlanner{
 
 		if (this->isInTriangle(pTest, pt1, pt2, pt3A)){
 			distErr = pointToPt2.dot(unit13A);
-			Eigen::Vector2d gradTemp = (distErr * unit13A);
+			Eigen::Vector2d gradTemp = unit13A;
 			grad = Eigen::Vector3d (gradTemp(0), gradTemp(1), 0.0);
 			return;
 		}
 
 		if (this->isInTriangle(pTest, pt1, pt2, pt3B)){
 			distErr = pointToPt2.dot(unit13B);
-			Eigen::Vector2d gradTemp = distErr * unit13B;
+			Eigen::Vector2d gradTemp = unit13B;
 			grad = Eigen::Vector3d (gradTemp(0), gradTemp(1), 0.0);
 			return;
 		}
