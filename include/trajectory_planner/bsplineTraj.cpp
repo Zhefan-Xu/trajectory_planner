@@ -138,6 +138,15 @@ namespace trajPlanner{
 		else{
 			cout << "[BsplineTraj]" << ": Dynamic obstacle distance: " << this->distThreshDynamic_ << endl;
 		}
+
+		// maximum path length for bspline trajectory optimization
+		if (not this->nh_.getParam("bspline_traj/max_path_length", this->maxPathLength_)){
+			this->maxPathLength_ = 7.0;
+			cout << "[BsplineTraj]" << ": No maximum path length. Use default: 7.0 m" << endl;
+		}
+		else{
+			cout << "[BsplineTraj]" << ": Maximum path length: " << this->maxPathLength_ << " m." << endl;
+		}
 	}
 
 	void bsplineTraj::registerPub(){
@@ -155,7 +164,7 @@ namespace trajPlanner{
 	void bsplineTraj::setMap(const std::shared_ptr<mapManager::occMap>& map){
 		this->map_ = map;
 		this->pathSearch_.reset(new AStar);
-		this->pathSearch_->initGridMap(map, Eigen::Vector3i(100, 100, 100), this->minHeight_, this->maxHeight_);
+		this->pathSearch_->initGridMap(map, Eigen::Vector3i(400, 400, 100), this->minHeight_, this->maxHeight_);
 	}
 
 	bool bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition){
@@ -164,9 +173,13 @@ namespace trajPlanner{
 		}
 		this->clear();
 		Eigen::MatrixXd controlPoints;
-		std::vector<Eigen::Vector3d> curveFitPoints;
+		std::vector<Eigen::Vector3d> curveFitPoints, adjustedCurveFitPoints;
 		this->pathMsgToEigenPoints(path, curveFitPoints);
-		this->bspline_.parameterizeToBspline(this->ts_, curveFitPoints, startEndCondition, controlPoints);
+		this->adjustPathLength(curveFitPoints, adjustedCurveFitPoints);
+		if (adjustedCurveFitPoints.size() < 4){
+			return false;
+		}
+		this->bspline_.parameterizeToBspline(this->ts_, adjustedCurveFitPoints, startEndCondition, controlPoints);
 		this->optData_.controlPoints = controlPoints;
 		int controlPointNum = controlPoints.cols();
 		this->optData_.guidePoints.resize(controlPointNum);
@@ -477,6 +490,31 @@ namespace trajPlanner{
 		}
 		newTraj.push_back(rawTraj.back());
 		traj.poses = newTraj;
+	}
+
+	void bsplineTraj::adjustPathLength(const std::vector<Eigen::Vector3d>& path, std::vector<Eigen::Vector3d>& adjustedPath){
+		// iterate through the raw path
+		double totalLength = 0.0;
+		bool free = false;
+		bool exceedLength = false;
+		for (size_t i=0; i<path.size()-1; ++i){
+			Eigen::Vector3d p1 = path[i];
+			Eigen::Vector3d p2 = path[i+1];
+			totalLength += (p2 - p1).norm();
+			if (totalLength >= this->maxPathLength_){
+				exceedLength = true;
+			}
+
+			adjustedPath.push_back(p1);
+
+			if (exceedLength){
+				free = not this->map_->isInflatedOccupied(p2);
+				if (free){
+					adjustedPath.push_back(p2);
+					return;
+				}
+			}
+		}
 	}
 
 	double bsplineTraj::solverCostFunction(void* func_data, const double* x, double* grad, const int n){

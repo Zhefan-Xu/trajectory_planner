@@ -56,6 +56,7 @@ namespace trajPlanner{
 		double uncertainAwareFactor_;
 		double predHorizon_; // prediction horizon for dynamic obstacles in seconds
 		double distThreshDynamic_; // distance threshold to keep with dynamic obstacles
+		double maxPathLength_;
 
 		// occupancy grid map and path search
 		std::shared_ptr<mapManager::occMap> map_;
@@ -94,6 +95,7 @@ namespace trajPlanner{
 		bool optimizeTrajectory();
 		int optimize(); // optimize once
 		void adjustTrajFeasibility(nav_msgs::Path& traj);
+		void adjustPathLength(const std::vector<Eigen::Vector3d>& path, std::vector<Eigen::Vector3d>& adjustedPath);
 
 		// cost functions
 		static double solverCostFunction(void* func_data, const double* x, double* grad, const int n); // deal with solver
