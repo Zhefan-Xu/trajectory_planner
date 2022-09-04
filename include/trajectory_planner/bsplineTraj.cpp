@@ -164,7 +164,7 @@ namespace trajPlanner{
 	void bsplineTraj::setMap(const std::shared_ptr<mapManager::occMap>& map){
 		this->map_ = map;
 		this->pathSearch_.reset(new AStar);
-		this->pathSearch_->initGridMap(map, Eigen::Vector3i(400, 400, 100), this->minHeight_, this->maxHeight_);
+		this->pathSearch_->initGridMap(map, Eigen::Vector3i(600, 600, 100), this->minHeight_, this->maxHeight_);
 	}
 
 	bool bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition){
@@ -497,6 +497,7 @@ namespace trajPlanner{
 		double totalLength = 0.0;
 		bool free = false;
 		bool exceedLength = false;
+		double minLength = 1000000.0;
 		for (size_t i=0; i<path.size()-1; ++i){
 			Eigen::Vector3d p1 = path[i];
 			Eigen::Vector3d p2 = path[i+1];
@@ -509,10 +510,18 @@ namespace trajPlanner{
 
 			if (exceedLength){
 				free = not this->map_->isInflatedOccupied(p2);
-				if (free){
+				if (free and minLength >= 0.5){
 					adjustedPath.push_back(p2);
 					return;
 				}
+			}
+
+			bool occupied = this->map_->isInflatedOccupied(p2);
+			if (occupied){
+				minLength = 0.0;
+			}
+			else{
+				minLength += (p2 - p1).norm();
 			}
 		}
 	}
