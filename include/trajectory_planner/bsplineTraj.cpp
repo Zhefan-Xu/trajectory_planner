@@ -158,13 +158,13 @@ namespace trajPlanner{
 	}
 
 	void bsplineTraj::registerCallback(){
-		this->visTimer_ = this->nh_.createTimer(ros::Duration(0.1), &bsplineTraj::visCB, this);
+		this->visTimer_ = this->nh_.createTimer(ros::Duration(0.01), &bsplineTraj::visCB, this);
 	}
 
 	void bsplineTraj::setMap(const std::shared_ptr<mapManager::occMap>& map){
 		this->map_ = map;
 		this->pathSearch_.reset(new AStar);
-		this->pathSearch_->initGridMap(map, Eigen::Vector3i(600, 600, 100), this->minHeight_, this->maxHeight_);
+		this->pathSearch_->initGridMap(map, Eigen::Vector3i(400, 400, 100), this->minHeight_, this->maxHeight_);
 	}
 
 	bool bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition){
