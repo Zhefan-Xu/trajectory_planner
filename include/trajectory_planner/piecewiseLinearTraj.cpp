@@ -57,6 +57,41 @@ namespace trajPlanner{
 		this->avgTimeAllocation(useYaw);
 	}
 
+	void pwlTraj::updatePath(const nav_msgs::Path& path, double desiredVel, bool useYaw){
+		std::vector<trajPlanner::pose> trajPath;
+		for (geometry_msgs::PoseStamped p: path.poses){
+			trajPlanner::pose trajP;
+			if (not useYaw){
+				trajPlanner::pose trajPTemp (p.pose.position.x, p.pose.position.y, p.pose.position.z);
+				trajP = trajPTemp;
+			}
+			else{
+				trajPlanner::pose trajPTemp (p.pose.position.x, p.pose.position.y, p.pose.position.z, trajPlanner::rpy_from_quaternion(p.pose.orientation));
+				trajP = trajPTemp;
+			}
+
+			trajPath.push_back(trajP);
+		}
+		this->updatePath(trajPath, desiredVel, useYaw);
+	}
+
+	void pwlTraj::updatePath(const std::vector<trajPlanner::pose>& path, double desiredVel, bool useYaw){
+		this->path_ = path;
+		double yaw = 0.0;
+		if (not useYaw){
+			for (size_t i=0; i<this->path_.size()-1; ++i){ // calculate each position's orientation (yaw). Last point does not need a orientation
+				trajPlanner::pose p1 = this->path_[i];
+				trajPlanner::pose p2 = this->path_[i+1];
+				yaw = std::atan2(p2.y-p1.y, p2.x-p1.x);
+
+				this->path_[i].yaw = yaw;
+			}
+			this->path_.back().yaw = yaw;
+		}
+
+		this->avgTimeAllocation(desiredVel, useYaw);
+	}
+
 
 	void pwlTraj::avgTimeAllocation(bool useYaw){
 		double totalTime = 0;
@@ -84,6 +119,46 @@ namespace trajPlanner{
 
 				double distance = trajPlanner::getPoseDistance(this->path_[0], this->path_[1]);
 				double forwardDuration = (double) distance/this->desiredVel_;
+				totalTime += forwardDuration;
+				this->desiredTime_.push_back(totalTime);
+			}
+		}
+
+		if (useYaw){
+			int lastIdx = this->path_.size() - 1;
+			double yawDiff = trajPlanner::getYawDistance(this->path_[lastIdx-1], this->path_[lastIdx]);
+			double rotationDuration = (double) yawDiff/this->desiredAngularVel_;
+			totalTime += rotationDuration;
+			this->desiredTime_.push_back(totalTime);
+		}
+	}
+
+	void pwlTraj::avgTimeAllocation(double desiredVel, bool useYaw){
+		double totalTime = 0;
+		this->desiredTime_.clear();
+		for (size_t i=0; i<this->path_.size()-1; ++i){
+			// rotation then move forward
+			if (i != 0){
+				// rotation:
+				double yawDiff = trajPlanner::getYawDistance(this->path_[i-1], this->path_[i]);
+				double rotationDuration = (double) yawDiff/this->desiredAngularVel_;
+				totalTime += rotationDuration;
+				this->desiredTime_.push_back(totalTime);
+
+				// forward:
+				double distance = trajPlanner::getPoseDistance(this->path_[i], this->path_[i+1]);
+				double forwardDuration = (double) distance/desiredVel;
+				totalTime += forwardDuration;
+				this->desiredTime_.push_back(totalTime);
+			}
+			else{
+				// at t = 0, we don't need to do rotation
+				double rotationDuration = 0.0;
+				totalTime += rotationDuration;
+				this->desiredTime_.push_back(totalTime);
+
+				double distance = trajPlanner::getPoseDistance(this->path_[0], this->path_[1]);
+				double forwardDuration = (double) distance/desiredVel;
 				totalTime += forwardDuration;
 				this->desiredTime_.push_back(totalTime);
 			}
@@ -216,6 +291,10 @@ namespace trajPlanner{
 
 	double pwlTraj::getDesiredVel(){
 		return this->desiredVel_;
+	}
+
+	double pwlTraj::getDesiredAngularVel(){
+		return this->desiredAngularVel_;
 	}
 
 	geometry_msgs::PoseStamped pwlTraj::getFirstPose(){

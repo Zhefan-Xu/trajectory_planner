@@ -22,6 +22,8 @@ find_package(catkin REQUIRED COMPONENTS
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(OsqpEigen REQUIRED)
 
+
+
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -110,8 +112,8 @@ find_package(OsqpEigen REQUIRED)
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES trajectory_planner
- CATKIN_DEPENDS roscpp rospy std_msgs
- # DEPENDS system_lib
+ CATKIN_DEPENDS roscpp rospy std_msgs 
+ DEPENDS OsqpEigen
 )
 
 ###########
@@ -123,6 +125,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OsqpEigen_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -216,7 +219,7 @@ install(TARGETS ${PROJECT_NAME}
 
 ## Mark cpp header files for installation
 install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION} 
   # FILES_MATCHING PATTERN "*.h"
   # PATTERN ".svn" EXCLUDE
 )

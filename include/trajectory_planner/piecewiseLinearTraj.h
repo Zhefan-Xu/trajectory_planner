@@ -27,7 +27,10 @@ namespace trajPlanner{
 		pwlTraj(const ros::NodeHandle& nh);
 		void updatePath(const nav_msgs::Path& path, bool useYaw=false);
 		void updatePath(const std::vector<trajPlanner::pose>& path, bool useYaw=false);
+		void updatePath(const nav_msgs::Path& path, double desiredVel, bool useYaw=false);
+		void updatePath(const std::vector<trajPlanner::pose>& path, double desiredVel, bool useYaw=false);	
 		void avgTimeAllocation(bool useYaw=false);
+		void avgTimeAllocation(double desiredVel, bool useYaw=false);
 		void adjustHeading(const geometry_msgs::Quaternion& quat);
 		void adjustHeading(double yaw);
 
@@ -38,6 +41,7 @@ namespace trajPlanner{
 		std::vector<double> getTimeKnot();
 		double getDuration();
 		double getDesiredVel();
+		double getDesiredAngularVel();
 		geometry_msgs::PoseStamped getFirstPose();
 	};
 }
