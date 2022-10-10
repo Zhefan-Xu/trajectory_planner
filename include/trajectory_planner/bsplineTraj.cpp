@@ -147,6 +147,19 @@ namespace trajPlanner{
 		else{
 			cout << "[BsplineTraj]" << ": Maximum path length: " << this->maxPathLength_ << " m." << endl;
 		}
+
+		// maximum obstacle size for path search
+		std::vector<double> maxObstacleSizeTemp;
+		if (not this->nh_.getParam("bspline_traj/max_obstacle_size", maxObstacleSizeTemp)){
+			this->maxObstacleSize_  = Eigen::Vector3d (4.0, 4.0, 1.0);
+			cout << "[BsplineTraj]" << ": No maximum obstacle size. Use default: [4.0, 4.0, 1.0]m." << endl;
+		}
+		else{
+			this->maxObstacleSize_(0) = maxObstacleSizeTemp[0];
+			this->maxObstacleSize_(1) = maxObstacleSizeTemp[1];
+			this->maxObstacleSize_(2) = maxObstacleSizeTemp[2];
+			cout << "[BsplineTraj]" << ": Maximum obstacle size: [" << maxObstacleSizeTemp[0] << ", " << maxObstacleSizeTemp[1] << ", " << maxObstacleSizeTemp[2] << "]m." << endl;
+		}
 	}
 
 	void bsplineTraj::registerPub(){
@@ -164,7 +177,11 @@ namespace trajPlanner{
 	void bsplineTraj::setMap(const std::shared_ptr<mapManager::occMap>& map){
 		this->map_ = map;
 		this->pathSearch_.reset(new AStar);
-		this->pathSearch_->initGridMap(map, Eigen::Vector3i(400, 400, 100), this->minHeight_, this->maxHeight_);
+
+		int maxGridX = int(this->maxObstacleSize_(0)/this->map_->getRes());
+		int maxGridY = int(this->maxObstacleSize_(1)/this->map_->getRes());
+		int maxGridZ = int(this->maxObstacleSize_(2)/this->map_->getRes());
+		this->pathSearch_->initGridMap(map, Eigen::Vector3i(maxGridX, maxGridY, maxGridZ), this->minHeight_, this->maxHeight_);
 	}
 
 	bool bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition){
@@ -176,6 +193,7 @@ namespace trajPlanner{
 		std::vector<Eigen::Vector3d> curveFitPoints, adjustedCurveFitPoints;
 		this->pathMsgToEigenPoints(path, curveFitPoints);
 		this->adjustPathLength(curveFitPoints, adjustedCurveFitPoints);
+
 		if (adjustedCurveFitPoints.size() < 4){
 			return false;
 		}
@@ -505,7 +523,6 @@ namespace trajPlanner{
 			if (totalLength >= this->maxPathLength_){
 				exceedLength = true;
 			}
-
 			adjustedPath.push_back(p1);
 
 			if (exceedLength){
@@ -524,6 +541,7 @@ namespace trajPlanner{
 				minLength += (p2 - p1).norm();
 			}
 		}
+		adjustedPath.push_back(path.back());
 	}
 
 	double bsplineTraj::solverCostFunction(void* func_data, const double* x, double* grad, const int n){

@@ -57,6 +57,7 @@ namespace trajPlanner{
 		double predHorizon_; // prediction horizon for dynamic obstacles in seconds
 		double distThreshDynamic_; // distance threshold to keep with dynamic obstacles
 		double maxPathLength_;
+		Eigen::Vector3d maxObstacleSize_;
 
 		// occupancy grid map and path search
 		std::shared_ptr<mapManager::occMap> map_;
@@ -151,6 +152,7 @@ namespace trajPlanner{
 	inline bool bsplineTraj::isGoalValid(){
 		Eigen::Vector3d goal = this->optData_.controlPoints.col(this->optData_.controlPoints.cols()-1);
 		if (this->map_->isInflatedOccupied(goal)){
+			cout << "[BsplineTraj]: Invalid goal position is: (" << goal(0) << ", " << goal(1) << ", " << goal(2) << ")." << endl;
 			return false;
 		}
 		else{

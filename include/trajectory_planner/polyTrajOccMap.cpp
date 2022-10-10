@@ -326,7 +326,7 @@ namespace trajPlanner{
 		double startTime, endTime;
 		for (pose p : trajectory){
 			Eigen::Vector3d pEig (p.x, p.y, p.z);
-			if (this->map_->isInflatedOccupied(pEig)){
+			if (this->map_->isInflatedOccupied(pEig) and this->map_->isUnknown(pEig)){
 				hasCollision = true;
 				for (size_t i=0; i<timeKnot.size()-1; ++i){
 					startTime = timeKnot[i];
