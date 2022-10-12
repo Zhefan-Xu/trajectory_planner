@@ -151,8 +151,8 @@ namespace trajPlanner{
 		// maximum obstacle size for path search
 		std::vector<double> maxObstacleSizeTemp;
 		if (not this->nh_.getParam("bspline_traj/max_obstacle_size", maxObstacleSizeTemp)){
-			this->maxObstacleSize_  = Eigen::Vector3d (4.0, 4.0, 1.0);
-			cout << "[BsplineTraj]" << ": No maximum obstacle size. Use default: [4.0, 4.0, 1.0]m." << endl;
+			this->maxObstacleSize_  = Eigen::Vector3d (10.0, 10.0, 10.0);
+			cout << "[BsplineTraj]" << ": No maximum obstacle size. Use default: [10.0, 10.0, 10.0]m." << endl;
 		}
 		else{
 			this->maxObstacleSize_(0) = maxObstacleSizeTemp[0];
@@ -178,9 +178,9 @@ namespace trajPlanner{
 		this->map_ = map;
 		this->pathSearch_.reset(new AStar);
 
-		int maxGridX = int(this->maxObstacleSize_(0)/this->map_->getRes());
-		int maxGridY = int(this->maxObstacleSize_(1)/this->map_->getRes());
-		int maxGridZ = int(this->maxObstacleSize_(2)/this->map_->getRes());
+		int maxGridX = 2 * int(this->maxObstacleSize_(0)/this->map_->getRes());
+		int maxGridY = 2 * int(this->maxObstacleSize_(1)/this->map_->getRes());
+		int maxGridZ = 2 * int(this->maxObstacleSize_(2)/this->map_->getRes());
 		this->pathSearch_->initGridMap(map, Eigen::Vector3i(maxGridX, maxGridY, maxGridZ), this->minHeight_, this->maxHeight_);
 	}
 
@@ -296,7 +296,7 @@ namespace trajPlanner{
 		for (std::pair<int, int> seg : collisionSeg){
 			Eigen::Vector3d pStart (this->optData_.controlPoints.col(seg.first));
 			Eigen::Vector3d pEnd (this->optData_.controlPoints.col(seg.second));
-			if (this->pathSearch_->AstarSearch(0.1, pStart, pEnd)){
+			if (this->pathSearch_->AstarSearch(this->map_->getRes(), pStart, pEnd)){
 				std::vector<Eigen::Vector3d> searchedPath = this->pathSearch_->getPath();
 				searchedPath[0] = pStart;
 				searchedPath[searchedPath.size()-1] = pEnd;
