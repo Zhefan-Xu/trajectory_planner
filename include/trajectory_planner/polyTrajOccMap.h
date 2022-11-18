@@ -65,8 +65,8 @@ namespace trajPlanner{
 		void updateInitAcc(const geometry_msgs::Twist& a);
 		void setDefaultInit();
 
-		void makePlan(std::vector<pose>& trajectory);
-		void makePlan(nav_msgs::Path& trajectory);
+		bool makePlan(std::vector<pose>& trajectory);
+		bool makePlan(nav_msgs::Path& trajectory);
 
 		// visualization
 		void visCB(const ros::TimerEvent&);

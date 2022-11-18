@@ -192,12 +192,12 @@ namespace trajPlanner{
 		this->updateInitAcc(0, 0, 0); 
 	}
 
-	void polyTrajOccMap::makePlan(std::vector<pose>& trajectory){
+	bool polyTrajOccMap::makePlan(std::vector<pose>& trajectory){
 		this->findValidTraj_ = false;
 		if (this->path_.size() == 1){
 			trajectory = this->path_;
 			this->findValidTraj_ = true;
-			return;
+			return true;
 		}
 
 		this->initSolver(); // polynomial solver
@@ -243,19 +243,32 @@ namespace trajPlanner{
 			this->findValidTraj_ = true;
 		}
 		else{
-			// cout << "[Trajectory Planner INFO]: Not found. Return the best. Please consider piecewise linear trajectory!!" << endl;	
+			cout << "[Trajectory Planner INFO]: Not found. Return the best. Please consider piecewise linear trajectory!!" << endl;	
 			if (this->usePWL_){
 				this->pwlTrajSolver_->updatePath(this->path_);
 				this->pwlTrajSolver_->makePlan(trajectory, this->delT_);
 			}
 		}
 		this->trajMsgConverter(trajectory, this->trajVisMsg_);
+
+		if (valid){
+			return true;
+		}
+		else{
+			return false;
+		}
 	}
 
-	void polyTrajOccMap::makePlan(nav_msgs::Path& trajectory){
+	bool polyTrajOccMap::makePlan(nav_msgs::Path& trajectory){
 		std::vector<pose> trajTemp;
-		this->makePlan(trajTemp);
+		bool valid = this->makePlan(trajTemp);
 		this->trajMsgConverter(trajTemp, trajectory);
+		if (valid){
+			return true;
+		}
+		else{
+			return false;
+		}
 	}
 
 	void polyTrajOccMap::visCB(const ros::TimerEvent&){
