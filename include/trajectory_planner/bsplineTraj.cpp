@@ -1041,6 +1041,9 @@ namespace trajPlanner{
 		this->guidePointsVisPub_.publish(msg);
 	}
 
+	trajPlanner::bspline bsplineTraj::getTrajectory(){
+		return this->bspline_;
+	}
 
 	geometry_msgs::PoseStamped bsplineTraj::getPose(double t, bool yaw){
 		geometry_msgs::PoseStamped ps;

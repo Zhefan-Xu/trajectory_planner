@@ -116,6 +116,7 @@ namespace trajPlanner{
 
 
 		// user functions
+		trajPlanner::bspline getTrajectory();
 		geometry_msgs::PoseStamped getPose(double t, bool yaw=true);
 		double getDuration();
 		double getTimestep();
