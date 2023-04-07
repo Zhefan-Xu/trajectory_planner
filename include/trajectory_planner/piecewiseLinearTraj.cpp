@@ -7,20 +7,7 @@
 #include <trajectory_planner/piecewiseLinearTraj.h>
 
 namespace trajPlanner{
-	pwlTraj::pwlTraj(const ros::NodeHandle& nh) : nh_(nh){
-		// load parameters:
-		// Desired Velocity:
-		if (not this->nh_.getParam("desired_velocity", this->desiredVel_)){
-			this->desiredVel_ = 1.0;
-			cout << "[PWL Trajectory INFO]: No Desired Velocity Parameter. Use default value: 1.0m/s." << endl;
-		}
-
-		// Desired Angular Velocity:
-		if (not this->nh_.getParam("desired_angular_velocity", this->desiredAngularVel_)){
-			this->desiredAngularVel_ = 0.5;
-			cout << "[PWL Trajectory INFO]: No Desired Angular Velocity Parameters. Use default value: 0.5rad/s." << endl;
-		}
-	}
+	pwlTraj::pwlTraj(const ros::NodeHandle& nh) : nh_(nh){}
 
 	void pwlTraj::updatePath(const nav_msgs::Path& path, bool useYaw){
 		std::vector<trajPlanner::pose> trajPath;

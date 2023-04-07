@@ -17,8 +17,8 @@ namespace trajPlanner{
 	class pwlTraj{
 	private:
 		ros::NodeHandle nh_;
-		double desiredVel_;
-		double desiredAngularVel_;
+		double desiredVel_ = 0.5;
+		double desiredAngularVel_ = 1.0;
 		std::vector<trajPlanner::pose> path_;
 		std::vector<double> desiredTime_;
 
