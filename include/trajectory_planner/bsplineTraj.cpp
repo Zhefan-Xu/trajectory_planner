@@ -197,7 +197,13 @@ namespace trajPlanner{
 		if (adjustedCurveFitPoints.size() < 4){
 			return false;
 		}
-		this->bspline_.parameterizeToBspline(this->ts_, adjustedCurveFitPoints, startEndCondition, controlPoints);
+
+		// adjust the curve fit points to have enough spatial distance
+		std::vector<Eigen::Vector3d> spatialCurveFitPoints;
+		double adjustedTimeInterval;
+		this->adjustFitPointDistance(adjustedCurveFitPoints, spatialCurveFitPoints, adjustedTimeInterval);
+
+		this->bspline_.parameterizeToBspline(adjustedTimeInterval, spatialCurveFitPoints, startEndCondition, controlPoints);
 		this->optData_.controlPoints = controlPoints;
 		int controlPointNum = controlPoints.cols();
 		this->optData_.guidePoints.resize(controlPointNum);
@@ -542,6 +548,60 @@ namespace trajPlanner{
 			}
 		}
 		adjustedPath.push_back(path.back());
+	}
+
+	void bsplineTraj::adjustFitPointDistance(const std::vector<Eigen::Vector3d>& fitpoints, std::vector<Eigen::Vector3d>& adjustedFitPoints, double& adjustedTimeInterval){
+		cout << "start adjusting distance." << endl;
+		int skipFactor = 1;
+		double distThresh = 0.2; 
+		double ratio = 0.8;
+		Eigen::Vector3d prevPoint, currPoint;
+		while (ros::ok()){
+			cout << "skipFactor: " << skipFactor << endl;
+			adjustedFitPoints.clear();
+			for (size_t i=0; i<fitpoints.size(); i+=skipFactor){
+				cout << "i: " << i << endl;
+				adjustedFitPoints.push_back(fitpoints[i]);
+			}
+
+			// special case
+			if (adjustedFitPoints.size() <= 7){
+				break;
+			}
+
+
+			int countRejectNum = 0;
+			int numRejectionThresh = int((1.0 - ratio) * double(adjustedFitPoints.size()));
+			for (size_t i=0; i<adjustedFitPoints.size(); ++i){
+				currPoint = adjustedFitPoints[i];
+				if (i != 0){
+					double dist = (currPoint - prevPoint).norm();
+					cout << "dist for this iter: " << dist << endl;
+					if (dist < distThresh){
+						++countRejectNum;
+					}
+
+					if (countRejectNum >= numRejectionThresh){
+						++skipFactor;
+						break;
+					}
+				}
+				prevPoint = currPoint;				
+			}
+
+			cout << "count: " << countRejectNum << endl;
+			cout << "thresh: " << numRejectionThresh << endl;
+			if (countRejectNum < numRejectionThresh){
+				break;
+			}
+		}
+
+		adjustedTimeInterval = this->ts_ * double(skipFactor);
+		this->ts_ = adjustedTimeInterval;
+		cout << "prev size: " << fitpoints.size() << endl;
+		cout << "adjusted size: " << adjustedFitPoints.size() << endl; 
+		cout << "time interval: " << adjustedTimeInterval << endl;
+		cout << "end adjusting distance." << endl;
 	}
 
 	double bsplineTraj::solverCostFunction(void* func_data, const double* x, double* grad, const int n){
