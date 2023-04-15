@@ -525,7 +525,7 @@ namespace trajPlanner{
 
 	void bsplineTraj::adjustFitPointDistance(const std::vector<Eigen::Vector3d>& fitpoints, std::vector<Eigen::Vector3d>& adjustedFitPoints, double& adjustedTimeInterval){
 		int skipFactor = 1;
-		double distThresh = 0.3 - 1e-2; // for numerical roundup 
+		double distThresh = 0.4 - 1e-2; // for numerical roundup 
 		double ratio = 0.8;
 		Eigen::Vector3d prevPoint, currPoint;
 		while (ros::ok()){
@@ -565,7 +565,7 @@ namespace trajPlanner{
 
 		adjustedTimeInterval = this->ts_ * double(skipFactor);
 		this->adjustedTs_ = adjustedTimeInterval;
-		cout << "adjusted time step is: " << this->adjustedTs_ << endl;
+		// cout << "adjusted time step is: " << this->adjustedTs_ << endl;
 	}
 
 	double bsplineTraj::solverCostFunction(void* func_data, const double* x, double* grad, const int n){
