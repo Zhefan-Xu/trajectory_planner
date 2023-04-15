@@ -42,7 +42,7 @@ namespace trajPlanner{
 		// bspline
 		trajPlanner::bspline bspline_; // this is used to evaluate bspline. not for optimization
 		trajPlanner::optData optData_; // all optimization information including control points
-		double ts_;
+		double ts_, adjustedTs_; // original time step and adjusted time step (this is for control points)
 		double dthresh_;
 		double maxVel_;
 		double maxAcc_;
@@ -95,7 +95,6 @@ namespace trajPlanner{
 		bool isReguideRequired(std::vector<std::pair<int, int>>& reguideCollisionSeg);
 		bool optimizeTrajectory();
 		int optimize(); // optimize once
-		void adjustTrajFeasibility(nav_msgs::Path& traj);
 		void adjustPathLength(const std::vector<Eigen::Vector3d>& path, std::vector<Eigen::Vector3d>& adjustedPath);
 		void adjustFitPointDistance(const std::vector<Eigen::Vector3d>& fitpoints, std::vector<Eigen::Vector3d>& adjustedFitPoints, double& adjustedTimeInterval);
 
