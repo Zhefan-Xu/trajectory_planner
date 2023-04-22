@@ -25,7 +25,9 @@ namespace trajPlanner{
 		std::vector<pose> path_;
 		nav_msgs::Path trajVisMsg_;
 		geometry_msgs::Twist initVel_;
+		geometry_msgs::Twist endVel_;
 		geometry_msgs::Twist initAcc_;
+		geometry_msgs::Twist endAcc_;
 
 		// parameters
 		int polyDegree_;
@@ -56,17 +58,24 @@ namespace trajPlanner{
 
 		// update waypoint path
 		void updatePath(const nav_msgs::Path& path);
+		void updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition);
 		void updatePath(const std::vector<pose>& path);
 
 		// initial condition
 		void updateInitVel(double vx, double vy, double vz);
 		void updateInitVel(const geometry_msgs::Twist& v);
+		void updateEndVel(double vx, double vy, double vz);
+		void updateEndVel(const geometry_msgs::Twist& v);
 		void updateInitAcc(double ax, double ay, double az);
 		void updateInitAcc(const geometry_msgs::Twist& a);
+		void updateEndAcc(double ax, double ay, double az);
+		void updateEndAcc(const geometry_msgs::Twist& a);
 		void setDefaultInit();
 
 		bool makePlan(std::vector<pose>& trajectory);
+		bool makePlan(std::vector<pose>& trajectory, bool corridorConstraint);
 		bool makePlan(nav_msgs::Path& trajectory);
+		bool makePlan(nav_msgs::Path& trajectory, bool corridorConstraint);
 
 		// visualization
 		void visCB(const ros::TimerEvent&);

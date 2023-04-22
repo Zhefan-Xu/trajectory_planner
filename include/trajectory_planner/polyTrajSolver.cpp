@@ -54,6 +54,18 @@ namespace trajPlanner{
 	}
 
 
+	void polyTrajSolver::updateEndVel(double vx, double vy, double vz){
+		geometry_msgs::Twist v;
+		v.linear.x = vx;
+		v.linear.y = vy;
+		v.linear.z = vz;
+		this->updateEndVel(v);
+	}
+
+	void polyTrajSolver::updateEndVel(const geometry_msgs::Twist& v){
+		this->endVel_ = v;
+	}
+
 	void polyTrajSolver::updateInitAcc(double ax, double ay, double az){
 		geometry_msgs::Twist a;
 		a.linear.x = ax;
@@ -67,10 +79,25 @@ namespace trajPlanner{
 		this->initAcc_ = a;
 	}
 
+	void polyTrajSolver::updateEndAcc(double ax, double ay, double az){
+		geometry_msgs::Twist a;
+		a.linear.x = ax;
+		a.linear.y = ay;
+		a.linear.z = az;
+		this->updateEndAcc(a);
+	}
+
+
+	void polyTrajSolver::updateEndAcc(const geometry_msgs::Twist& a){
+		this->endAcc_ = a;
+	}
+	
 	void polyTrajSolver::setDefaultInit(){
 		// initialize 
 		this->updateInitVel(0, 0, 0);
-		this->updateInitAcc(0, 0, 0); 
+		this->updateEndVel(0, 0, 0);
+		this->updateInitAcc(0, 0, 0);
+		this->updateEndAcc(0, 0, 0); 
 	}
 
 
@@ -636,14 +663,14 @@ namespace trajPlanner{
 				++countConstraint;
 				
 				// // End vel = 0
-				lx(countConstraint) = 0.0;
-	 			ux(countConstraint) = 0.0;
+				lx(countConstraint) = this->endVel_.linear.x;
+	 			ux(countConstraint) = this->endVel_.linear.x;
 	 				
-	 			ly(countConstraint) = 0.0;
-	 			uy(countConstraint) = 0.0;
+	 			ly(countConstraint) = this->endVel_.linear.y;
+	 			uy(countConstraint) = this->endVel_.linear.y;
 
-	 			lz(countConstraint) = 0.0;
-	 			uz(countConstraint) = 0.0;		
+	 			lz(countConstraint) = this->endVel_.linear.z;
+	 			uz(countConstraint) = this->endVel_.linear.z;		
 			
 	 			++countConstraint;
 			}

@@ -157,6 +157,19 @@ namespace trajPlanner{
 		this->updatePath(trajPath);
 	}
 
+	void polyTrajOccMap::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition){
+		this->updatePath(path);
+		Eigen::Vector3d startVel = startEndCondition[0];
+		Eigen::Vector3d endVel = startEndCondition[1];
+		Eigen::Vector3d startAcc = startEndCondition[2];
+		Eigen::Vector3d endAcc = startEndCondition[3];
+		this->updateInitVel(startVel(0), startVel(1), startVel(2));
+		this->updateEndVel(endVel(0), endVel(1), endVel(2));
+		this->updateInitAcc(startAcc(0), startAcc(1), startAcc(2));
+		this->updateEndAcc(endAcc(0), endAcc(1), endAcc(2));
+	}
+
+
 	void polyTrajOccMap::updatePath(const std::vector<pose>& path){
 		this->path_ = path;
 	}
@@ -173,6 +186,18 @@ namespace trajPlanner{
 		this->initVel_ = v;
 	}
 
+	void polyTrajOccMap::updateEndVel(double vx, double vy, double vz){
+		geometry_msgs::Twist v;
+		v.linear.x = vx;
+		v.linear.y = vy;
+		v.linear.z = vz;
+		this->updateEndVel(v);
+	}
+
+	void polyTrajOccMap::updateEndVel(const geometry_msgs::Twist& v){
+		this->endVel_ = v;
+	}
+
 	void polyTrajOccMap::updateInitAcc(double ax, double ay, double az){
 		geometry_msgs::Twist a;
 		a.linear.x = ax;
@@ -186,10 +211,25 @@ namespace trajPlanner{
 		this->initAcc_ = a;
 	}
 
+	void polyTrajOccMap::updateEndAcc(double ax, double ay, double az){
+		geometry_msgs::Twist a;
+		a.linear.x = ax;
+		a.linear.y = ay;
+		a.linear.z = az;
+		this->updateEndAcc(a);
+	}
+
+
+	void polyTrajOccMap::updateEndAcc(const geometry_msgs::Twist& a){
+		this->endAcc_ = a;
+	}
+
 	void polyTrajOccMap::setDefaultInit(){
 		// initialize 
 		this->updateInitVel(0, 0, 0);
+		this->updateEndVel(0, 0, 0);
 		this->updateInitAcc(0, 0, 0); 
+		this->updateEndAcc(0, 0, 0);
 	}
 
 	bool polyTrajOccMap::makePlan(std::vector<pose>& trajectory){
@@ -203,7 +243,9 @@ namespace trajPlanner{
 		this->initSolver(); // polynomial solver
 		this->trajSolver_->updatePath(this->path_);
 		this->trajSolver_->updateInitVel(this->initVel_);
+		this->trajSolver_->updateEndVel(this->endVel_);
 		this->trajSolver_->updateInitAcc(this->initAcc_);
+		this->trajSolver_->updateEndAcc(this->endAcc_);
 
 		double corridorSize = this->initR_;
 		std::vector<double> corridorSizeVec (this->path_.size()-1, corridorSize);
@@ -259,9 +301,97 @@ namespace trajPlanner{
 		}
 	}
 
+	bool polyTrajOccMap::makePlan(std::vector<pose>& trajectory, bool corridorConstraint){
+		this->findValidTraj_ = false;
+		if (this->path_.size() == 1){
+			trajectory = this->path_;
+			this->findValidTraj_ = true;
+			return true;
+		}
+
+		this->initSolver(); // polynomial solver
+		this->trajSolver_->updatePath(this->path_);
+		this->trajSolver_->updateInitVel(this->initVel_);
+		this->trajSolver_->updateEndVel(this->endVel_);
+		this->trajSolver_->updateInitAcc(this->initAcc_);
+		this->trajSolver_->updateEndAcc(this->endAcc_);
+
+		double corridorSize = this->initR_;
+		std::vector<double> corridorSizeVec (this->path_.size()-1, corridorSize);
+
+		int countIter = 0;
+		bool valid = false;
+		ros::Time startTime = ros::Time::now();
+		ros::Time endTime;
+		while (ros::ok() and not valid){
+			endTime = ros::Time::now();
+			if ((endTime - startTime).toSec() >= this->timeout_){
+				cout << "[Trajectory Planner INFO]: Timeout!" << endl;
+				break;
+			}
+
+			if (corridorConstraint){
+				this->trajSolver_->setCorridorConstraint(corridorSizeVec, this->corridorRes_);
+				if (this->softConstraint_){
+					this->trajSolver_->setSoftConstraint(this->softConstraint_, this->softConstraint_, 0); // no z direction soft constraint
+				}
+				this->trajSolver_->solve();
+				this->trajSolver_->getTrajectory(trajectory, this->delT_);
+
+				std::set<int> collisionSeg;
+				valid = not this->checkCollisionTraj(trajectory, this->delT_, collisionSeg);
+				if (not valid){
+					this->adjustCorridorSize(collisionSeg, corridorSizeVec);
+				}
+				++countIter;
+				if (countIter > this->maxIter_){
+					break;
+				}
+			}
+			else{
+				this->trajSolver_->solve();
+				this->trajSolver_->getTrajectory(trajectory, this->delT_);				
+				valid = true;
+			}
+		}
+
+
+		if (valid){
+			// cout << "[Trajectory Planner INFO]: Found valid trajectory!" << endl;	
+			this->findValidTraj_ = true;
+		}
+		else{
+			cout << "[Trajectory Planner INFO]: Not found. Return the best. Please consider piecewise linear trajectory!!" << endl;	
+			if (this->usePWL_){
+				this->pwlTrajSolver_->updatePath(this->path_);
+				this->pwlTrajSolver_->makePlan(trajectory, this->delT_);
+			}
+		}
+		this->trajMsgConverter(trajectory, this->trajVisMsg_);
+
+		if (valid){
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
+
 	bool polyTrajOccMap::makePlan(nav_msgs::Path& trajectory){
 		std::vector<pose> trajTemp;
 		bool valid = this->makePlan(trajTemp);
+		this->trajMsgConverter(trajTemp, trajectory);
+		if (valid){
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
+
+	bool polyTrajOccMap::makePlan(nav_msgs::Path& trajectory, bool corridorConstraint){
+		std::vector<pose> trajTemp;
+		bool valid = this->makePlan(trajTemp, corridorConstraint);
 		this->trajMsgConverter(trajTemp, trajectory);
 		if (valid){
 			return true;

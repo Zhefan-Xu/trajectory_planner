@@ -35,7 +35,9 @@ namespace trajPlanner{
 		std::vector<trajPlanner::pose> path_;
 		std::vector<double> desiredTime_; // desired time knots based on velocity 
 		geometry_msgs::Twist initVel_;
+		geometry_msgs::Twist endVel_;
 		geometry_msgs::Twist initAcc_;
+		geometry_msgs::Twist endAcc_;
 
 		std::shared_ptr<OsqpEigen::Solver> xSolver_; // QP Solver
 		std::shared_ptr<OsqpEigen::Solver> ySolver_; 
@@ -68,8 +70,12 @@ namespace trajPlanner{
 		void updatePath(const std::vector<trajPlanner::pose>& path);
 		void updateInitVel(double vx, double vy, double vz);
 		void updateInitVel(const geometry_msgs::Twist& v);
+		void updateEndVel(double vx, double vy, double vz);
+		void updateEndVel(const geometry_msgs::Twist& v);
 		void updateInitAcc(double ax, double ay, double az);
 		void updateInitAcc(const geometry_msgs::Twist& a);
+		void updateEndAcc(double ax, double ay, double az);
+		void updateEndAcc(const geometry_msgs::Twist& a);
 		void setDefaultInit();
 
 		// Estimated the desired time of path (avg)
