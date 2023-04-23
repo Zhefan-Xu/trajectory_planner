@@ -129,6 +129,9 @@ namespace trajPlanner{
 
 		//  get pose at time t from trajectory
 		trajPlanner::pose getPose(double t);
+		Eigen::Vector3d getPos(double t);
+		Eigen::Vector3d getVel(double t);
+		Eigen::Vector3d getAcc(double t);
 
 		// get the whole trajectory with given time interval
 		void getTrajectory(std::vector<trajPlanner::pose>& trajectory, double delT);

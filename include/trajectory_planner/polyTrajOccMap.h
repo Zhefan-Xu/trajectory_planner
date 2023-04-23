@@ -82,6 +82,9 @@ namespace trajPlanner{
 		void publishTrajVis();
 		
 		geometry_msgs::PoseStamped getPose(double t);
+		Eigen::Vector3d getPos(double t);
+		Eigen::Vector3d getVel(double t);
+		Eigen::Vector3d getAcc(double t);
 		double getDuration();
 		bool checkCollisionTraj(const std::vector<pose>& trajectory, double delT, std::set<int>& collisionSeg);
 		void adjustCorridorSize(const std::set<int>& collisionSeg, std::vector<double>& corridorSizeVec);

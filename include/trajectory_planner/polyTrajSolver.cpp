@@ -1033,6 +1033,72 @@ namespace trajPlanner{
 		return p;
 	}
 
+	Eigen::Vector3d polyTrajSolver::getPos(double t){
+		Eigen::Vector3d pos;
+		for (size_t i=0; i<this->desiredTime_.size()-1; ++i){
+			double startTime = this->desiredTime_[i];
+			double endTime = this->desiredTime_[i+1];
+			if ((t >= startTime) and (t <= endTime)){
+				t = (double) (t-startTime);///(endTime - startTime);
+				int coeffStartIdx = (this->polyDegree_+1) * i;
+				double x = 0; double y = 0; double z = 0; 
+				for (int d=0; d<this->polyDegree_+1; ++d){
+					x += this->xSol_(coeffStartIdx+d) * pow(t, d);
+					y += this->ySol_(coeffStartIdx+d) * pow(t, d);
+					z += this->zSol_(coeffStartIdx+d) * pow(t, d);
+				}
+
+				pos(0) = x; pos(1) = y; pos(2) = z;
+				break;
+			}
+		}
+		return pos;		
+	}
+
+	Eigen::Vector3d polyTrajSolver::getVel(double t){
+		Eigen::Vector3d vel;
+		for (size_t i=0; i<this->desiredTime_.size()-1; ++i){
+			double startTime = this->desiredTime_[i];
+			double endTime = this->desiredTime_[i+1];
+			if ((t >= startTime) and (t <= endTime)){
+				t = (double) (t-startTime);///(endTime - startTime);
+				int coeffStartIdx = (this->polyDegree_+1) * i;
+				double vx = 0; double vy = 0; double vz = 0; 
+				for (int d=1; d<this->polyDegree_+1; ++d){
+					vx += this->xSol_(coeffStartIdx+d) * d * pow(t, d-1);
+					vy += this->ySol_(coeffStartIdx+d) * d * pow(t, d-1);
+					vz += this->zSol_(coeffStartIdx+d) * d * pow(t, d-1);
+				}
+
+				vel(0) = vx; vel(1) = vy; vel(2) = vz;
+				break;
+			}
+		}
+		return vel;
+	}
+
+	Eigen::Vector3d polyTrajSolver::getAcc(double t){
+		Eigen::Vector3d acc;
+		for (size_t i=0; i<this->desiredTime_.size()-1; ++i){
+			double startTime = this->desiredTime_[i];
+			double endTime = this->desiredTime_[i+1];
+			if ((t >= startTime) and (t <= endTime)){
+				t = (double) (t-startTime);///(endTime - startTime);
+				int coeffStartIdx = (this->polyDegree_+1) * i;
+				double ax = 0; double ay = 0; double az = 0;
+				for (int d=2; d<this->polyDegree_+1; ++d){
+					ax += this->xSol_(coeffStartIdx+d) * d * (d-1) * pow(t, d-1);
+					ay += this->ySol_(coeffStartIdx+d) * d * (d-1) * pow(t, d-2);
+					az += this->zSol_(coeffStartIdx+d) * d * (d-1) * pow(t, d-2);
+				}
+
+				acc(0) = ax; acc(1) = ay; acc(2) = az;
+				break;
+			}
+		}
+		return acc;
+	}
+
 
 	void polyTrajSolver::getTrajectory(std::vector<trajPlanner::pose>& trajectory, double delT){
 		trajectory.clear();

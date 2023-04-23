@@ -445,6 +445,30 @@ namespace trajPlanner{
 		return ps;
 	}
 
+	Eigen::Vector3d polyTrajOccMap::getPos(double t){
+		if (t > this->getDuration()){
+			t = this->getDuration();
+		}
+
+		return this->trajSolver_->getPos(t);		
+	}
+
+	Eigen::Vector3d polyTrajOccMap::getVel(double t){
+		if (t > this->getDuration()){
+			t = this->getDuration();
+		}
+
+		return this->trajSolver_->getVel(t);		
+	}
+
+	Eigen::Vector3d polyTrajOccMap::getAcc(double t){
+		if (t > this->getDuration()){
+			t = this->getDuration();
+		}
+
+		return this->trajSolver_->getAcc(t);		
+	}
+
 	double polyTrajOccMap::getDuration(){
 		if (this->path_.size() == 1){
 			return 0.0; // no duration
