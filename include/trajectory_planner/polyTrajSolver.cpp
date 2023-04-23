@@ -134,7 +134,7 @@ namespace trajPlanner{
 
 	int polyTrajSolver::getConstraintNum(){
 		int pathSegNum = this->path_.size()-1;
-		int num = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (1+pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2); // position, velocity, acceleration, jerk, snap
+		int num = (2+ pathSegNum-1 + pathSegNum-1) + (2+pathSegNum-1) + (2+pathSegNum-1) + (pathSegNum-1) * (this->continuityDegree_-2); // position, velocity, acceleration, jerk, snap
 		return num;
 	}
 
@@ -437,7 +437,19 @@ namespace trajPlanner{
 				}
 				++countConstraint;
 
+				int endIdx = (this->path_.size()-2) * (this->polyDegree_+1);
+				double endTime = 1.0;
+				for (int d=0; d<this->polyDegree_+1; ++d){ // start index
+					if (d > 1){
+						double factor = d * (d-1) * pow(endTime, d-2);
+						if (factor != 0){
+							A.insert(countConstraint, endIdx+d) = factor;
+						}
+					}
+				}
+				++countConstraint;
 			}
+
 
 
 			// ===============K-1 Continuity============================
@@ -694,9 +706,9 @@ namespace trajPlanner{
 		}
 		
 
-		// Accel Bound: k-1
+		// Accel Bound: 2 + (k-1)
 		{
-			// ==================1 Endpoint (start)=====================
+			// ==================2 Endpoint=====================
 			{
 				// Start acc = 0
 				lx(countConstraint) = this->initAcc_.linear.x;
@@ -710,6 +722,16 @@ namespace trajPlanner{
 
 				++countConstraint;
 				
+				lx(countConstraint) = this->endAcc_.linear.x;
+	 			ux(countConstraint) = this->endAcc_.linear.x;
+	 				
+	 			ly(countConstraint) = this->endAcc_.linear.y;
+	 			uy(countConstraint) = this->endAcc_.linear.y;
+
+	 			lz(countConstraint) = this->endAcc_.linear.z;
+	 			uz(countConstraint) = this->endAcc_.linear.z;
+
+				++countConstraint;
 			}
 
 			// ================K-1 Continuity===================
