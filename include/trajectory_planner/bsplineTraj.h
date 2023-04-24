@@ -40,9 +40,10 @@ namespace trajPlanner{
 
 
 		// bspline
+		double controlPointDistance_ = 0.4; // magic number
 		trajPlanner::bspline bspline_; // this is used to evaluate bspline. not for optimization
 		trajPlanner::optData optData_; // all optimization information including control points
-		double ts_, adjustedTs_; // original time step and adjusted time step (this is for control points)
+		double ts_, controlPointsTs_; // original time step and adjusted time step (this is for control points)
 		double dthresh_;
 		double maxVel_;
 		double maxAcc_;
@@ -82,8 +83,8 @@ namespace trajPlanner{
 		void registerPub();
 		void registerCallback();
 		void setMap(const std::shared_ptr<mapManager::occMap>& map); // update occuapncy grid map
-		bool updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition); // used to initialize control points
-		bool updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition, double& inputTrajTime); // used to initialize control points
+		bool inputPathCheck(const nav_msgs::Path & path, nav_msgs::Path& adjustedPath, double dt, double& finalTime);
+		bool updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndCondition, double dt);
 		void updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize); // position, velocity, size
 
 		bool makePlan();
@@ -117,6 +118,7 @@ namespace trajPlanner{
 
 
 		// user functions
+		double getInitTs(); // initial sample time
 		trajPlanner::bspline getTrajectory();
 		geometry_msgs::PoseStamped getPose(double t, bool yaw=true);
 		double getDuration();

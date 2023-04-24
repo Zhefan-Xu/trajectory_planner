@@ -25,11 +25,11 @@ namespace trajPlanner{
 		// timestep for bspline
 		if (not this->nh_.getParam("bspline_traj/timestep", this->ts_)){
 			this->ts_ = 0.1;
-			this->adjustedTs_ = this->ts_;
+			this->controlPointsTs_ = this->ts_;
 			cout << "[BsplineTraj]" << ": No timestep. Use default: 0.1 s." << endl;
 		}
 		else{
-			this->adjustedTs_ = this->ts_;
+			this->controlPointsTs_ = this->ts_;
 			cout << "[BsplineTraj]" << ": timestep: " << this->ts_ << " s." << endl;
 		}
 
@@ -186,26 +186,35 @@ namespace trajPlanner{
 		this->pathSearch_->initGridMap(map, Eigen::Vector3i(maxGridX, maxGridY, maxGridZ), this->minHeight_, this->maxHeight_);
 	}
 
-	bool bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition){
-		if (path.poses.size() < 4){
-			return false;
-		}
-		this->clear();
-		Eigen::MatrixXd controlPoints;
+
+	bool bsplineTraj::inputPathCheck(const nav_msgs::Path & path, nav_msgs::Path& adjustedPath, double dt, double& finalTime){	
+		if (path.poses.size() == 0) return true; // updatePath can deal with this
+
 		std::vector<Eigen::Vector3d> curveFitPoints, adjustedCurveFitPoints;
 		this->pathMsgToEigenPoints(path, curveFitPoints);
 		this->adjustPathLength(curveFitPoints, adjustedCurveFitPoints);
 
-		if (adjustedCurveFitPoints.size() < 4){
-			return false;
+		// find distance between trajectory points
+		for (size_t i=0; i<adjustedCurveFitPoints.size()-1; ++i){
+			double dist = (adjustedCurveFitPoints[i] - adjustedCurveFitPoints[i+1]).norm();
+			if (dist > this->controlPointDistance_ * 1.5){
+				return false;
+			}
 		}
 
-		// adjust the curve fit points to have enough spatial distance
-		std::vector<Eigen::Vector3d> spatialCurveFitPoints;
-		double adjustedTimeInterval;
-		this->adjustFitPointDistance(adjustedCurveFitPoints, spatialCurveFitPoints, adjustedTimeInterval);
+		this->eigenPointsToPathMsg(adjustedCurveFitPoints, adjustedPath);
+		finalTime = (adjustedPath.poses.size()-1) * dt;
+		return true;
+	}
 
-		this->bspline_.parameterizeToBspline(adjustedTimeInterval, spatialCurveFitPoints, startEndCondition, controlPoints);
+	bool bsplineTraj::updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndCondition, double dt){
+		if (adjustedPath.poses.size() < 4) return false;
+		this->clear();
+		std::vector<Eigen::Vector3d> adjustedCurveFitPoints;
+		this->pathMsgToEigenPoints(adjustedPath, adjustedCurveFitPoints);
+		this->controlPointsTs_ = dt;
+		Eigen::MatrixXd controlPoints;
+		this->bspline_.parameterizeToBspline(dt, adjustedCurveFitPoints, startEndCondition, controlPoints);
 		this->optData_.controlPoints = controlPoints;
 		int controlPointNum = controlPoints.cols();
 		this->optData_.guidePoints.resize(controlPointNum);
@@ -213,37 +222,8 @@ namespace trajPlanner{
 		this->optData_.findGuidePoint.resize(controlPointNum, false);
 		this->init_ = true;
 		return true;
-	}
+	}	
 
-	bool bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition, double& inputTrajTime){
-		if (path.poses.size() < 4){
-			return false;
-		}
-		this->clear();
-		Eigen::MatrixXd controlPoints;
-		std::vector<Eigen::Vector3d> curveFitPoints, adjustedCurveFitPoints;
-		this->pathMsgToEigenPoints(path, curveFitPoints);
-		this->adjustPathLength(curveFitPoints, adjustedCurveFitPoints);
-
-		if (adjustedCurveFitPoints.size() < 4){
-			return false;
-		}
-
-		// adjust the curve fit points to have enough spatial distance
-		std::vector<Eigen::Vector3d> spatialCurveFitPoints;
-		double adjustedTimeInterval;
-		this->adjustFitPointDistance(adjustedCurveFitPoints, spatialCurveFitPoints, adjustedTimeInterval);
-		inputTrajTime = (spatialCurveFitPoints.size() - 1) * adjustedTimeInterval;
-
-		this->bspline_.parameterizeToBspline(adjustedTimeInterval, spatialCurveFitPoints, startEndCondition, controlPoints);
-		this->optData_.controlPoints = controlPoints;
-		int controlPointNum = controlPoints.cols();
-		this->optData_.guidePoints.resize(controlPointNum);
-		this->optData_.guideDirections.resize(controlPointNum);
-		this->optData_.findGuidePoint.resize(controlPointNum, false);
-		this->init_ = true;
-		return true;
-	}
 
 	void bsplineTraj::updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize){
 		this->optData_.dynamicObstaclesPos = obstaclesPos;
@@ -557,51 +537,6 @@ namespace trajPlanner{
 		adjustedPath.push_back(path.back());
 	}
 
-	void bsplineTraj::adjustFitPointDistance(const std::vector<Eigen::Vector3d>& fitpoints, std::vector<Eigen::Vector3d>& adjustedFitPoints, double& adjustedTimeInterval){
-		int skipFactor = 1;
-		// double distThresh = 0.40- 1e-2; // for numerical roundup 
-		double distThresh =  this->map_->getRes() - 1e-2; // for numerical roundup 
-		double ratio = 0.1;
-		Eigen::Vector3d prevPoint, currPoint;
-		while (ros::ok()){
-			adjustedFitPoints.clear();
-			for (size_t i=0; i<fitpoints.size(); i+=skipFactor){
-				adjustedFitPoints.push_back(fitpoints[i]);
-			}
-
-			// special case
-			if (adjustedFitPoints.size() <= 7 or skipFactor > 5){
-				break;
-			}
-
-
-			int countRejectNum = 0;
-			int numRejectionThresh = int((1.0 - ratio) * double(adjustedFitPoints.size()));
-			for (size_t i=0; i<adjustedFitPoints.size(); ++i){
-				currPoint = adjustedFitPoints[i];
-				if (i != 0){
-					double dist = (currPoint - prevPoint).norm();
-					if (dist < distThresh){
-						++countRejectNum;
-					}
-
-					if (countRejectNum >= numRejectionThresh){
-						++skipFactor;
-						break;
-					}
-				}
-				prevPoint = currPoint;				
-			}
-
-			if (countRejectNum < numRejectionThresh){
-				break;
-			}
-		}
-
-		adjustedTimeInterval = this->ts_ * double(skipFactor);
-		this->adjustedTs_ = adjustedTimeInterval;
-		cout << "adjusted time step is: " << this->adjustedTs_ << endl;
-	}
 
 	double bsplineTraj::solverCostFunction(void* func_data, const double* x, double* grad, const int n){
 		trajPlanner::bsplineTraj* opt = reinterpret_cast<trajPlanner::bsplineTraj*>(func_data);
@@ -746,20 +681,20 @@ namespace trajPlanner{
 		cost = 0.0;
 
 		// velocity cost
-		double tsInvSqr = 1/pow(this->adjustedTs_, 2); // for balancing velocity and acceleration scales
+		double tsInvSqr = 1/pow(this->controlPointsTs_, 2); // for balancing velocity and acceleration scales
 		Eigen::Vector3d vi;
 		for (int i=0; i<controlPoints.cols()-1; ++i){
-			vi = (controlPoints.col(i+1) - controlPoints.col(i))/this->adjustedTs_;
+			vi = (controlPoints.col(i+1) - controlPoints.col(i))/this->controlPointsTs_;
 			for (int j=0; j<3; ++j){ // 3 axis
 				if (vi(j) > this->maxVel_){
 					cost += pow(vi(j) - this->maxVel_, 2) * tsInvSqr;
-					gradient(j, i) += -2 * (vi(j) - this->maxVel_)/(this->adjustedTs_) * tsInvSqr;
-					gradient(j, i+1) += 2 * (vi(j) - this->maxVel_)/(this->adjustedTs_) * tsInvSqr;
+					gradient(j, i) += -2 * (vi(j) - this->maxVel_)/(this->controlPointsTs_) * tsInvSqr;
+					gradient(j, i+1) += 2 * (vi(j) - this->maxVel_)/(this->controlPointsTs_) * tsInvSqr;
 				}
 				else if (vi(j) < -this->maxVel_){
 					cost += pow(vi(j) + this->maxVel_, 2) * tsInvSqr;
-					gradient(j, i) += -2 * (vi(j) + this->maxVel_)/(this->adjustedTs_) * tsInvSqr;
-					gradient(j, i+1) += 2 * (vi(j) + this->maxVel_)/(this->adjustedTs_) * tsInvSqr;
+					gradient(j, i) += -2 * (vi(j) + this->maxVel_)/(this->controlPointsTs_) * tsInvSqr;
+					gradient(j, i+1) += 2 * (vi(j) + this->maxVel_)/(this->controlPointsTs_) * tsInvSqr;
 				}				
 			}
 		}
@@ -1100,14 +1035,18 @@ namespace trajPlanner{
 		this->guidePointsVisPub_.publish(msg);
 	}
 
+	double bsplineTraj::getInitTs(){
+		return this->controlPointDistance_/this->maxVel_;
+	}
+
 	trajPlanner::bspline bsplineTraj::getTrajectory(){
-		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->adjustedTs_);
+		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 		return this->bspline_;
 	}
 
 	geometry_msgs::PoseStamped bsplineTraj::getPose(double t, bool yaw){
 		geometry_msgs::PoseStamped ps;
-		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->adjustedTs_);
+		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 		Eigen::Vector3d p = this->bspline_.at(t);
 
 		ps.header.frame_id = "map";
@@ -1126,7 +1065,7 @@ namespace trajPlanner{
 	}
 
 	double bsplineTraj::getDuration(){
-		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->adjustedTs_);
+		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 		return this->bspline_.getDuration();
 	}
 
@@ -1135,7 +1074,7 @@ namespace trajPlanner{
 	}
 
 	std::vector<Eigen::Vector3d> bsplineTraj::evalTraj(){
-		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->adjustedTs_);
+		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 		std::vector<Eigen::Vector3d> traj;
 		Eigen::Vector3d p;
 		for (double t=0; t<=this->bspline_.getDuration(); t+=this->ts_){

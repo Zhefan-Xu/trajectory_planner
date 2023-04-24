@@ -232,6 +232,11 @@ namespace trajPlanner{
 		this->updateEndAcc(0, 0, 0);
 	}
 
+	bool polyTrajOccMap::makePlan(bool corridorConstraint){
+		nav_msgs::Path dummyPath;
+		return this->makePlan(dummyPath, corridorConstraint);
+	}
+
 	bool polyTrajOccMap::makePlan(std::vector<pose>& trajectory){
 		this->findValidTraj_ = false;
 		if (this->path_.size() == 1){
@@ -407,6 +412,21 @@ namespace trajPlanner{
 
 	void polyTrajOccMap::publishTrajVis(){
 		this->trajVisPub_.publish(this->trajVisMsg_);
+	}
+
+
+	nav_msgs::Path polyTrajOccMap::getTrajectory(double dt){
+		nav_msgs::Path trajectory;
+		trajectory.header.frame_id = "map";
+		for (double t=0; t<=this->getDuration(); t+=dt){
+			Eigen::Vector3d pos = this->getPos(t);
+			geometry_msgs::PoseStamped ps;
+			ps.pose.position.x = pos(0);
+			ps.pose.position.y = pos(1);
+			ps.pose.position.z = pos(2);
+			trajectory.poses.push_back(ps);
+		}
+		return trajectory;
 	}
 
 	geometry_msgs::PoseStamped polyTrajOccMap::getPose(double t){

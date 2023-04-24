@@ -72,6 +72,7 @@ namespace trajPlanner{
 		void updateEndAcc(const geometry_msgs::Twist& a);
 		void setDefaultInit();
 
+		bool makePlan(bool corridorConstraint);
 		bool makePlan(std::vector<pose>& trajectory);
 		bool makePlan(std::vector<pose>& trajectory, bool corridorConstraint);
 		bool makePlan(nav_msgs::Path& trajectory);
@@ -81,6 +82,7 @@ namespace trajPlanner{
 		void visCB(const ros::TimerEvent&);
 		void publishTrajVis();
 		
+		nav_msgs::Path getTrajectory(double dt);
 		geometry_msgs::PoseStamped getPose(double t);
 		Eigen::Vector3d getPos(double t);
 		Eigen::Vector3d getVel(double t);

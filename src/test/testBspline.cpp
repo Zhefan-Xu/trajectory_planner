@@ -188,7 +188,7 @@ int main(int argc, char** argv){
 
 
 		// fit trajectory with bspline curve and display bspline curve
-		bt.updatePath(trajectory, startEndCondition);
+		// bt.updatePath(trajectory, startEndCondition);
 		// bsplineFitPath = bt.evalTrajToMsg();
 		// cout << "trajectory size: " << trajectory.poses.size() << endl;
 
