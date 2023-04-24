@@ -215,6 +215,36 @@ namespace trajPlanner{
 		return true;
 	}
 
+	bool bsplineTraj::updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition, double& inputTrajTime){
+		if (path.poses.size() < 4){
+			return false;
+		}
+		this->clear();
+		Eigen::MatrixXd controlPoints;
+		std::vector<Eigen::Vector3d> curveFitPoints, adjustedCurveFitPoints;
+		this->pathMsgToEigenPoints(path, curveFitPoints);
+		this->adjustPathLength(curveFitPoints, adjustedCurveFitPoints);
+
+		if (adjustedCurveFitPoints.size() < 4){
+			return false;
+		}
+
+		// adjust the curve fit points to have enough spatial distance
+		std::vector<Eigen::Vector3d> spatialCurveFitPoints;
+		double adjustedTimeInterval;
+		this->adjustFitPointDistance(adjustedCurveFitPoints, spatialCurveFitPoints, adjustedTimeInterval);
+		inputTrajTime = (spatialCurveFitPoints.size() - 1) * adjustedTimeInterval;
+
+		this->bspline_.parameterizeToBspline(adjustedTimeInterval, spatialCurveFitPoints, startEndCondition, controlPoints);
+		this->optData_.controlPoints = controlPoints;
+		int controlPointNum = controlPoints.cols();
+		this->optData_.guidePoints.resize(controlPointNum);
+		this->optData_.guideDirections.resize(controlPointNum);
+		this->optData_.findGuidePoint.resize(controlPointNum, false);
+		this->init_ = true;
+		return true;
+	}
+
 	void bsplineTraj::updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize){
 		this->optData_.dynamicObstaclesPos = obstaclesPos;
 		this->optData_.dynamicObstaclesVel = obstaclesVel;
@@ -231,6 +261,7 @@ namespace trajPlanner{
 		ros::Time startTime = ros::Time::now();
 		// step 1. find collision segment
 		this->findCollisionSeg(this->optData_.controlPoints, this->collisionSeg_); // upodate collision seg
+		cout << "pass step 1" << endl;
 
 		// step 2. A* to find collision free path
 		bool pathSearchSuccess = this->pathSearch(this->collisionSeg_, this->astarPaths_);
@@ -239,9 +270,11 @@ namespace trajPlanner{
 			cout << "[BsplineTraj]: Fail because of A* failure." << endl;
 			return false;
 		}
+		cout << "pass step 2" << endl;
 
 		// step 3. Assign guide point and directions
 		this->assignGuidePointsSemiCircle(this->astarPaths_, this->collisionSeg_);
+		cout << "pass step 3" << endl;
 
 		// // step 4. call solver
 		bool optimizationSuccess = this->optimizeTrajectory();
@@ -250,6 +283,7 @@ namespace trajPlanner{
 			cout << "[BsplineTraj]: Fail because of optimizer not finding a solution." << endl; 
 			return false;
 		}
+		cout << "pass step 4" << endl;
 
 		ros::Time endTime = ros::Time::now();
 		cout << "[BsplineTraj]: Total time: " << (endTime - startTime).toSec() << endl;
@@ -525,8 +559,9 @@ namespace trajPlanner{
 
 	void bsplineTraj::adjustFitPointDistance(const std::vector<Eigen::Vector3d>& fitpoints, std::vector<Eigen::Vector3d>& adjustedFitPoints, double& adjustedTimeInterval){
 		int skipFactor = 1;
-		double distThresh = 0.4 - 1e-2; // for numerical roundup 
-		double ratio = 0.8;
+		// double distThresh = 0.40- 1e-2; // for numerical roundup 
+		double distThresh =  this->map_->getRes() - 1e-2; // for numerical roundup 
+		double ratio = 0.1;
 		Eigen::Vector3d prevPoint, currPoint;
 		while (ros::ok()){
 			adjustedFitPoints.clear();
@@ -535,7 +570,7 @@ namespace trajPlanner{
 			}
 
 			// special case
-			if (adjustedFitPoints.size() <= 7){
+			if (adjustedFitPoints.size() <= 7 or skipFactor > 5){
 				break;
 			}
 
@@ -565,7 +600,7 @@ namespace trajPlanner{
 
 		adjustedTimeInterval = this->ts_ * double(skipFactor);
 		this->adjustedTs_ = adjustedTimeInterval;
-		// cout << "adjusted time step is: " << this->adjustedTs_ << endl;
+		cout << "adjusted time step is: " << this->adjustedTs_ << endl;
 	}
 
 	double bsplineTraj::solverCostFunction(void* func_data, const double* x, double* grad, const int n){

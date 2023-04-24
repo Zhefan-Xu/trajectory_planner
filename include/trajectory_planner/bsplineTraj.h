@@ -83,6 +83,7 @@ namespace trajPlanner{
 		void registerCallback();
 		void setMap(const std::shared_ptr<mapManager::occMap>& map); // update occuapncy grid map
 		bool updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition); // used to initialize control points
+		bool updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition, double& inputTrajTime); // used to initialize control points
 		void updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize); // position, velocity, size
 
 		bool makePlan();
