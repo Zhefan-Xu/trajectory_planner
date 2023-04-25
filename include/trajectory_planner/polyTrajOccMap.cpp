@@ -148,6 +148,10 @@ namespace trajPlanner{
 		this->pwlTrajSolver_.reset(new trajPlanner::pwlTraj (this->nh_));
 	}
 
+	void polyTrajOccMap::updateDesiredVel(double desiredVel){
+		this->desiredVel_ = desiredVel;
+	}
+
 	void polyTrajOccMap::updatePath(const nav_msgs::Path& path){
 		std::vector<trajPlanner::pose> trajPath;
 		for (geometry_msgs::PoseStamped p : path.poses){

@@ -56,6 +56,9 @@ namespace trajPlanner{
 		void initSolver();
 		void initPWLSolver();
 
+		// update desired vel
+		void updateDesiredVel(double desiredVel);
+
 		// update waypoint path
 		void updatePath(const nav_msgs::Path& path);
 		void updatePath(const nav_msgs::Path& path, const std::vector<Eigen::Vector3d>& startEndCondition);

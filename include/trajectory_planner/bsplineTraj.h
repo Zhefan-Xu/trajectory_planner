@@ -40,7 +40,7 @@ namespace trajPlanner{
 
 
 		// bspline
-		double controlPointDistance_ = 0.4; // magic number
+		double controlPointDistance_ = 0.45; // magic number
 		trajPlanner::bspline bspline_; // this is used to evaluate bspline. not for optimization
 		trajPlanner::optData optData_; // all optimization information including control points
 		double ts_, controlPointsTs_; // original time step and adjusted time step (this is for control points)
@@ -83,6 +83,8 @@ namespace trajPlanner{
 		void registerPub();
 		void registerCallback();
 		void setMap(const std::shared_ptr<mapManager::occMap>& map); // update occuapncy grid map
+		void updateMaxVel(double maxVel);
+		void updateMaxAcc(double maxAcc);
 		bool inputPathCheck(const nav_msgs::Path & path, nav_msgs::Path& adjustedPath, double dt, double& finalTime);
 		bool updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndCondition, double dt);
 		void updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize); // position, velocity, size

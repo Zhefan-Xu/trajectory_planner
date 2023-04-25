@@ -186,6 +186,15 @@ namespace trajPlanner{
 		this->pathSearch_->initGridMap(map, Eigen::Vector3i(maxGridX, maxGridY, maxGridZ), this->minHeight_, this->maxHeight_);
 	}
 
+	void bsplineTraj::updateMaxVel(double maxVel){
+		this->maxVel_ = maxVel;
+		cout << "[BsplineTraj]: Max velocity is updated to: " << this->maxVel_ << "m/s." << endl;
+	}
+
+	void bsplineTraj::updateMaxAcc(double maxAcc){
+		this->maxAcc_ = maxAcc;
+		cout << "[BsplineTraj]: Max acceleration is updated to: " << this->maxAcc_ << "m/s^2" << endl;
+	}
 
 	bool bsplineTraj::inputPathCheck(const nav_msgs::Path & path, nav_msgs::Path& adjustedPath, double dt, double& finalTime){	
 		if (path.poses.size() == 0) return true; // updatePath can deal with this
