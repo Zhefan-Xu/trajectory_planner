@@ -241,7 +241,6 @@ namespace trajPlanner{
 		ros::Time startTime = ros::Time::now();
 		// step 1. find collision segment
 		this->findCollisionSeg(this->optData_.controlPoints, this->collisionSeg_); // upodate collision seg
-		cout << "pass step 1" << endl;
 
 		// step 2. A* to find collision free path
 		bool pathSearchSuccess = this->pathSearch(this->collisionSeg_, this->astarPaths_);
@@ -250,11 +249,9 @@ namespace trajPlanner{
 			cout << "[BsplineTraj]: Fail because of A* failure." << endl;
 			return false;
 		}
-		cout << "pass step 2" << endl;
 
 		// step 3. Assign guide point and directions
 		this->assignGuidePointsSemiCircle(this->astarPaths_, this->collisionSeg_);
-		cout << "pass step 3" << endl;
 
 		// // step 4. call solver
 		bool optimizationSuccess = this->optimizeTrajectory();
@@ -263,7 +260,6 @@ namespace trajPlanner{
 			cout << "[BsplineTraj]: Fail because of optimizer not finding a solution." << endl; 
 			return false;
 		}
-		cout << "pass step 4" << endl;
 
 		ros::Time endTime = ros::Time::now();
 		cout << "[BsplineTraj]: Total time: " << (endTime - startTime).toSec() << endl;
