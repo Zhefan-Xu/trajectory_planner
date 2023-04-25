@@ -211,7 +211,25 @@ namespace trajPlanner{
 			}
 		}
 
-		this->eigenPointsToPathMsg(adjustedCurveFitPoints, adjustedPath);
+		// remove too close points
+		Eigen::Vector3d prevPoint;
+		std::vector<Eigen::Vector3d> adjustedPoints;
+		for (size_t i=0; i<adjustedCurveFitPoints.size(); ++i){
+			Eigen::Vector3d p = adjustedCurveFitPoints[i];
+			if (i == 0){
+				adjustedPoints.push_back(p);
+				prevPoint = p;
+			}
+			else{
+				double dist = (p - prevPoint).norm();
+				if (dist >= this->controlPointDistance_ * 0.25){
+					adjustedPoints.push_back(p);
+					prevPoint = p;
+				}
+			}
+		}		
+
+		this->eigenPointsToPathMsg(adjustedPoints, adjustedPath);
 		finalTime = (adjustedPath.poses.size()-1) * dt;
 		return true;
 	}
@@ -1079,15 +1097,20 @@ namespace trajPlanner{
 	}
 
 	std::vector<Eigen::Vector3d> bsplineTraj::evalTraj(){
+		return this->evalTraj(this->ts_);
+	}	
+
+	std::vector<Eigen::Vector3d> bsplineTraj::evalTraj(double dt){
 		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 		std::vector<Eigen::Vector3d> traj;
 		Eigen::Vector3d p;
-		for (double t=0; t<=this->bspline_.getDuration(); t+=this->ts_){
+		for (double t=0; t<=this->bspline_.getDuration(); t+=dt){
 			p = this->bspline_.at(t);
 			traj.push_back(p);
 		}
 		return traj;
 	}	
+
 
 	bool bsplineTraj::isCurrTrajValid(){
 		if (not this->init_){
@@ -1104,13 +1127,17 @@ namespace trajPlanner{
 	}
 
 	nav_msgs::Path bsplineTraj::evalTrajToMsg(bool yaw){
-		std::vector<Eigen::Vector3d> trajTemp = this->evalTraj();
+		return this->evalTrajToMsg(this->ts_, yaw);
+	}
+
+	nav_msgs::Path bsplineTraj::evalTrajToMsg(double dt, bool yaw){
+		std::vector<Eigen::Vector3d> trajTemp = this->evalTraj(dt);
 		nav_msgs::Path traj;
 		this->eigenPointsToPathMsg(trajTemp, traj);
 		trajPlanner::bspline velBspline = this->bspline_.getDerivative();
 		size_t i = 0;
 		while (i < traj.poses.size()){
-			double t = (double) i * this->ts_;
+			double t = (double) i * dt;
 			Eigen::Vector3d vel = velBspline.at(t);
 			if (yaw){
 				traj.poses[i].pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, atan2(vel(1), vel(0)));

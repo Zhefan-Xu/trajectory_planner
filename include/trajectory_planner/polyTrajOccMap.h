@@ -34,6 +34,7 @@ namespace trajPlanner{
 		int diffDegree_;
 		int continuityDegree_;
 		double desiredVel_;
+		double desiredAcc_;
 		double initR_; // initial corridor constraint radius
 		double timeout_;
 		double corridorRes_;
@@ -58,6 +59,7 @@ namespace trajPlanner{
 
 		// update desired vel
 		void updateDesiredVel(double desiredVel);
+		void updateDesiredAcc(double desiredAcc);
 
 		// update waypoint path
 		void updatePath(const nav_msgs::Path& path);

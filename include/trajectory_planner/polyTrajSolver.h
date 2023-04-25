@@ -30,6 +30,7 @@ namespace trajPlanner{
 		int paramDim_; // dimension of parameter vector
 		int constraintNum_; // number of constraints
 		double desiredVel_;
+		double desiredAcc_;
 		bool init_;
 		
 		std::vector<trajPlanner::pose> path_;
@@ -65,6 +66,7 @@ namespace trajPlanner{
 		polyTrajSolver();
 
 		polyTrajSolver(int polyDegree, int diffDegree, int continuityDegree, double desiredVel);
+		polyTrajSolver(int polyDegree, int diffDegree, int continuityDegree, double desiredVel, double desiredAcc);
 
 		// load or update path 
 		void updatePath(const std::vector<trajPlanner::pose>& path);

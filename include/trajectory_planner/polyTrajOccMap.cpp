@@ -21,54 +21,63 @@ namespace trajPlanner{
 		// Polynomial Degree
 		if (not this->nh_.getParam("poly_traj/polynomial_degree", this->polyDegree_)){
 			this->polyDegree_ = 7;
-			cout << "[Trajectory Planner INFO]: No Polynomail Degree Parameter. Use default: 7." << endl;
+			cout << "[minSnapTraj]: No Polynomail Degree Parameter. Use default: 7." << endl;
 		}
 		else{
-			cout << "[Trajectory Planner INFO]: Polynomial Degree: " << this->polyDegree_ << endl;
+			cout << "[minSnapTraj]: Polynomial Degree: " << this->polyDegree_ << endl;
 		}
 
 		// Differential Degree: (3: Min. Jerk, 4: Min. Snap)
 		if (not this->nh_.getParam("poly_traj/differential_degree", this->diffDegree_)){
 			this->diffDegree_ = 4;
-			cout << "[Trajectory Planner INFO]: No Differential Degree Parameter. Use default: 4." << endl;
+			cout << "[minSnapTraj]: No Differential Degree Parameter. Use default: 4." << endl;
 		}
 		else{
-			cout << "[Trajectory Planner INFO]: Differential Degree: " << this->diffDegree_ << endl;
+			cout << "[minSnapTraj]: Differential Degree: " << this->diffDegree_ << endl;
 		}
 
 		// Continuity Degree
 		if (not this->nh_.getParam("poly_traj/continuity_degree", this->continuityDegree_)){
 			this->continuityDegree_ = 4;
-			cout << "[Trajectory Planner INFO]: No Continuity Degree Parameter. Use default: 4." << endl;
+			cout << "[minSnapTraj]: No Continuity Degree Parameter. Use default: 4." << endl;
 		}
 		else{
-			cout << "[Trajectory Planner INFO]: Continuity Degree: " << this->continuityDegree_ << endl;
+			cout << "[minSnapTraj]: Continuity Degree: " << this->continuityDegree_ << endl;
 		}
 
 		// Desired Velocity
 		if (not this->nh_.getParam("poly_traj/desired_velocity", this->desiredVel_)){
 			this->desiredVel_ = 1.0;
-			cout << "[Trajectory Planner INFO]: No Desired Velocity Parameter. Use default: 1.0 m/s." << endl;
+			cout << "[minSnapTraj]: No Desired Velocity Parameter. Use default: 1.0 m/s." << endl;
 		}	
 		else{
-			cout << "[Trajectory Planner INFO]: Desired Velocity: " << this->desiredVel_ << " m/s." << endl;
+			cout << "[minSnapTraj]: Desired Velocity: " << this->desiredVel_ << " m/s." << endl;
+		}
+
+		// Desired Acceleration
+		if (not this->nh_.getParam("poly_traj/desired_acceleration", this->desiredAcc_)){
+			this->desiredAcc_ = 1.0;
+			cout << "[minSnapTraj]: No Desired Acceleration Parameter. Use default: 1.0 m/s^2." << endl;
+		}	
+		else{
+			cout << "[minSnapTraj]: Desired Acceleration: " << this->desiredAcc_ << " m/s^2." << endl;
 		}
 
 		if (not this->nh_.getParam("poly_traj/initial_radius", this->initR_)){
 			this->initR_ = 0.5;
-			cout << "[Trajectory Planner INFO]: No Initial Corridor Radius Parameter. Use default: 0.5 m" << endl;
+			cout << "[minSnapTraj]: No Initial Corridor Radius Parameter. Use default: 0.5 m" << endl;
 		} 
 		else{
-			cout << "[Trajectory Planner INFO]: Corridor Radius: " << this->initR_ << " m." << endl;
+			cout << "[minSnapTraj]: Corridor Radius: " << this->initR_ << " m." << endl;
 		}
 
 		// Max Solving Time (Iteratively generating collision free trajectory)
 		if (not this->nh_.getParam("poly_traj/timeout", this->timeout_)){
 			this->timeout_ = 0.1;
-			cout << "[Trajectory Planner INFO]: No Timeout Parameter. Use default: 0.1." << endl;
+			cout << "[minSnapTraj]: No Timeout Parameter. Use default: 0.1." << endl;
 		}
 		else{
-			cout << "[Trajectory Planner INFO]: Time out is set to: " << this->timeout_ << " s." << endl;
+			cout << "[minSnapTraj]: Time out is set to: " << this->timeout_ << " s." << endl;
 		}
 
 		// Corridor Resolution
@@ -77,54 +86,54 @@ namespace trajPlanner{
 			cout << "[Trajectory Planenr INFO]: No Corridor Resolution Parameter. Use default: 5.0." << endl;
 		}
 		else{
-			cout << "[Trajectory Planner INFO]: Corridor Resolution: " << this->corridorRes_ << endl;
+			cout << "[minSnapTraj]: Corridor Resolution: " << this->corridorRes_ << endl;
 		}
 
 		// Factor of shrinking (Corridor size)
 		if (not this->nh_.getParam("poly_traj/shrinking_factor", this->fs_)){
 			this->fs_ = 0.8;
-			cout << "[Trajectory Planner INFO]: No Shrinking Factor Parameter. Use default: 0.8." << endl; 
+			cout << "[minSnapTraj]: No Shrinking Factor Parameter. Use default: 0.8." << endl; 
 		}
 		else{
-			cout << "[Trajectory Planner INFO]: Shrinking Factor: " << this->fs_ << endl;
+			cout << "[minSnapTraj]: Shrinking Factor: " << this->fs_ << endl;
 		}
 
 		// use soft constraint or not
 		if (not this->nh_.getParam("poly_traj/soft_constraint", this->softConstraint_)){
 			this->softConstraint_ = false;
-			cout << "[Trajectory Planner INFO]: No Soft Constraint Parameter. Use default: false." << endl;
+			cout << "[minSnapTraj]: No Soft Constraint Parameter. Use default: false." << endl;
 		} 
 
 
 		if (this->softConstraint_){
 			if (not this->nh_.getParam("poly_traj/constraint_radius", this->softConstraintRadius_)){
 				this->softConstraintRadius_ = 0.5;
-				cout << "[Trajectory Planner INFO]: No Soft Constraint Radius Parameter. Use default: 0.5 m." << endl;
+				cout << "[minSnapTraj]: No Soft Constraint Radius Parameter. Use default: 0.5 m." << endl;
 			}
 		}
 
 		// delta T: for collision checking
 		if (not this->nh_.getParam("poly_traj/sample_delta_time", this->delT_)){
 			this->delT_ = 0.1;
-			cout << "[Trajectory Planner INFO]: No Sample Time Parameter. Use default: 0.1." << endl;
+			cout << "[minSnapTraj]: No Sample Time Parameter. Use default: 0.1." << endl;
 		}
 		else{
-			cout << "[Trajectory Planner INFO]: Sample Time: " << this->delT_ << endl;
+			cout << "[minSnapTraj]: Sample Time: " << this->delT_ << endl;
 		}
 
 		// Max Iteration (Iteratively generating collision free trajectory)
 		if (not this->nh_.getParam("poly_traj/maximum_iteration_num", this->maxIter_)){
 			this->maxIter_ = 20;
-			cout << "[Trajectory Planner INFO]: No Maximum Iteration Parameter. Use default: 20." << endl;
+			cout << "[minSnapTraj]: No Maximum Iteration Parameter. Use default: 20." << endl;
 		}
 		else{
-			cout << "[Trajectory Planner INFO]: Maximum Iteration Number: " << this->maxIter_ << endl;
+			cout << "[minSnapTraj]: Maximum Iteration Number: " << this->maxIter_ << endl;
 		}
 
 		// use pwl traj as failsafe
 		if (not this->nh_.getParam("poly_traj/use_pwl_failsafe", this->usePWL_)){
 			this->usePWL_ = false;
-			cout << "[Trajectory Planner INFO]: No use pwl option. Use default: not use." << endl;
+			cout << "[minSnapTraj]: No use pwl option. Use default: not use." << endl;
 		}
  	}
 
@@ -150,6 +159,10 @@ namespace trajPlanner{
 
 	void polyTrajOccMap::updateDesiredVel(double desiredVel){
 		this->desiredVel_ = desiredVel;
+	}
+
+	void polyTrajOccMap::updateDesiredAcc(double desiredAcc){
+		this->desiredAcc_ = desiredAcc_;
 	}
 
 	void polyTrajOccMap::updatePath(const nav_msgs::Path& path){
@@ -266,7 +279,7 @@ namespace trajPlanner{
 		while (ros::ok() and not valid){
 			endTime = ros::Time::now();
 			if ((endTime - startTime).toSec() >= this->timeout_){
-				cout << "[Trajectory Planner INFO]: Timeout!" << endl;
+				cout << "[minSnapTraj]: Timeout!" << endl;
 				break;
 			}
 			this->trajSolver_->setCorridorConstraint(corridorSizeVec, this->corridorRes_);
@@ -290,11 +303,11 @@ namespace trajPlanner{
 
 
 		if (valid){
-			// cout << "[Trajectory Planner INFO]: Found valid trajectory!" << endl;	
+			// cout << "[minSnapTraj]: Found valid trajectory!" << endl;	
 			this->findValidTraj_ = true;
 		}
 		else{
-			cout << "[Trajectory Planner INFO]: Not found. Return the best. Please consider piecewise linear trajectory!!" << endl;	
+			cout << "[minSnapTraj]: Not found. Return the best. Please consider piecewise linear trajectory!!" << endl;	
 			if (this->usePWL_){
 				this->pwlTrajSolver_->updatePath(this->path_);
 				this->pwlTrajSolver_->makePlan(trajectory, this->delT_);
@@ -335,7 +348,7 @@ namespace trajPlanner{
 		while (ros::ok() and not valid){
 			endTime = ros::Time::now();
 			if ((endTime - startTime).toSec() >= this->timeout_){
-				cout << "[Trajectory Planner INFO]: Timeout!" << endl;
+				cout << "[minSnapTraj]: Timeout!" << endl;
 				break;
 			}
 
@@ -366,11 +379,11 @@ namespace trajPlanner{
 
 
 		if (valid){
-			// cout << "[Trajectory Planner INFO]: Found valid trajectory!" << endl;	
+			// cout << "[minSnapTraj]: Found valid trajectory!" << endl;	
 			this->findValidTraj_ = true;
 		}
 		else{
-			cout << "[Trajectory Planner INFO]: Not found. Return the best. Please consider piecewise linear trajectory!!" << endl;	
+			cout << "[minSnapTraj]: Not found. Return the best. Please consider piecewise linear trajectory!!" << endl;	
 			if (this->usePWL_){
 				this->pwlTrajSolver_->updatePath(this->path_);
 				this->pwlTrajSolver_->makePlan(trajectory, this->delT_);

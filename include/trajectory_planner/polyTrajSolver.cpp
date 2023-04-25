@@ -28,6 +28,27 @@ namespace trajPlanner{
 
 		this->setDefaultInit(); // initial condition for vel and acc
 	}
+
+
+	polyTrajSolver::polyTrajSolver(int polyDegree, int diffDegree, int continuityDegree, double desiredVel, double desiredAcc)
+	: polyDegree_(polyDegree), diffDegree_(diffDegree), continuityDegree_(continuityDegree), desiredVel_(desiredVel), desiredAcc_(desiredAcc){
+		this->xSolver_.reset(new OsqpEigen::Solver ());
+		this->ySolver_.reset(new OsqpEigen::Solver ());
+		this->zSolver_.reset(new OsqpEigen::Solver ());
+
+		// Soft constraint for waypoint (default: fasle)
+		this->softConstraint_ = false;
+		for (int i=0; i<3; ++i){
+			this->scDeviation_[i] = 0; // soft constraint for x y z
+		}
+
+		// Corridor constraint (default: false)
+		this->corridorConstraint_ = false;
+
+		this->init_ = false;
+
+		this->setDefaultInit(); // initial condition for vel and acc
+	}
 	
 
 	void polyTrajSolver::updatePath(const std::vector<trajPlanner::pose>& path){

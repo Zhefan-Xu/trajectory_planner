@@ -40,7 +40,7 @@ namespace trajPlanner{
 
 
 		// bspline
-		double controlPointDistance_ = 0.45; // magic number
+		double controlPointDistance_ = 0.4; // magic number
 		trajPlanner::bspline bspline_; // this is used to evaluate bspline. not for optimization
 		trajPlanner::optData optData_; // all optimization information including control points
 		double ts_, controlPointsTs_; // original time step and adjusted time step (this is for control points)
@@ -130,7 +130,9 @@ namespace trajPlanner{
 
 		// helper functionin
 		std::vector<Eigen::Vector3d> evalTraj();
+		std::vector<Eigen::Vector3d> evalTraj(double dt);
 		nav_msgs::Path evalTrajToMsg(bool yaw=true); // evaluate current trajectory based on the control point
+		nav_msgs::Path evalTrajToMsg(double dt, bool yaw=true);
 		void pathMsgToEigenPoints(const nav_msgs::Path& path, std::vector<Eigen::Vector3d>& points);
 		void eigenPointsToPathMsg(const std::vector<Eigen::Vector3d>& points, nav_msgs::Path& path);
 
