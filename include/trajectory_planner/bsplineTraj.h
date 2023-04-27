@@ -37,6 +37,8 @@ namespace trajPlanner{
 		ros::Publisher currTrajVisPub_;
 		ros::Publisher astarVisPub_;
 		ros::Publisher guidePointsVisPub_;
+		ros::Publisher inputTrajPub_;
+		ros::Publisher inputTrajPointPub_;
 
 
 		// bspline
@@ -72,6 +74,7 @@ namespace trajPlanner{
 		bool init_ = false;
 
 		// visualization
+		std::vector<Eigen::Vector3d> inputPathVis_;
 
 	public:
 		// std::thread visualizationWorker_;
@@ -117,6 +120,7 @@ namespace trajPlanner{
 		void publishCurrTraj();
 		void publishAstarPath();
 		void publishGuidePoints();
+		void publishInputTraj();
 
 
 		// user functions

@@ -169,7 +169,8 @@ namespace trajPlanner{
 		this->currTrajVisPub_ = this->nh_.advertise<nav_msgs::Path>("bspline_traj/trajectory", 10);
 		this->astarVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("bspline_traj/astar_path", 10);
 		this->guidePointsVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("bspline_traj/guide_points_and_directions", 10);
-		// this->visualizationWorker_ = std::thread(&bsplineTraj::startVisualization, this);
+		this->inputTrajPub_ = this->nh_.advertise<nav_msgs::Path>("bspline_traj/input_trajectory", 10);
+		this->inputTrajPointPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("bspline_traj/input_trajectory_point", 10);
 	}
 
 	void bsplineTraj::registerCallback(){
@@ -222,7 +223,7 @@ namespace trajPlanner{
 			}
 			else{
 				double dist = (p - prevPoint).norm();
-				if (dist >= this->controlPointDistance_ * 0.25){
+				if (dist >= this->controlPointDistance_ * 0.8){
 					adjustedPoints.push_back(p);
 					prevPoint = p;
 				}
@@ -248,6 +249,7 @@ namespace trajPlanner{
 		this->optData_.guideDirections.resize(controlPointNum);
 		this->optData_.findGuidePoint.resize(controlPointNum, false);
 		this->init_ = true;
+		this->inputPathVis_ = adjustedCurveFitPoints;
 		return true;
 	}	
 
@@ -863,6 +865,7 @@ namespace trajPlanner{
 			this->publishCurrTraj();
 			this->publishAstarPath();
 			this->publishGuidePoints();
+			this->publishInputTraj();
 		}
 	}
 
@@ -898,11 +901,11 @@ namespace trajPlanner{
 			point.pose.position.x = this->optData_.controlPoints(0, i);
 			point.pose.position.y = this->optData_.controlPoints(1, i);
 			point.pose.position.z = this->optData_.controlPoints(2, i);
-			point.lifetime = ros::Duration(0.5);
-			point.scale.x = 0.1;
-			point.scale.y = 0.1;
-			point.scale.z = 0.1;
-			point.color.a = 0.5;
+			point.lifetime = ros::Duration(0.1);
+			point.scale.x = 0.3;
+			point.scale.y = 0.3;
+			point.scale.z = 0.3;
+			point.color.a = 1.0;
 			point.color.r = 1.0;
 			point.color.g = 0.0;
 			point.color.b = 0.0;
@@ -1056,6 +1059,42 @@ namespace trajPlanner{
 
 		msg.markers = msgVec;
 		this->guidePointsVisPub_.publish(msg);
+	}
+
+
+	void bsplineTraj::publishInputTraj(){
+		if (this->inputPathVis_.size() != 0){
+			nav_msgs::Path inputTrajPathMsg;
+			this->eigenPointsToPathMsg(this->inputPathVis_, inputTrajPathMsg);
+			visualization_msgs::MarkerArray inputPathPoints;
+
+			for (size_t i=0; i<this->inputPathVis_.size(); ++i){
+				Eigen::Vector3d p = this->inputPathVis_[i];
+				visualization_msgs::Marker point;
+				point.header.frame_id = "map";
+				point.header.stamp = ros::Time::now();
+				point.ns = "input_trajectory_point";
+				point.id = i;
+				point.type = visualization_msgs::Marker::SPHERE;
+				point.action = visualization_msgs::Marker::ADD;
+				point.pose.position.x = p(0);
+				point.pose.position.y = p(1);
+				point.pose.position.z = p(2);
+				point.lifetime = ros::Duration(0.1);
+				point.scale.x = 0.2;
+				point.scale.y = 0.2;
+				point.scale.z = 0.2;
+				point.color.a = 1.0;
+				point.color.r = 0.0;
+				point.color.g = 1.0;
+				point.color.b = 0.0;
+				inputPathPoints.markers.push_back(point);
+			}
+
+
+			this->inputTrajPointPub_.publish(inputPathPoints);
+			this->inputTrajPub_.publish(inputTrajPathMsg);
+		}
 	}
 
 	double bsplineTraj::getInitTs(){
