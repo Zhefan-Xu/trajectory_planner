@@ -290,6 +290,9 @@ namespace trajPlanner{
 			return false;
 		}
 
+		// step 5. Time reparameterization
+		this->linearFeasibilityReparam();
+
 		ros::Time endTime = ros::Time::now();
 		cout << "[BsplineTraj]: Total time: " << (endTime - startTime).toSec() << endl;
 		return true;
@@ -858,6 +861,39 @@ namespace trajPlanner{
 
 	// 	}
 	// }
+
+	void bsplineTraj::linearFeasibilityReparam(){
+		// find the maximum velocity and acceleration
+		double trajMaxVel = 0.0; 
+		double trajMaxAcc = 0.0; 
+		trajPlanner::bspline traj = this->getTrajectory();
+		trajPlanner::bspline trajVel = traj.getDerivative();
+		trajPlanner::bspline trajAcc = trajVel.getDerivative();
+		for (double t=0.0; t<traj.getDuration(); t+=this->ts_){
+			Eigen::Vector3d vel = trajVel.at(t);
+			Eigen::Vector3d acc = trajAcc.at(t);
+			if (vel.norm() > trajMaxVel){
+				trajMaxVel = vel.norm();
+			}
+
+			if (acc.norm() > trajMaxAcc){
+				trajMaxAcc = acc.norm();
+			}
+		}
+
+		double factorVel = this->maxVel_/trajMaxVel;
+		double factorAcc = sqrt(this->maxAcc_/trajMaxAcc);
+	
+		this->linearFactor_ = std::min(factorVel, factorAcc);
+	}
+
+	double bsplineTraj::getLinearReparamTime(double t){
+		return this->linearFactor_ * t;
+	}
+
+	double bsplineTraj::getLinearFactor(){
+		return this->linearFactor_;
+	}
 
 	void bsplineTraj::visCB(const ros::TimerEvent&){
 		if (this->init_){

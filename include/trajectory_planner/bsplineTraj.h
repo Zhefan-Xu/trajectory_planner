@@ -14,6 +14,7 @@
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <thread>
+#include <limits>
 
 const int bsplineDegree = 3;
 namespace trajPlanner{
@@ -73,6 +74,10 @@ namespace trajPlanner{
 		// flag
 		bool init_ = false;
 
+
+		// time reparameterization
+		double linearFactor_ = 1.0;
+
 		// visualization
 		std::vector<Eigen::Vector3d> inputPathVis_;
 
@@ -112,6 +117,12 @@ namespace trajPlanner{
 		void getSmoothnessCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // trajectory
 		void getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // velocity and acceleration
 		void getDynamicObstacleCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient); // dynamic obstacle
+
+		// time reparameterization
+		void linearFeasibilityReparam();
+		double getLinearReparamTime(double t);
+		double getLinearFactor();
+
 
 		// visualization
 		// void startVisualization();
