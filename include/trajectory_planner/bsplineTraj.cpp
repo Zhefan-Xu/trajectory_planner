@@ -282,7 +282,7 @@ namespace trajPlanner{
 		// step 3. Assign guide point and directions
 		this->assignGuidePointsSemiCircle(this->astarPaths_, this->collisionSeg_);
 
-		// // step 4. call solver
+		// step 4. call solver
 		bool optimizationSuccess = this->optimizeTrajectory();
 		// this->clear();
 		if (not optimizationSuccess){
@@ -290,7 +290,10 @@ namespace trajPlanner{
 			return false;
 		}
 
-		// step 5. Time reparameterization
+		// step 5. save the result to the class attribute
+		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
+
+		// step 6. Time reparameterization
 		this->linearFeasibilityReparam();
 
 		ros::Time endTime = ros::Time::now();
@@ -447,7 +450,6 @@ namespace trajPlanner{
 			else{
 				hasDynamicCollision = false;
 			}
-
 
 			if (not hasCollision and not hasDynamicCollision){
 				break;
@@ -866,10 +868,9 @@ namespace trajPlanner{
 		// find the maximum velocity and acceleration
 		double trajMaxVel = 0.0; 
 		double trajMaxAcc = 0.0; 
-		trajPlanner::bspline traj = this->getTrajectory();
-		trajPlanner::bspline trajVel = traj.getDerivative();
+		trajPlanner::bspline trajVel = this->bspline_.getDerivative();
 		trajPlanner::bspline trajAcc = trajVel.getDerivative();
-		for (double t=0.0; t<traj.getDuration(); t+=this->ts_){
+		for (double t=0.0; t<this->bspline_.getDuration(); t+=this->ts_){
 			Eigen::Vector3d vel = trajVel.at(t);
 			Eigen::Vector3d acc = trajAcc.at(t);
 			if (vel.norm() > trajMaxVel){
@@ -1138,13 +1139,11 @@ namespace trajPlanner{
 	}
 
 	trajPlanner::bspline bsplineTraj::getTrajectory(){
-		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 		return this->bspline_;
 	}
 
 	geometry_msgs::PoseStamped bsplineTraj::getPose(double t, bool yaw){
 		geometry_msgs::PoseStamped ps;
-		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 		Eigen::Vector3d p = this->bspline_.at(t);
 
 		ps.header.frame_id = "map";
@@ -1163,7 +1162,6 @@ namespace trajPlanner{
 	}
 
 	double bsplineTraj::getDuration(){
-		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 		return this->bspline_.getDuration();
 	}
 
@@ -1176,11 +1174,11 @@ namespace trajPlanner{
 	}	
 
 	std::vector<Eigen::Vector3d> bsplineTraj::evalTraj(double dt){
-		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 		std::vector<Eigen::Vector3d> traj;
 		Eigen::Vector3d p;
-		for (double t=0; t<=this->bspline_.getDuration(); t+=dt){
-			p = this->bspline_.at(t);
+		trajPlanner::bspline bsplineTraj = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
+		for (double t=0; t<=bsplineTraj.getDuration(); t+=dt){
+			p = bsplineTraj.at(t);
 			traj.push_back(p);
 		}
 		return traj;
