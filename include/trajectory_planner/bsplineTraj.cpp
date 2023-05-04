@@ -197,7 +197,7 @@ namespace trajPlanner{
 		cout << "[BsplineTraj]: Max acceleration is updated to: " << this->maxAcc_ << "m/s^2" << endl;
 	}
 
-	bool bsplineTraj::inputPathCheck(const nav_msgs::Path & path, nav_msgs::Path& adjustedPath, double dt, double& finalTime){	
+	bool bsplineTraj::inputPathCheck(const nav_msgs::Path & path, nav_msgs::Path& adjustedPath, double dt, double& dtAdjusted, double& finalTime){	
 		if (path.poses.size() == 0) return true; // updatePath can deal with this
 
 		std::vector<Eigen::Vector3d> curveFitPoints, adjustedCurveFitPoints;
@@ -231,7 +231,12 @@ namespace trajPlanner{
 		}		
 
 		this->eigenPointsToPathMsg(adjustedPoints, adjustedPath);
-		finalTime = (adjustedPath.poses.size()-1) * dt;
+		// finalTime = (adjustedPath.poses.size()-1) * dt;
+		// dtAdjusted = dt;
+		finalTime = (adjustedCurveFitPoints.size()-1) * dt;
+		dtAdjusted = finalTime/(adjustedPath.poses.size()-1);
+		cout << "dt adjusted is: " << dtAdjusted << endl;
+		cout << "dt is: " << dt << endl;
 		return true;
 	}
 
@@ -295,6 +300,7 @@ namespace trajPlanner{
 
 		// step 6. Time reparameterization
 		this->linearFeasibilityReparam();
+
 
 		ros::Time endTime = ros::Time::now();
 		cout << "[BsplineTraj]: Total time: " << (endTime - startTime).toSec() << endl;
