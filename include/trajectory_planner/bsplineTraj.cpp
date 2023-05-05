@@ -231,12 +231,8 @@ namespace trajPlanner{
 		}		
 
 		this->eigenPointsToPathMsg(adjustedPoints, adjustedPath);
-		// finalTime = (adjustedPath.poses.size()-1) * dt;
-		// dtAdjusted = dt;
 		finalTime = (adjustedCurveFitPoints.size()-1) * dt;
 		dtAdjusted = finalTime/(adjustedPath.poses.size()-1);
-		cout << "dt adjusted is: " << dtAdjusted << endl;
-		cout << "dt is: " << dt << endl;
 		return true;
 	}
 
