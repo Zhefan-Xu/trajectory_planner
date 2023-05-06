@@ -1201,6 +1201,40 @@ namespace trajPlanner{
 		return not this->hasCollisionTrajectory(this->optData_.controlPoints, firstCollisionPos);
 	}
 
+	void bsplineTraj::writeCurrentTrajInfo(const std::string& filePath, double dt){
+		std::string velPath = filePath + "/vel_info.txt";
+		std::string accPath = filePath + "/acc_info.txt";
+		std::string velAdjustedPath = filePath + "/vel_adjusted_info.txt";
+		std::string accAdjustedPath = filePath + "/acc_adjusted_info.txt";
+		std::ofstream velInfo (velPath);
+		std::ofstream accInfo (accPath);
+		std::ofstream velAdjustedInfo (velAdjustedPath);
+		std::ofstream accAdjustedInfo (accAdjustedPath);
+
+		trajPlanner::bspline velBspline = this->bspline_.getDerivative();
+		trajPlanner::bspline accBspline = velBspline.getDerivative();
+		for (double t=0.0; t<=this->bspline_.getDuration(); t+=dt){
+			Eigen::Vector3d vel = velBspline.at(t);
+			Eigen::Vector3d acc = accBspline.at(t);
+			velInfo << t << " " << vel(0) << " " << vel(1) << " " << vel(2) << endl;
+			accInfo << t << " " << acc(0) << " " << acc(1) << " " << acc(2) << endl;
+
+		}
+
+		double linearReparamFactor = this->getLinearFactor();
+		for (double t=0.0; this->getLinearReparamTime(t)<=this->bspline_.getDuration(); t+=dt){
+			double reparamTime = this->getLinearReparamTime(t);
+			Eigen::Vector3d velAdjusted = velBspline.at(reparamTime) * linearReparamFactor;
+			Eigen::Vector3d accAdjusted = velBspline.at(reparamTime) * pow(linearReparamFactor, 2);
+			velAdjustedInfo << t << " " << velAdjusted(0) << " " << velAdjusted(1) << " " << velAdjusted(2) << endl;
+			accAdjustedInfo << t << " " << accAdjusted(0) << " " << accAdjusted(1) << " " << accAdjusted(2) << endl;			
+		}
+		velInfo.close();
+		accInfo.close();
+		velAdjustedInfo.close();
+		accAdjustedInfo.close();
+	}
+
 	nav_msgs::Path bsplineTraj::evalTrajToMsg(bool yaw){
 		return this->evalTrajToMsg(this->ts_, yaw);
 	}

@@ -142,6 +142,7 @@ namespace trajPlanner{
 		double getTimestep();
 		bool isCurrTrajValid();
 		bool isCurrTrajValid(Eigen::Vector3d& firstCollisionPos);
+		void writeCurrentTrajInfo(const std::string& filePath, double dt);
 
 		// helper functionin
 		std::vector<Eigen::Vector3d> evalTraj();
