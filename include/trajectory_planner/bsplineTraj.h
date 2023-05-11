@@ -43,10 +43,11 @@ namespace trajPlanner{
 
 
 		// bspline
-		double controlPointDistance_ = 0.4; // magic number
+		double controlPointDistance_ = 0.2; // magic number
+		double controlPointsTs_ = 0.2; // magic number
 		trajPlanner::bspline bspline_; // this is used to evaluate bspline. not for optimization
 		trajPlanner::optData optData_; // all optimization information including control points
-		double ts_, controlPointsTs_; // original time step and adjusted time step (this is for control points)
+		double ts_; // original time step and adjusted time step (this is for control points)
 		double dthresh_;
 		double maxVel_;
 		double maxAcc_;
@@ -93,8 +94,8 @@ namespace trajPlanner{
 		void setMap(const std::shared_ptr<mapManager::occMap>& map); // update occuapncy grid map
 		void updateMaxVel(double maxVel);
 		void updateMaxAcc(double maxAcc);
-		bool inputPathCheck(const nav_msgs::Path & path, nav_msgs::Path& adjustedPath, double dt, double& dtAdjusted, double& finalTime);
-		bool updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndCondition, double dt);
+		bool inputPathCheck(const nav_msgs::Path & path, nav_msgs::Path& adjustedPath, double dt, double& finalTime);
+		bool updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndCondition);
 		void updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize); // position, velocity, size
 
 		bool makePlan();
@@ -285,11 +286,15 @@ namespace trajPlanner{
 	};
 
 	inline bool bsplineTraj::hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints){
-		std::vector<Eigen::Vector3d> trajectory = this->evalTraj();
+		std::vector<Eigen::Vector3d> trajectory;
+		Eigen::Vector3d p;
+		trajPlanner::bspline bsplineTraj = trajPlanner::bspline (bsplineDegree, controlPoints, this->controlPointsTs_);
+		for (double t=0; t<=bsplineTraj.getDuration(); t+=this->ts_){
+			p = bsplineTraj.at(t);
+			trajectory.push_back(p);
+		}		
+
 		for (Eigen::Vector3d p : trajectory){
-			// if (p(2) > this->maxHeight_ or p(2) < this->minHeight_){
-			// 	return true;
-			// }
 			bool hasCollision = this->map_->isInflatedOccupied(p);
 			if (hasCollision){
 				return true;

@@ -197,7 +197,7 @@ namespace trajPlanner{
 		cout << "[BsplineTraj]: Max acceleration is updated to: " << this->maxAcc_ << "m/s^2" << endl;
 	}
 
-	bool bsplineTraj::inputPathCheck(const nav_msgs::Path & path, nav_msgs::Path& adjustedPath, double dt, double& dtAdjusted, double& finalTime){	
+	bool bsplineTraj::inputPathCheck(const nav_msgs::Path & path, nav_msgs::Path& adjustedPath, double dt, double& finalTime){	
 		if (path.poses.size() == 0) return true; // updatePath can deal with this
 
 		std::vector<Eigen::Vector3d> curveFitPoints, adjustedCurveFitPoints;
@@ -232,18 +232,16 @@ namespace trajPlanner{
 
 		this->eigenPointsToPathMsg(adjustedPoints, adjustedPath);
 		finalTime = (adjustedCurveFitPoints.size()-1) * dt;
-		dtAdjusted = finalTime/(adjustedPath.poses.size()-1);
 		return true;
 	}
 
-	bool bsplineTraj::updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndCondition, double dt){
+	bool bsplineTraj::updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndCondition){
 		if (adjustedPath.poses.size() < 4) return false;
 		this->clear();
 		std::vector<Eigen::Vector3d> adjustedCurveFitPoints;
 		this->pathMsgToEigenPoints(adjustedPath, adjustedCurveFitPoints);
-		this->controlPointsTs_ = dt;
 		Eigen::MatrixXd controlPoints;
-		this->bspline_.parameterizeToBspline(dt, adjustedCurveFitPoints, startEndCondition, controlPoints);
+		this->bspline_.parameterizeToBspline(this->controlPointsTs_, adjustedCurveFitPoints, startEndCondition, controlPoints);
 		this->optData_.controlPoints = controlPoints;
 		int controlPointNum = controlPoints.cols();
 		this->optData_.guidePoints.resize(controlPointNum);
@@ -711,6 +709,8 @@ namespace trajPlanner{
 	void bsplineTraj::getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
 		// velocity and acceleration cost
 		cost = 0.0;
+		double maxVel = 1.0;
+		double maxAcc = 2.5;
 
 		// velocity cost
 		double tsInvSqr = 1/pow(this->controlPointsTs_, 2); // for balancing velocity and acceleration scales
@@ -718,15 +718,15 @@ namespace trajPlanner{
 		for (int i=0; i<controlPoints.cols()-1; ++i){
 			vi = (controlPoints.col(i+1) - controlPoints.col(i))/this->controlPointsTs_;
 			for (int j=0; j<3; ++j){ // 3 axis
-				if (vi(j) > this->maxVel_){
-					cost += pow(vi(j) - this->maxVel_, 2) * tsInvSqr;
-					gradient(j, i) += -2 * (vi(j) - this->maxVel_)/(this->controlPointsTs_) * tsInvSqr;
-					gradient(j, i+1) += 2 * (vi(j) - this->maxVel_)/(this->controlPointsTs_) * tsInvSqr;
+				if (vi(j) > maxVel){
+					cost += pow(vi(j) - maxVel, 2) * tsInvSqr;
+					gradient(j, i) += -2 * (vi(j) - maxVel)/(this->controlPointsTs_) * tsInvSqr;
+					gradient(j, i+1) += 2 * (vi(j) - maxVel)/(this->controlPointsTs_) * tsInvSqr;
 				}
-				else if (vi(j) < -this->maxVel_){
-					cost += pow(vi(j) + this->maxVel_, 2) * tsInvSqr;
-					gradient(j, i) += -2 * (vi(j) + this->maxVel_)/(this->controlPointsTs_) * tsInvSqr;
-					gradient(j, i+1) += 2 * (vi(j) + this->maxVel_)/(this->controlPointsTs_) * tsInvSqr;
+				else if (vi(j) < -maxVel){
+					cost += pow(vi(j) + maxVel, 2) * tsInvSqr;
+					gradient(j, i) += -2 * (vi(j) + maxVel)/(this->controlPointsTs_) * tsInvSqr;
+					gradient(j, i+1) += 2 * (vi(j) + maxVel)/(this->controlPointsTs_) * tsInvSqr;
 				}				
 			}
 		}
@@ -736,17 +736,17 @@ namespace trajPlanner{
 		for (int i=0; i<controlPoints.cols()-2; ++i){
 			ai = (controlPoints.col(i+2) - 2 * controlPoints.col(i+1) + controlPoints.col(i)) * tsInvSqr;
 			for (int j=0; j<3; ++j){
-				if (ai(j) > this->maxAcc_){
-					cost += pow(ai(j) - this->maxAcc_, 2);
-					gradient(j, i) += 2 * (ai(j) - this->maxAcc_) * tsInvSqr;
-					gradient(j, i+1) += -4 * (ai(j) - this->maxAcc_) * tsInvSqr;
-					gradient(j, i+2) += 2 * (ai(j) - this->maxAcc_) * tsInvSqr;
+				if (ai(j) > maxAcc){
+					cost += pow(ai(j) - maxAcc, 2);
+					gradient(j, i) += 2 * (ai(j) - maxAcc) * tsInvSqr;
+					gradient(j, i+1) += -4 * (ai(j) - maxAcc) * tsInvSqr;
+					gradient(j, i+2) += 2 * (ai(j) - maxAcc) * tsInvSqr;
 				}
-				else if (ai(j) < -this->maxAcc_){
-					cost += pow(ai(j) + this->maxAcc_, 2);
-					gradient(j, i) += 2 * (ai(j) + this->maxAcc_) * tsInvSqr;
-					gradient(j, i+1) += -4 * (ai(j) + this->maxAcc_) * tsInvSqr;
-					gradient(j, i+2) += 2 * (ai(j) + this->maxAcc_) * tsInvSqr;
+				else if (ai(j) < -maxAcc){
+					cost += pow(ai(j) + maxAcc, 2);
+					gradient(j, i) += 2 * (ai(j) + maxAcc) * tsInvSqr;
+					gradient(j, i+1) += -4 * (ai(j) + maxAcc) * tsInvSqr;
+					gradient(j, i+2) += 2 * (ai(j) + maxAcc) * tsInvSqr;
 				}
 			}
 		}
@@ -1137,7 +1137,8 @@ namespace trajPlanner{
 	}
 
 	double bsplineTraj::getInitTs(){
-		return this->controlPointDistance_/this->maxVel_;
+		// return this->controlPointDistance_/this->maxVel_;
+		return this->controlPointsTs_;
 	}
 
 	trajPlanner::bspline bsplineTraj::getTrajectory(){
