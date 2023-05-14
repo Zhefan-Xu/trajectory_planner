@@ -726,7 +726,7 @@ namespace trajPlanner{
 	void bsplineTraj::getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
 		// velocity and acceleration cost
 		cost = 0.0;
-		double maxVel = 1.0;
+		double maxVel = 1.5;
 		double maxAcc = 3.0;
 
 		// velocity cost
