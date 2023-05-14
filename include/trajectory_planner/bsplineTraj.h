@@ -56,6 +56,7 @@ namespace trajPlanner{
 		double weightFeasibility_;
 		double weightDynamicObstacle_;
 		double notCheckRatio_ = 0.0;
+		bool planInZAxis_;
 		double minHeight_;
 		double maxHeight_;
 		double uncertainAwareFactor_;

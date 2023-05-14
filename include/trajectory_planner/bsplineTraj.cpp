@@ -94,6 +94,15 @@ namespace trajPlanner{
 		}
 		else{
 			cout << "[BsplineTraj]" << ": Weight dynamic obstacle: " << this->weightDynamicObstacle_ << endl;
+		}
+
+		// whether plan in z direction or not
+		if (not this->nh_.getParam("bspline_traj/plan_in_z_axis", this->planInZAxis_)){
+			this->planInZAxis_ = true;
+			cout << "[BsplineTraj]" << ": No plan in z axis. Use default: true." << endl;
+		}
+		else{
+			cout << "[BsplineTraj]" << ": Plan in z axis: " << this->planInZAxis_ << endl;
 		}	
 
 		// min height
@@ -636,6 +645,10 @@ namespace trajPlanner{
 						costTemp *= this->uncertainAwareFactor_;
 						gradientTemp *= this->uncertainAwareFactor_;
 					}
+					if (not this->planInZAxis_){
+						gradientTemp(2) = 0.0;
+					}
+
 					cost += costTemp;
 					gradient.col(i) += gradientTemp;
 				}
@@ -649,43 +662,47 @@ namespace trajPlanner{
 						costTemp *= this->uncertainAwareFactor_;
 						gradientTemp *= this->uncertainAwareFactor_;
 					}
+					if (not this->planInZAxis_){
+						gradientTemp(2) = 0.0;
+					}
 					cost += costTemp;
 					gradient.col(i) += gradientTemp;
 				}
 			}
 
-			
-			// minimum and maximum height cost 
-			double heightDistMin = controlPoints.col(i)(2) - this->minHeight_;
-			double heightDistMax = controlPoints.col(i)(2) - this->maxHeight_;
-			if (heightDistMin < 0){
-				double distErr = heightDistThresh - heightDistMin;
-				cost += ah * pow(distErr, 2) + bh * distErr + ch;
-				gradient.col(i) += -(2 * ah * distErr + bh) * Eigen::Vector3d (-1.0, 0.0, 0.0);
+			if (this->planInZAxis_){
+				// minimum and maximum height cost 
+				double heightDistMin = controlPoints.col(i)(2) - this->minHeight_;
+				double heightDistMax = controlPoints.col(i)(2) - this->maxHeight_;
+				if (heightDistMin < 0){
+					double distErr = heightDistThresh - heightDistMin;
+					cost += ah * pow(distErr, 2) + bh * distErr + ch;
+					gradient.col(i) += -(2 * ah * distErr + bh) * Eigen::Vector3d (-1.0, 0.0, 0.0);
 
-			}
-			else if (heightDistMin >= 0 and heightDistMax < heightDistThresh){
-				double distErr = heightDistThresh - heightDistMin;
-				cost += pow(distErr, 3);
-				gradient.col(i) += -3.0 * pow(distErr, 2) * Eigen::Vector3d (-1.0, 0.0, 0.0);
-			}
-			else if (heightDistMin >= heightDistThresh){
-				// no punishment
-			}
+				}
+				else if (heightDistMin >= 0 and heightDistMax < heightDistThresh){
+					double distErr = heightDistThresh - heightDistMin;
+					cost += pow(distErr, 3);
+					gradient.col(i) += -3.0 * pow(distErr, 2) * Eigen::Vector3d (-1.0, 0.0, 0.0);
+				}
+				else if (heightDistMin >= heightDistThresh){
+					// no punishment
+				}
 
 
-			if (heightDistMax > 0){
-				double distErr = heightDistThresh + heightDistMax;
-				cost += ah * pow(distErr, 2) + bh * distErr + ch;
-				gradient.col(i) += -(2 * ah * distErr + bh) * Eigen::Vector3d (1.0, 0.0, 0.0);
-			}
-			else if (heightDistMax <=0 and heightDistMax >= -heightDistThresh){
-				double distErr = heightDistThresh + heightDistMax;
-				cost += pow(distErr, 3);
-				gradient.col(i) += -3.0 * pow(distErr, 2) * Eigen::Vector3d (1.0, 0.0, 0.0);
-			} 
-			else if (heightDistMax < -heightDistThresh){
-				// no punishment
+				if (heightDistMax > 0){
+					double distErr = heightDistThresh + heightDistMax;
+					cost += ah * pow(distErr, 2) + bh * distErr + ch;
+					gradient.col(i) += -(2 * ah * distErr + bh) * Eigen::Vector3d (1.0, 0.0, 0.0);
+				}
+				else if (heightDistMax <=0 and heightDistMax >= -heightDistThresh){
+					double distErr = heightDistThresh + heightDistMax;
+					cost += pow(distErr, 3);
+					gradient.col(i) += -3.0 * pow(distErr, 2) * Eigen::Vector3d (1.0, 0.0, 0.0);
+				} 
+				else if (heightDistMax < -heightDistThresh){
+					// no punishment
+				}
 			}
 		}
 	}
@@ -710,7 +727,7 @@ namespace trajPlanner{
 		// velocity and acceleration cost
 		cost = 0.0;
 		double maxVel = 1.0;
-		double maxAcc = 2.5;
+		double maxAcc = 3.0;
 
 		// velocity cost
 		double tsInvSqr = 1/pow(this->controlPointsTs_, 2); // for balancing velocity and acceleration scales
