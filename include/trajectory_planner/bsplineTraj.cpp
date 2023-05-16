@@ -332,7 +332,7 @@ namespace trajPlanner{
 		int endIdx = int((controlPoints.cols() - bsplineDegree - 1) - this->notCheckRatio_ * (controlPoints.cols() - 2*bsplineDegree));
 		int pairStartIdx = bsplineDegree;
 		int pairEndIdx = bsplineDegree;
-		for (int i=bsplineDegree; i<endIdx; ++i){
+		for (int i=bsplineDegree; i<=endIdx; ++i){
 			// check collision of each control point
 			Eigen::Vector3d p = controlPoints.col(i);
 			bool hasCollision = this->map_->isInflatedOccupied(p);
@@ -348,6 +348,14 @@ namespace trajPlanner{
 					collisionSeg.push_back(seg);
 				}
 			}
+			
+			if (hasCollision and i==endIdx-1){ // corner case
+				pairEndIdx = controlPoints.cols() - 1; // goal position
+				std::pair<int, int> seg {pairStartIdx, pairEndIdx};
+				collisionSeg.push_back(seg);
+			}
+
+
 			previousHasCollision = hasCollision;
 		}
 	}
@@ -388,7 +396,6 @@ namespace trajPlanner{
 		std::pair<int, int> seg;
 		std::vector<Eigen::Vector3d> path;
 		Eigen::Vector3d guidePoint, guideDirection;
-
 		for (size_t i=0; i<collisionSeg.size(); ++i){
 			seg = collisionSeg[i];
 			path = astarPathsSC[i];
@@ -403,7 +410,6 @@ namespace trajPlanner{
 				}
 			}
 		}
-
 	}
 
 	bool bsplineTraj::isReguideRequired(std::vector<std::pair<int, int>>& reguideCollisionSeg){
@@ -464,7 +470,7 @@ namespace trajPlanner{
 				break;
 			}
 
-			if (failCount == 4){
+			if (failCount >= 4){
 				std::vector<std::pair<int, int>> collisionSeg;
 				this->findCollisionSeg(this->optData_.controlPoints, collisionSeg);
 				bool pathSearchSuccess = this->pathSearch(collisionSeg, tempAstarPaths);	
@@ -998,9 +1004,9 @@ namespace trajPlanner{
 				point.pose.position.y = p(1);
 				point.pose.position.z = p(2);
 				point.lifetime = ros::Duration(0.5);
-				point.scale.x = 0.1;
-				point.scale.y = 0.1;
-				point.scale.z = 0.1;
+				point.scale.x = 0.05;
+				point.scale.y = 0.05;
+				point.scale.z = 0.05;
 				point.color.a = 0.5;
 				point.color.r = 0.0;
 				point.color.g = 0.0;
