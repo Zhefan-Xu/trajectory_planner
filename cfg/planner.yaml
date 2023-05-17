@@ -31,7 +31,7 @@ max_num_neighbors: 10
 mode: false # True: adding waypoint, False: corridor constraint 
 polynomial_degree: 7
 differential_degree: 4 # 3: jerk 4: snap
-continuity_degree: 3 # second order continuous
+continuity_degree: 4 # second order continuous
 desired_velocity: 1 # m/s
 desired_angular_velocity: 0.5 # rad/s
 maximum_iteration_num: 100

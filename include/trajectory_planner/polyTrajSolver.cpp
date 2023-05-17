@@ -261,7 +261,7 @@ namespace trajPlanner{
 					for (int d=0; d<this->diffDegree_; ++d){
 						factor *= (double) (i - d) * (j - d);
 					}
-					factor /= (double) (i + j -5);
+					factor /= (double) (i + j - this->diffDegree_*2 + 1);
 					// double startTime = 0.0;
 					// double endTime = this->desiredTime_[n+1];
 					// factor *= (double) pow(endTime, i+j-5) - pow(startTime, i+j-5);
@@ -506,6 +506,7 @@ namespace trajPlanner{
 				for (size_t i=0; i<this->path_.size()-2; ++i){
 					double leftTime = 1.0;
 					double rightTime = 0.0;
+
 					int leftStartIdx = (this->polyDegree_+1) * i;
 					int rightStartIdx = (this->polyDegree_+1) * (i+1);
 					double dtLeft = this->desiredTime_[i+1] - this->desiredTime_[i];
