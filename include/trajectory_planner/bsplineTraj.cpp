@@ -25,11 +25,9 @@ namespace trajPlanner{
 		// timestep for bspline
 		if (not this->nh_.getParam("bspline_traj/timestep", this->ts_)){
 			this->ts_ = 0.1;
-			this->controlPointsTs_ = this->ts_;
 			cout << "[BsplineTraj]" << ": No timestep. Use default: 0.1 s." << endl;
 		}
 		else{
-			this->controlPointsTs_ = this->ts_;
 			cout << "[BsplineTraj]" << ": timestep: " << this->ts_ << " s." << endl;
 		}
 
@@ -732,7 +730,7 @@ namespace trajPlanner{
 	void bsplineTraj::getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
 		// velocity and acceleration cost
 		cost = 0.0;
-		double maxVel = 1.5;
+		double maxVel = 1.0;
 		double maxAcc = 3.0;
 
 		// velocity cost
@@ -910,7 +908,6 @@ namespace trajPlanner{
 
 		double factorVel = this->maxVel_/trajMaxVel;
 		double factorAcc = sqrt(this->maxAcc_/trajMaxAcc);
-	
 		this->linearFactor_ = std::min(factorVel, factorAcc);
 	}
 
@@ -1161,8 +1158,12 @@ namespace trajPlanner{
 	}
 
 	double bsplineTraj::getInitTs(){
-		// return this->controlPointDistance_/this->maxVel_;
-		return this->controlPointsTs_;
+		return this->controlPointDistance_/this->maxVel_;
+		// return this->controlPointsTs_;
+	}
+
+	double bsplineTraj::getControlPointDist(){
+		return this->controlPointDistance_;
 	}
 
 	trajPlanner::bspline bsplineTraj::getTrajectory(){
