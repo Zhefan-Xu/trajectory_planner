@@ -245,14 +245,24 @@ namespace trajPlanner{
 	inline bool bsplineTraj::findGuidePointSemiCircle(int controlPointIdx, const std::pair<int, int>& seg, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
 		double minAngle = PI_const*0.0/4.0; 
 		double maxAngle = PI_const*4.0/4.0;
-		int numControlpoints = seg.second - seg.first - 1; // number of segment
-		int controlPointOrder = controlPointIdx - seg.first;
-		double targetAngle = (controlPointIdx - seg.first) * PI_const/(numControlpoints+2); // angle incremental interval
-		targetAngle = std::min(std::max(minAngle, targetAngle), maxAngle);
+		int numControlpoints = seg.second - seg.first - 1; // number of segment 
+		
+		double targetAngle; // target guide direction angle
+		Eigen::Vector3d psudoControlPoint; // projected point
+		if (numControlpoints != 0){
+			int controlPointOrder = controlPointIdx - seg.first; // sequence order of collision control point
+			targetAngle = (controlPointIdx - seg.first) * PI_const/(numControlpoints+2); // angle incremental interval
+			targetAngle = std::min(std::max(minAngle, targetAngle), maxAngle);
 
-		double ratio = double(controlPointOrder)/double(numControlpoints+1.0);
-		Eigen::Vector3d psudoControlPoint = ratio * (path.back() - path[0]) + path[0];
-		Eigen::Vector3d direction = path[0] - psudoControlPoint;
+			double ratio = double(controlPointOrder)/double(numControlpoints+1.0);
+			psudoControlPoint = ratio * (path.back() - path[0]) + path[0];
+		}
+		else{ // line collision
+			targetAngle = PI_const/2.0;
+			psudoControlPoint = (path[0] + path.back())/2.0;
+		}
+		Eigen::Vector3d direction = path[0] - psudoControlPoint;; // guide direction
+
 
 		// calculate angle to each point in the shortcut path
 		for (size_t i=0; i<path.size()-1; ++i){
@@ -349,7 +359,7 @@ namespace trajPlanner{
 
 	inline bool bsplineTraj::indexInCollisionSeg(const std::vector<std::pair<int, int>>& collisionSeg, int idx){
 		for (std::pair<int, int> seg : collisionSeg){
-			if (idx > seg.first and idx < seg.second){
+			if (idx >= seg.first and idx <= seg.second){
 				return true;
 			}
 		}
@@ -368,13 +378,24 @@ namespace trajPlanner{
 					newCollisionPoints.push_back(i);
 				}
 			}
+			bool lineCollision = (newSeg.second - newSeg.first - 1 == 0);
+			if (lineCollision){
+				for (int i=newSeg.first; i<=newSeg.second; ++i){
+					if (this->indexInCollisionSeg(prevCollisionSeg, i)){
+						overlappedCollisionPoints.push_back(i);
+					}
+					else{
+						newCollisionPoints.push_back(i);
+					}
+				}				
+			}
 		}
 	}
 
 	inline int bsplineTraj::findCollisionSegIndex(const std::vector<std::pair<int, int>>& collisionSeg, int idx){
 		int countIdx = 0;
 		for (std::pair<int, int> seg : collisionSeg){
-			if (idx > seg.first and idx < seg.second){
+			if (idx >= seg.first and idx <= seg.second){
 				return countIdx;
 			}
 			++countIdx;

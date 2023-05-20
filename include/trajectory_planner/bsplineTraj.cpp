@@ -353,6 +353,17 @@ namespace trajPlanner{
 				collisionSeg.push_back(seg);
 			}
 
+			// check the case when current collision and prev collision is false but the line collision is true
+			if (i != bsplineDegree){
+				if (not previousHasCollision and not hasCollision){
+					if (this->map_->isInflatedOccupiedLine(controlPoints.col(i-1) , p)){
+						std::pair<int, int> seg {i-1, i};
+						collisionSeg.push_back(seg);
+						cout << "add line collision to seg." << endl;
+					}
+				}
+			}
+
 
 			previousHasCollision = hasCollision;
 		}
@@ -407,6 +418,20 @@ namespace trajPlanner{
 					ROS_ERROR("[BsplineTraj]: Impossible Assignment. Something wrong!");
 				}
 			}
+
+			bool lineCollision = (seg.second - seg.first - 1 == 0);
+			if (lineCollision){
+				for (int controlPointIdx=seg.first; controlPointIdx<=seg.second; ++controlPointIdx){ // iterate through all collision control points
+					bool findGuidePoint = this->findGuidePointSemiCircle(controlPointIdx, seg, path, guidePoint);
+					this->optData_.guidePoints[controlPointIdx].push_back(guidePoint);
+					guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx))/(guidePoint - this->optData_.controlPoints.col(controlPointIdx)).norm();
+					// guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx));
+					this->optData_.guideDirections[controlPointIdx].push_back(guideDirection);
+					if (not findGuidePoint){
+						ROS_ERROR("[BsplineTraj]: Impossible Assignment. Something wrong!");
+					}
+				}
+			}
 		}
 	}
 
@@ -426,7 +451,7 @@ namespace trajPlanner{
 			collisionSegIndices.insert(segIdx);
 		}
 
-		// for overlapped collision points: check its distance to current guide point: if larger than threshold, it means we need to reuide and find its corresponding segment
+		// for overlapped collision points: check its distance to current guide point: if larger than threshold, it means we need to reguide and find its corresponding segment
 		for (int overlappedCollisionPointIdx : overlappedCollisionPoints){
 			// determine whether needs new guide points
 			if (this->isControlPointRequireNewGuide(overlappedCollisionPointIdx)){
