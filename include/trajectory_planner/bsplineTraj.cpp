@@ -731,7 +731,7 @@ namespace trajPlanner{
 		// velocity and acceleration cost
 		cost = 0.0;
 		double maxVel = 1.0;
-		double maxAcc = 3.0;
+		double maxAcc = 1.0;
 
 		// velocity cost
 		double tsInvSqr = 1/pow(this->controlPointsTs_, 2); // for balancing velocity and acceleration scales
