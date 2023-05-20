@@ -359,7 +359,6 @@ namespace trajPlanner{
 					if (this->map_->isInflatedOccupiedLine(controlPoints.col(i-1) , p)){
 						std::pair<int, int> seg {i-1, i};
 						collisionSeg.push_back(seg);
-						cout << "add line collision to seg." << endl;
 					}
 				}
 			}
