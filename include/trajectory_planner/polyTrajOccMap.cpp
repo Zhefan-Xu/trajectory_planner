@@ -377,7 +377,6 @@ namespace trajPlanner{
 			}
 		}
 
-
 		if (valid){
 			// cout << "[minSnapTraj]: Found valid trajectory!" << endl;	
 			this->findValidTraj_ = true;

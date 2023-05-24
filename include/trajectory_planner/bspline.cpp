@@ -73,7 +73,7 @@ namespace trajPlanner{
 
 	void bspline::parameterizeToBspline(double ts, 
 										const std::vector<Eigen::Vector3d>& points, 
-										const std::vector<Eigen::Vector3d>& startEndCondition,
+										const std::vector<Eigen::Vector3d>& startEndConditions,
 										Eigen::MatrixXd& controlPoints){
 		if (ts <= 0){
 			cout << "[Bspline]: Invalid timestep." << endl;
@@ -86,7 +86,7 @@ namespace trajPlanner{
 			return;
 		}
 
-		if (startEndCondition.size() != 4){
+		if (startEndConditions.size() != 4){
 			cout << "[Bspline]: Please enter correct start and end acc/vel." << endl;
 			exit(0);
 			return;
@@ -120,9 +120,9 @@ namespace trajPlanner{
 		}
 
 		for (int i=0; i<4; ++i){
-			bx(K+i) = startEndCondition[i](0);
-			by(K+i) = startEndCondition[i](1);
-			bz(K+i) = startEndCondition[i](2);
+			bx(K+i) = startEndConditions[i](0);
+			by(K+i) = startEndConditions[i](1);
+			bz(K+i) = startEndConditions[i](2);
 		}
 
 		// solve Ax = b

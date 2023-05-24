@@ -242,13 +242,13 @@ namespace trajPlanner{
 		return true;
 	}
 
-	bool bsplineTraj::updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndCondition){
+	bool bsplineTraj::updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndConditions){
 		if (adjustedPath.poses.size() < 4) return false;
 		this->clear();
 		std::vector<Eigen::Vector3d> adjustedCurveFitPoints;
 		this->pathMsgToEigenPoints(adjustedPath, adjustedCurveFitPoints);
 		Eigen::MatrixXd controlPoints;
-		this->bspline_.parameterizeToBspline(this->controlPointsTs_, adjustedCurveFitPoints, startEndCondition, controlPoints);
+		this->bspline_.parameterizeToBspline(this->controlPointsTs_, adjustedCurveFitPoints, startEndConditions, controlPoints);
 		this->optData_.controlPoints = controlPoints;
 		int controlPointNum = controlPoints.cols();
 		this->optData_.guidePoints.resize(controlPointNum);

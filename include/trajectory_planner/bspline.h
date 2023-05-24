@@ -29,7 +29,7 @@ namespace trajPlanner{
 
 		static void parameterizeToBspline(double ts, 
 										  const std::vector<Eigen::Vector3d>& points, 
-										  const std::vector<Eigen::Vector3d>& startEndCondition,
+										  const std::vector<Eigen::Vector3d>& startEndConditions,
 										  Eigen::MatrixXd& controlPoints); // static function to fit a curve with bspine
 	};
 }
