@@ -31,6 +31,7 @@ namespace trajPlanner{
 										  const std::vector<Eigen::Vector3d>& points, 
 										  const std::vector<Eigen::Vector3d>& startEndConditions,
 										  Eigen::MatrixXd& controlPoints); // static function to fit a curve with bspine
+		Eigen::MatrixXd getControlPoints();
 	};
 }
 

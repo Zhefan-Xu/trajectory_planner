@@ -136,4 +136,9 @@ namespace trajPlanner{
 	    controlPoints.row(1) = py.transpose();
 	    controlPoints.row(2) = pz.transpose();
 	}
+
+
+	Eigen::MatrixXd bspline::getControlPoints(){
+		return this->controlPoints_;
+	}
 }
