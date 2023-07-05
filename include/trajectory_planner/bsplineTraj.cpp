@@ -243,7 +243,10 @@ namespace trajPlanner{
 	}
 
 	bool bsplineTraj::updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndConditions){
-		if (adjustedPath.poses.size() < 4) return false;
+		if (adjustedPath.poses.size() < 4){
+			// cout << "[bsplineTraj]: Input path point size is less than 4." << endl;
+			return false;	
+		} 
 		this->clear();
 		std::vector<Eigen::Vector3d> adjustedCurveFitPoints;
 		this->pathMsgToEigenPoints(adjustedPath, adjustedCurveFitPoints);
