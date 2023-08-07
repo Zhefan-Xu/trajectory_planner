@@ -235,7 +235,8 @@ namespace trajPlanner{
 					prevPoint = p;
 				}
 			}
-		}		
+		}
+		// adjustedPoints.push_back(adjustedPoints.back());		
 
 		this->eigenPointsToPathMsg(adjustedPoints, adjustedPath);
 		finalTime = (adjustedCurveFitPoints.size()-1) * dt;
