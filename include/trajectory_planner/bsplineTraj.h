@@ -96,6 +96,7 @@ namespace trajPlanner{
 		void updateMaxVel(double maxVel);
 		void updateMaxAcc(double maxAcc);
 		bool inputPathCheck(const nav_msgs::Path & path, nav_msgs::Path& adjustedPath, double dt, double& finalTime);
+		bool fillPath(const nav_msgs::Path& path, nav_msgs::Path& adjustedPath);
 		bool updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndConditions);
 		void updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize); // position, velocity, size
 

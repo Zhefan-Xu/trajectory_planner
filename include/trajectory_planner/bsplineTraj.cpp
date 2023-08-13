@@ -236,21 +236,68 @@ namespace trajPlanner{
 				}
 			}
 		}
-		// adjustedPoints.push_back(adjustedPoints.back());		
+		adjustedPoints.push_back(adjustedPoints.back());		
 
 		this->eigenPointsToPathMsg(adjustedPoints, adjustedPath);
 		finalTime = (adjustedCurveFitPoints.size()-1) * dt;
 		return true;
 	}
 
+	bool bsplineTraj::fillPath(const nav_msgs::Path& path, nav_msgs::Path& adjustedPath){ // use linear interpotation to make input trajectory size = 4
+		// if path size is less than 1, return false
+		if (int(path.poses.size()) <= 1){
+			return false;
+		}
+
+
+		if (int(path.poses.size()) == 2){
+			Eigen::Vector3d ps (path.poses[0].pose.position.x, path.poses[0].pose.position.y, path.poses[0].pose.position.z);
+			Eigen::Vector3d pf (path.poses[1].pose.position.x, path.poses[1].pose.position.y, path.poses[1].pose.position.z);
+			Eigen::Vector3d pm1 = (pf - ps)/3.0 + ps;
+			Eigen::Vector3d pm2 = 2.0 * (pf - ps)/3.0 + ps;
+			geometry_msgs::PoseStamped ps1, ps2, ps3, ps4;
+			ps1.pose.position.x = ps(0); ps1.pose.position.y = ps(1); ps1.pose.position.z = ps(2);
+			ps2.pose.position.x = pm1(0); ps2.pose.position.y = pm1(1); ps2.pose.position.z = pm1(2);
+			ps3.pose.position.x = pm2(0); ps3.pose.position.y = pm2(1); ps3.pose.position.z = pm2(2);
+			ps4.pose.position.x = pf(0); ps4.pose.position.y = pf(1); ps4.pose.position.z = pf(2);
+			adjustedPath.poses = {ps1, ps2, ps3, ps4};
+		}
+
+
+		if (int(path.poses.size()) == 3){
+			Eigen::Vector3d ps (path.poses[0].pose.position.x, path.poses[0].pose.position.y, path.poses[0].pose.position.z);
+			Eigen::Vector3d pm (path.poses[1].pose.position.x, path.poses[1].pose.position.y, path.poses[1].pose.position.z);
+			Eigen::Vector3d pf (path.poses[2].pose.position.x, path.poses[2].pose.position.y, path.poses[2].pose.position.z);
+			Eigen::Vector3d pm1 = (ps + pm)/2.0;
+			Eigen::Vector3d pm2 = (pm + pf)/2.0;
+			geometry_msgs::PoseStamped ps1, ps2, ps3, ps4, ps5;
+			ps1.pose.position.x = ps(0); ps1.pose.position.y = ps(1); ps1.pose.position.z = ps(2);
+			ps2.pose.position.x = pm1(0); ps2.pose.position.y = pm1(1); ps2.pose.position.z = pm1(2);
+			ps3.pose.position.x = pm(0); ps3.pose.position.y = pm(1); ps3.pose.position.z = pm(2);
+			ps4.pose.position.x = pm2(0); ps4.pose.position.y = pm2(1); ps4.pose.position.z = pm2(2);
+			ps5.pose.position.x = pf(0); ps5.pose.position.y = pf(1); ps5.pose.position.z = pf(2);
+			adjustedPath.poses = {ps1, ps2, ps3, ps4, ps5};			
+		}
+
+
+		if (int(path.poses.size()) >= 4){
+			adjustedPath = path;
+		}
+		return true;
+	}
+
 	bool bsplineTraj::updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndConditions){
-		if (adjustedPath.poses.size() < 4){
-			// cout << "[bsplineTraj]: Input path point size is less than 4." << endl;
-			return false;	
+		nav_msgs::Path inputPath = adjustedPath;
+		if (inputPath.poses.size() < 4){
+			bool fillPathSuccess = this->fillPath(adjustedPath, inputPath);
+			if (not fillPathSuccess){
+				// cout << "[bsplineTraj]: Input path point size is less than 1." << endl;
+				return false;	
+			}
 		} 
 		this->clear();
 		std::vector<Eigen::Vector3d> adjustedCurveFitPoints;
-		this->pathMsgToEigenPoints(adjustedPath, adjustedCurveFitPoints);
+		this->pathMsgToEigenPoints(inputPath, adjustedCurveFitPoints);
 		Eigen::MatrixXd controlPoints;
 		this->bspline_.parameterizeToBspline(this->controlPointsTs_, adjustedCurveFitPoints, startEndConditions, controlPoints);
 		this->optData_.controlPoints = controlPoints;

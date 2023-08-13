@@ -162,10 +162,11 @@ namespace trajPlanner{
 
 	void pwlTraj::makePlan(nav_msgs::Path& trajectory, double delT){
 		std::vector<geometry_msgs::PoseStamped> trajVec;
-		for (double t=0; t<=this->desiredTime_.back(); t+=delT){
+		for (double t=0; t<this->desiredTime_.back(); t+=delT){
 			geometry_msgs::PoseStamped ps = this->getPose(t);
 			trajVec.push_back(ps);
 		}
+		trajVec.push_back(this->getPose(this->desiredTime_.back()));
 		trajectory.poses = trajVec;
 		trajectory.header.frame_id = "map";
 		trajectory.header.stamp = ros::Time();
@@ -173,7 +174,7 @@ namespace trajPlanner{
 
 	void pwlTraj::makePlan(std::vector<trajPlanner::pose>& trajectory, double delT){
 		trajectory.clear();
-		for (double t=0; t<=this->desiredTime_.back(); t+=delT){
+		for (double t=0; t<this->desiredTime_.back(); t+=delT){
 			trajPlanner::pose p;
 			geometry_msgs::PoseStamped ps = this->getPose(t);
 			double yaw = trajPlanner::rpy_from_quaternion(ps.pose.orientation);
@@ -183,6 +184,16 @@ namespace trajPlanner{
 			p.yaw = yaw;
 			trajectory.push_back(p);
 		}
+
+		// for last pose
+		geometry_msgs::PoseStamped ps = this->getPose(this->desiredTime_.back());
+		double yaw = trajPlanner::rpy_from_quaternion(ps.pose.orientation);
+		trajPlanner::pose p;
+		p.x = ps.pose.position.x;
+		p.y = ps.pose.position.y;
+		p.z = ps.pose.position.z;
+		p.yaw = yaw;
+		trajectory.push_back(p);
 	}
 
 	geometry_msgs::PoseStamped pwlTraj::getPose(double t){
