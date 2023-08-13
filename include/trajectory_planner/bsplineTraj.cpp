@@ -287,11 +287,18 @@ namespace trajPlanner{
 	}
 
 	bool bsplineTraj::updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndConditions){
+		Eigen::Vector3d goal (adjustedPath.poses.back().pose.position.x, adjustedPath.poses.back().pose.position.y, adjustedPath.poses.back().pose.position.z);
+		if (this->map_->isInflatedOccupied(goal)){
+			cout << "[bsplineTraj]: Invalid goal position: " << goal.transpose() << endl;
+			return false;
+		}
+
+
 		nav_msgs::Path inputPath = adjustedPath;
 		if (inputPath.poses.size() < 4){
 			bool fillPathSuccess = this->fillPath(adjustedPath, inputPath);
 			if (not fillPathSuccess){
-				// cout << "[bsplineTraj]: Input path point size is less than 1." << endl;
+				cout << "[bsplineTraj]: Input path point size is less (or equal) than 1." << endl;
 				return false;	
 			}
 		} 
@@ -319,10 +326,10 @@ namespace trajPlanner{
 
 
 	bool bsplineTraj::makePlan(){
-		if (not this->isGoalValid()){
-			cout << "[BsplineTraj]: Goal is not collision free. Force Return." << endl;
-			return false;
-		}
+		// if (not this->isGoalValid()){
+		// 	cout << "[BsplineTraj]: Goal is not collision free. Force Return." << endl;
+		// 	return false;
+		// }
 
 		ros::Time startTime = ros::Time::now();
 		// step 1. find collision segment

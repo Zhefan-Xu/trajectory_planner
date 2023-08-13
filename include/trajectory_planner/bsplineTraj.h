@@ -157,7 +157,7 @@ namespace trajPlanner{
 		void eigenPointsToPathMsg(const std::vector<Eigen::Vector3d>& points, nav_msgs::Path& path);
 
 		// inline function
-		inline bool isGoalValid();
+		// inline bool isGoalValid();
 		inline bool checkCollisionLine(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2);
 		inline void shortcutPath(const std::vector<Eigen::Vector3d>& path, std::vector<Eigen::Vector3d>& pathSC);
 		inline void shortcutPaths(const std::vector<std::vector<Eigen::Vector3d>>& paths, std::vector<std::vector<Eigen::Vector3d>>& pathsSC); 
@@ -177,16 +177,18 @@ namespace trajPlanner{
 
 	};
 
-	inline bool bsplineTraj::isGoalValid(){
-		Eigen::Vector3d goal = this->optData_.controlPoints.col(this->optData_.controlPoints.cols()-1);
-		if (this->map_->isInflatedOccupied(goal)){
-			cout << "[BsplineTraj]: Invalid goal position is: (" << goal(0) << ", " << goal(1) << ", " << goal(2) << ")." << endl;
-			return false;
-		}
-		else{
-			return true;
-		}
-	}
+	// inline bool bsplineTraj::isGoalValid(){
+	// 	trajPlanner::bspline traj (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
+	// 	Eigen::Vector3d goal = traj.at(traj.getDuration());
+	// 	// Eigen::Vector3d goal = this->optData_.controlPoints.col(this->optData_.controlPoints.cols()-1);
+	// 	if (this->map_->isInflatedOccupied(goal)){
+	// 		cout << "[BsplineTraj]: Invalid goal position is: (" << goal(0) << ", " << goal(1) << ", " << goal(2) << ")." << endl;
+	// 		return false;
+	// 	}
+	// 	else{
+	// 		return true;
+	// 	}
+	// }
 
 	inline bool bsplineTraj::checkCollisionLine(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2){
 		for (double a=0.0; a<=1.0; a+=this->map_->getRes()){
