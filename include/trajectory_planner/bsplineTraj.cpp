@@ -589,6 +589,7 @@ namespace trajPlanner{
 
 			if (hasDynamicCollision){
 				this->weightDynamicObstacle_ *= 2.0;
+				++failCount;
 			}
 			this->optimize();
 		}
