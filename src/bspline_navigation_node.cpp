@@ -22,11 +22,14 @@ ros::Publisher startVisPub;
 ros::Publisher goalVisPub;
 ros::Publisher originalBsplinePub;
 ros::Publisher originalCptsPub;
+ros::Publisher egoBsplinePub;
+ros::Publisher egoCptsPub;
 bool initStart = false;
 visualization_msgs::Marker startMarker;
 bool initGoal = false;
 visualization_msgs::Marker goalMarker;
 Eigen::MatrixXd originCpts;
+Eigen::MatrixXd egoCpts;
 
 void publishStartVis(){
 	ros::Rate r(10);
@@ -49,7 +52,7 @@ void publishGoalVis(){
 }	
 
 
-void publishTrajectory(const Eigen::MatrixXd& controlPoints, std::string ns){
+void publishTrajectory(const Eigen::MatrixXd& controlPoints, const ros::Publisher& cptPublisher, const ros::Publisher& trajPublisher, std::string ns, double r, double g, double b){
 	visualization_msgs::MarkerArray msg;
 	std::vector<visualization_msgs::Marker> pointVec;
 	visualization_msgs::Marker point;
@@ -65,18 +68,18 @@ void publishTrajectory(const Eigen::MatrixXd& controlPoints, std::string ns){
 		point.pose.position.y = controlPoints(1, i);
 		point.pose.position.z = controlPoints(2, i);
 		point.lifetime = ros::Duration(0.05);
-		point.scale.x = 0.3;
-		point.scale.y = 0.3;
-		point.scale.z = 0.3;
+		point.scale.x = 0.2;
+		point.scale.y = 0.2;
+		point.scale.z = 0.2;
 		point.color.a = 1.0;
-		point.color.r = 1.0;
-		point.color.g = 0.0;
-		point.color.b = 0.0;
+		point.color.r = r;
+		point.color.g = g;
+		point.color.b = b;
 		pointVec.push_back(point);
 		++pointCount;			
 	}
 	msg.markers = pointVec;	
-	originalCptsPub.publish(msg);
+	cptPublisher.publish(msg);
 
 	// trajctory
 	nav_msgs::Path traj;
@@ -91,13 +94,14 @@ void publishTrajectory(const Eigen::MatrixXd& controlPoints, std::string ns){
 		traj.poses.push_back(ps);
 	}
 	traj.header.frame_id = "map";
-	originalBsplinePub.publish(traj);
+	trajPublisher.publish(traj);
 }
 
 void publishTraj(){
 	ros::Rate r (30);
 	while (ros::ok()){
-		publishTrajectory(originCpts, "origin");
+		publishTrajectory(originCpts, originalCptsPub, originalBsplinePub, "origin", 0, 0, 1);
+		publishTrajectory(egoCpts, egoCptsPub, egoBsplinePub, "ego", 1, 0, 0);
 		r.sleep();
 	}
 }
@@ -114,7 +118,9 @@ int main(int argc, char** argv){
 	startVisPub = nh.advertise<visualization_msgs::Marker>("/start_position", 1000);
 	goalVisPub = nh.advertise<visualization_msgs::Marker>("/goal_position", 1000);
 	originalBsplinePub = nh.advertise<nav_msgs::Path>("/original_trajectory", 1000);
-	originalCptsPub = nh.advertise<visualization_msgs::MarkerArray>("original_control_points", 1000);
+	originalCptsPub = nh.advertise<visualization_msgs::MarkerArray>("/original_control_points", 1000);
+	egoBsplinePub = nh.advertise<nav_msgs::Path>("/ego_trajectory", 1000);
+	egoCptsPub = nh.advertise<visualization_msgs::MarkerArray>("/ego_control_points", 1000);
 
 	std::thread startVisWorker_ = std::thread(publishStartVis);
 	std::thread goalVisWorker_ = std::thread(publishGoalVis);
@@ -283,14 +289,22 @@ int main(int argc, char** argv){
 		// bspline trajectory
 		bool updateSuccess = bsplineTraj->updatePath(inputTraj, startEndConditions);
 		if (updateSuccess){
-			nav_msgs::Path bsplineTrajMsgTemp;
-			bool planSuccess = bsplineTraj->makePlan(bsplineTrajMsgTemp);
+			// original
+			bool planSuccess = bsplineTraj->makePlan();
 			originCpts = bsplineTraj->getControlPoints();
-			cout << "Plan success: " << planSuccess << endl;
-
+			cout << "Original Plan success: " << planSuccess << endl;
 
 		}
 
+		updateSuccess = bsplineTraj->updatePath(inputTraj, startEndConditions);
+		if (updateSuccess){
+
+			// ego gradient
+			bool egoPlanSuccess = bsplineTraj->makePlanEgoGradient();
+			egoCpts = bsplineTraj->getControlPoints();
+			cout << "Ego plan success: " << egoPlanSuccess << endl;
+
+		}
 
 		// Visualization
 		// ros::Time startTime = ros::Time::now();
