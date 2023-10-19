@@ -40,6 +40,7 @@ namespace trajPlanner{
 		ros::Publisher guidePointsVisPub_;
 		ros::Publisher inputTrajPub_;
 		ros::Publisher inputTrajPointPub_;
+		ros::Publisher egoGradientTrajPub_;
 
 
 		// bspline

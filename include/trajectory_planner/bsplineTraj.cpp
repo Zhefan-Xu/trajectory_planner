@@ -178,6 +178,9 @@ namespace trajPlanner{
 		this->guidePointsVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("bspline_traj/guide_points_and_directions", 10);
 		this->inputTrajPub_ = this->nh_.advertise<nav_msgs::Path>("bspline_traj/input_trajectory", 10);
 		this->inputTrajPointPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("bspline_traj/input_trajectory_point", 10);
+
+		// for comparison
+		this->egoGradientTrajPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>("bspline_traj/ego_gradient_traj", 10);
 	}
 
 	void bsplineTraj::registerCallback(){
