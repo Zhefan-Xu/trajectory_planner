@@ -407,6 +407,7 @@ namespace trajPlanner{
 		return -1;
 	}	
 
+	// problem
 	inline bool bsplineTraj::isControlPointRequireNewGuide(int controlPointIdx){
 		Eigen::Vector3d controlPoint = this->optData_.controlPoints.col(controlPointIdx);
 		for (size_t i=0; i<this->optData_.guidePoints[controlPointIdx].size(); ++i){

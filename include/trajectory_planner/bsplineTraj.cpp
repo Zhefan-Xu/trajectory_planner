@@ -382,6 +382,7 @@ namespace trajPlanner{
 		this->astarPaths_.clear();
 	}
 
+	// problem: if collision happen between two points, this cannot find such point
 	void bsplineTraj::findCollisionSeg(const Eigen::MatrixXd& controlPoints, std::vector<std::pair<int, int>>& collisionSeg){
 		collisionSeg.clear();
 		bool previousHasCollision = false;
