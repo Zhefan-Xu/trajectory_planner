@@ -348,6 +348,7 @@ namespace trajPlanner{
 
 		// step 3. Assign guide point and directions
 		this->assignGuidePointsSemiCircle(this->astarPaths_, this->collisionSeg_);
+		
 
 		// step 4. call solver
 		bool optimizationSuccess = this->optimizeTrajectory();
@@ -367,6 +368,44 @@ namespace trajPlanner{
 		ros::Time endTime = ros::Time::now();
 		cout << "[BsplineTraj]: Total time: " << (endTime - startTime).toSec() << endl;
 		return true;
+	}
+
+	bool bsplineTraj::makePlanEgoGradient(){
+		ros::Time startTime = ros::Time::now();
+		// step 1. find collision segment
+		this->findCollisionSeg(this->optData_.controlPoints, this->collisionSeg_); // upodate collision seg
+
+		// step 2. A* to find collision free path
+		bool pathSearchSuccess = this->pathSearch(this->collisionSeg_, this->astarPaths_);
+		if (not pathSearchSuccess){
+			// this->clear();
+			cout << "[BsplineTraj]: Fail because of A* failure." << endl;
+			return false;
+		}
+
+		// step 3. Assign guide point and directions
+		// change this function to make it ego planner's gradient
+		this->assignGuidePointsEgoGradient(this->astarPaths_, this->collisionSeg_);
+		
+
+		// step 4. call solver
+		bool optimizationSuccess = this->optimizeTrajectory();
+		// this->clear();
+		if (not optimizationSuccess){
+			cout << "[BsplineTraj]: Fail because of optimizer not finding a solution." << endl; 
+			return false;
+		}
+
+		// step 5. save the result to the class attribute
+		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
+
+		// step 6. Time reparameterization
+		this->linearFeasibilityReparam();
+
+
+		ros::Time endTime = ros::Time::now();
+		cout << "[BsplineTraj]: Total time: " << (endTime - startTime).toSec() << endl;
+		return true;		
 	}
 
 	bool bsplineTraj::makePlan(nav_msgs::Path& trajectory, bool yaw){
@@ -495,6 +534,46 @@ namespace trajPlanner{
 			}
 		}
 	}
+
+	void bsplineTraj::assignGuidePointsEgoGradient(const std::vector<std::vector<Eigen::Vector3d>>& paths, const std::vector<std::pair<int, int>>& collisionSeg){
+		// step 1 shortcut A* path to get representative waypoints
+		std::vector<std::vector<Eigen::Vector3d>> astarPathsSC;
+		this->shortcutPaths(paths, astarPathsSC);
+
+		// step 2: find corresponding path and collision segment
+		std::pair<int, int> seg;
+		std::vector<Eigen::Vector3d> path;
+		Eigen::Vector3d guidePoint, guideDirection;
+		for (size_t i=0; i<collisionSeg.size(); ++i){
+			seg = collisionSeg[i];
+			path = astarPathsSC[i];
+			for (int controlPointIdx=seg.first+1; controlPointIdx<seg.second; ++controlPointIdx){ // iterate through all collision control points
+				bool findGuidePoint = this->findGuidePointEgoGradient(controlPointIdx, seg, path, guidePoint);
+				this->optData_.guidePoints[controlPointIdx].push_back(guidePoint);
+				guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx))/(guidePoint - this->optData_.controlPoints.col(controlPointIdx)).norm();
+				// guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx));
+				this->optData_.guideDirections[controlPointIdx].push_back(guideDirection);
+				if (not findGuidePoint){
+					ROS_ERROR("[BsplineTraj]: Impossible Assignment. Something wrong!");
+				}
+			}
+
+			bool lineCollision = (seg.second - seg.first - 1 == 0);
+			if (lineCollision){
+				for (int controlPointIdx=seg.first; controlPointIdx<=seg.second; ++controlPointIdx){ // iterate through all collision control points
+					bool findGuidePoint = this->findGuidePointEgoGradient(controlPointIdx, seg, path, guidePoint);
+					this->optData_.guidePoints[controlPointIdx].push_back(guidePoint);
+					guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx))/(guidePoint - this->optData_.controlPoints.col(controlPointIdx)).norm();
+					// guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx));
+					this->optData_.guideDirections[controlPointIdx].push_back(guideDirection);
+					if (not findGuidePoint){
+						ROS_ERROR("[BsplineTraj]: Impossible Assignment. Something wrong!");
+					}
+				}
+			}
+		}
+	}
+
 
 	bool bsplineTraj::isReguideRequired(std::vector<std::pair<int, int>>& reguideCollisionSeg){
 		std::vector<std::pair<int, int>> prevCollisionSeg = this->collisionSeg_; // previous collision segment
@@ -1282,6 +1361,10 @@ namespace trajPlanner{
 
 	double bsplineTraj::getTimestep(){
 		return this->ts_;
+	}
+
+	Eigen::MatrixXd bsplineTraj::getControlPoints(){
+		return this->optData_.controlPoints;
 	}
 
 	std::vector<Eigen::Vector3d> bsplineTraj::evalTraj(){
