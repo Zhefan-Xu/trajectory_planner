@@ -5,7 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /vanilla_traj1
       Splitter Ratio: 0.5
     Tree Height: 1079
   - Class: rviz/Selection
@@ -120,13 +119,13 @@ Visualization Manager:
       Unreliable: false
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /original_control_points
       Name: origin_cpts
       Namespaces:
-        {}
+        origin: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -152,13 +151,13 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /ego_control_points
       Name: ego_cpts
       Namespaces:
-        {}
+        ego: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -184,13 +183,13 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /vanilla_ego_control_points
       Name: vanilla_cpts
       Namespaces:
-        {}
+        vanilla_ego: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -271,7 +270,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 21.586389541625977
+      Distance: 36.55659103393555
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -279,17 +278,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.5468565821647644
-        Y: -0.5171923637390137
-        Z: -0.9747288227081299
+        X: 0.26024767756462097
+        Y: -3.157743453979492
+        Z: -1.567309021949768
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9797967672348022
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 3.1154139041900635
+      Yaw: 3.23358416557312
     Saved: ~
 Window Geometry:
   Displays:

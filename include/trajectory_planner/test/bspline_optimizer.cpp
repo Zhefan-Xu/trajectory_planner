@@ -976,7 +976,7 @@ namespace ego_planner
         // 如果生成轨迹前三分之二没有碰撞，则认为成功
         if (!flag_occ)
         {
-          printf("\033[32miter(+1)=%d,time(ms)=%5.3f,total_t(ms)=%5.3f,cost=%5.3f\n\033[0m", iter_num_, time_ms, total_time_ms, final_cost);
+          // printf("\033[32miter(+1)=%d,time(ms)=%5.3f,total_t(ms)=%5.3f,cost=%5.3f\n\033[0m", iter_num_, time_ms, total_time_ms, final_cost);
           success = true;
         }
         // 如果生成轨迹有碰撞，restart，调整collision系数
@@ -986,7 +986,7 @@ namespace ego_planner
           initControlPoints(cps_.points, false); // 第二个选项为false，使用优化完的bspline重新进行优化，感觉false并没用
           new_lambda2_ *= 2;
 
-          printf("\033[32miter(+1)=%d,time(ms)=%5.3f,keep optimizing\n\033[0m", iter_num_, time_ms);
+          // printf("\033[32miter(+1)=%d,time(ms)=%5.3f,keep optimizing\n\033[0m", iter_num_, time_ms);
         }
       }
       // 如果lbfgs优化器出问题，那么重新开始，最多20次（early stop，或者goal start不正确）
@@ -994,7 +994,7 @@ namespace ego_planner
       {
         flag_force_return = true;
         rebound_times++;
-        cout << "iter=" << iter_num_ << ",time(ms)=" << time_ms << ",rebound." << endl;
+        // cout << "iter=" << iter_num_ << ",time(ms)=" << time_ms << ",rebound." << endl;
       }
       else
       {

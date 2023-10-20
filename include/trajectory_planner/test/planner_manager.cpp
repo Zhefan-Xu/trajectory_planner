@@ -47,11 +47,11 @@ namespace ego_planner
   {
 
     static int count = 0;
-    std::cout << endl
-              << "[rebo replan]: -------------------------------------" << count++ << std::endl;
-    cout.precision(3);
-    cout << "start: " << start_pt.transpose() << ", " << start_vel.transpose() << "\ngoal:" << local_target_pt.transpose() << ", " << local_target_vel.transpose()
-         << endl;
+    // std::cout << endl
+              // << "[rebo replan]: -------------------------------------" << count++ << std::endl;
+    // cout.precision(3);
+    // cout << "start: " << start_pt.transpose() << ", " << start_vel.transpose() << "\ngoal:" << local_target_pt.transpose() << ", " << local_target_vel.transpose()
+    //      << endl;
 
     // 如果离目标点距离过近，则直接返回
     if ((start_pt - local_target_pt).norm() < 0.2)
@@ -238,7 +238,7 @@ namespace ego_planner
 
     /*** STEP 2: OPTIMIZE ***/
     bool flag_step_1_success = bspline_optimizer_rebound_->BsplineOptimizeTrajRebound(ctrl_pts, ts);
-    cout << "first_optimize_step_success=" << flag_step_1_success << endl;
+    // cout << "first_optimize_step_success=" << flag_step_1_success << endl;
     if (!flag_step_1_success)
     {
       // visualization_->displayOptimalList( ctrl_pts, vis_id );
@@ -260,7 +260,7 @@ namespace ego_planner
     Eigen::MatrixXd optimal_control_points = ctrl_pts;
     if (!pos.checkFeasibility(ratio, false)){ // 通过检查control points来确定是否符合feasiblity, 这里的ratio实际上就是时间上需要放慢的倍速（>1）
     
-      cout << "Need to reallocate time." << endl;
+      // cout << "Need to reallocate time." << endl;
 
       
       flag_step_2_success = refineTrajAlgo(pos, start_end_derivatives, ratio, ts, optimal_control_points);
@@ -280,7 +280,7 @@ namespace ego_planner
     // save planned results
     updateTrajInfo(pos, ros::Time::now());
 
-    cout << "total time:\033[42m" << (t_init + t_opt + t_refine).toSec() << "\033[0m,optimize:" << (t_init + t_opt).toSec() << ",refine:" << t_refine.toSec() << endl;
+    // cout << "total time:\033[42m" << (t_init + t_opt + t_refine).toSec() << "\033[0m,optimize:" << (t_init + t_opt).toSec() << ",refine:" << t_refine.toSec() << endl;
 
     // success. YoY
     continous_failures_count_ = 0;
