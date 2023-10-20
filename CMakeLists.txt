@@ -146,6 +146,16 @@ add_library(
   include/${PROJECT_NAME}/polyTrajOccMap.cpp
 )
 
+add_library(ego_planner include/${PROJECT_NAME}/test/bspline_optimizer.cpp
+          include/${PROJECT_NAME}/test/dyn_a_star.cpp
+          include/${PROJECT_NAME}/test/grid_map.cpp
+          include/${PROJECT_NAME}/test/planning_visualization.cpp
+          include/${PROJECT_NAME}/test/raycast.cpp
+          include/${PROJECT_NAME}/test/uniform_bspline.cpp
+          include/${PROJECT_NAME}/test/polynomial_traj.cpp
+          include/${PROJECT_NAME}/test/planner_manager.cpp
+          )
+
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
@@ -190,7 +200,7 @@ target_link_libraries(testEigen ${catkin_LIBRARIES} OsqpEigen::OsqpEigen)
 target_link_libraries(testTrajSolver ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(testBspline ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(test_bspline_fit ${catkin_LIBRARIES} ${PROJECT_NAME})
-target_link_libraries(bspline_navigation_node ${catkin_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(bspline_navigation_node ${catkin_LIBRARIES} ${PROJECT_NAME} ego_planner)
 
 
 #############

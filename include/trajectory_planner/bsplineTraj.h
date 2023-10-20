@@ -307,58 +307,48 @@ namespace trajPlanner{
 	};
 
 	inline bool bsplineTraj::findGuidePointEgoGradient(int controlPointIdx, const std::pair<int, int>& seg, const std::vector<Eigen::Vector3d>& path, Eigen::Vector3d& guidePoint){
-		double minAngle = PI_const*0.0/4.0; 
-		double maxAngle = PI_const*4.0/4.0;
 		int numControlpoints = seg.second - seg.first - 1; // number of segment 
-		
-		double targetAngle; // target guide direction angle
-		Eigen::Vector3d psudoControlPoint; // projected point
-		if (numControlpoints != 0){
-			int controlPointOrder = controlPointIdx - seg.first; // sequence order of collision control point
-			targetAngle = (controlPointIdx - seg.first) * PI_const/(numControlpoints+2); // angle incremental interval
-			targetAngle = std::min(std::max(minAngle, targetAngle), maxAngle);
 
-			double ratio = double(controlPointOrder)/double(numControlpoints+1.0);
-			psudoControlPoint = ratio * (path.back() - path[0]) + path[0];
+		// we want to find a point in the a star path that is perpendicular to control point law vector
+		Eigen::Vector3d controlPointLaw (this->optData_.controlPoints.col(controlPointIdx + 1) - this->optData_.controlPoints.col(controlPointIdx));
+		int AStarID = int(path.size())/2;
+		int prevID = AStarID;
+		double val = (path[AStarID] - this->optData_.controlPoints.col(controlPointIdx)).dot(controlPointLaw);
+		double prevVal = val; 
+		Eigen::Vector3d intersectionPoint;
+		while (AStarID >= 0 and AStarID <= int(path.size())-1){
+			prevID = AStarID;	
+			if (val >= 0){
+				--AStarID;
+			}
+			else{
+				++AStarID;
+			}
+
+			val = (path[AStarID] - this->optData_.controlPoints.col(controlPointIdx)).dot(controlPointLaw);
+			if (val * prevVal <= 0 and (std::abs(val) > 0 or std::abs(prevVal) > 0)){
+				intersectionPoint = path[AStarID] +  (path[AStarID] - path[prevID]) * (controlPointLaw.dot(this->optData_.controlPoints.col(controlPointIdx) - path[AStarID])/controlPointLaw.dot(path[AStarID] - path[prevID]));
+				break;
+			}
 		}
-		else{ // line collision
-			targetAngle = PI_const/2.0;
-			psudoControlPoint = (path[0] + path.back())/2.0;
-		}
-		Eigen::Vector3d direction = path[0] - psudoControlPoint;; // guide direction
 
-
-		// calculate angle to each point in the shortcut path
-		for (size_t i=0; i<path.size()-1; ++i){
-			Eigen::Vector3d wpCurr = path[i];
-			Eigen::Vector3d wpNext = path[i+1];
-			double angleCurr = trajPlanner::angleBetweenVectors(direction, wpCurr - psudoControlPoint);
-			double angleNext = trajPlanner::angleBetweenVectors(direction, wpNext - psudoControlPoint);
-
-			if (targetAngle >= angleCurr and targetAngle <= angleNext){ // search point in this range
-				double prevAngleDiff = 0.0;
-				Eigen::Vector3d prevTempPoint;
-				for (double a=1.0; a>=0.0; a-=0.1){
-					Eigen::Vector3d tempPoint = a * wpCurr + (1-a) * wpNext;
-					double tempAngle = trajPlanner::angleBetweenVectors(direction, tempPoint - psudoControlPoint);
-					double angleDiff = tempAngle - targetAngle;
-					if (angleDiff == 0){ // we find the guide point
-						guidePoint = tempPoint;
-						return true;
+		double length = (intersectionPoint - this->optData_.controlPoints.col(controlPointIdx)).norm();
+		if (length > 1e-5){
+			for (double a=length; a>=0; a-=this->map_->getRes()){
+				Eigen::Vector3d p = (a/length) * intersectionPoint + (1.0 - a/length) * this->optData_.controlPoints.col(controlPointIdx);
+				bool occ = this->map_->isInflatedOccupied(p);
+				if (occ or a < this->map_->getRes()){
+					if (occ){
+						a += this->map_->getRes();
 					}
-
-					if (angleDiff * prevAngleDiff < 0){ // the guide point is between two
-						double totalDiff = std::abs(angleDiff) + std::abs(prevAngleDiff);
-						guidePoint = std::abs(prevAngleDiff)/totalDiff * (tempPoint - prevTempPoint) + prevTempPoint;
-						return true;
-					}
-
-					prevAngleDiff = angleDiff;
-					prevTempPoint = tempPoint;
+					guidePoint = (a/length) * intersectionPoint + (1.0 - a/length) * this->optData_.controlPoints.col(controlPointIdx);
+					break;
 				}
 			}
 		}
-		return false;
+		// cout << "control point idx: " << controlPointIdx << endl;
+		// cout << "guide point: " << guidePoint.transpose() << endl;
+		return true;
 	};
 
 	inline bool bsplineTraj::hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints){

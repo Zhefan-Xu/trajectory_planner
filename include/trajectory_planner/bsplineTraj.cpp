@@ -548,11 +548,16 @@ namespace trajPlanner{
 			seg = collisionSeg[i];
 			path = astarPathsSC[i];
 			for (int controlPointIdx=seg.first+1; controlPointIdx<seg.second; ++controlPointIdx){ // iterate through all collision control points
+				cout << "1" << endl;
 				bool findGuidePoint = this->findGuidePointEgoGradient(controlPointIdx, seg, path, guidePoint);
+				cout << "2" << endl;
 				this->optData_.guidePoints[controlPointIdx].push_back(guidePoint);
+				cout << "3" << endl;
 				guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx))/(guidePoint - this->optData_.controlPoints.col(controlPointIdx)).norm();
+				cout << "4" << endl;
 				// guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx));
 				this->optData_.guideDirections[controlPointIdx].push_back(guideDirection);
+				cout << "5" << endl;
 				if (not findGuidePoint){
 					ROS_ERROR("[BsplineTraj]: Impossible Assignment. Something wrong!");
 				}
