@@ -57,7 +57,8 @@ namespace trajPlanner{
 		double weightSmoothness_;
 		double weightFeasibility_;
 		double weightDynamicObstacle_;
-		double notCheckRatio_ = 0.0;
+		// double notCheckRatio_ = 0.0;
+		double notCheckRatio_ = 1.0/3.0;
 		bool planInZAxis_;
 		double minHeight_;
 		double maxHeight_;
@@ -355,7 +356,7 @@ namespace trajPlanner{
 		std::vector<Eigen::Vector3d> trajectory;
 		Eigen::Vector3d p;
 		trajPlanner::bspline bsplineTraj = trajPlanner::bspline (bsplineDegree, controlPoints, this->controlPointsTs_);
-		for (double t=0; t<=bsplineTraj.getDuration(); t+=this->ts_){
+		for (double t=0; t<=(1.0-this->notCheckRatio_)*bsplineTraj.getDuration(); t+=this->ts_){
 			p = bsplineTraj.at(t);
 			trajectory.push_back(p);
 		}		
@@ -371,7 +372,8 @@ namespace trajPlanner{
 
 	inline bool bsplineTraj::hasCollisionTrajectory(const Eigen::MatrixXd& controlPoints, Eigen::Vector3d& firstCollisionPos){
 		std::vector<Eigen::Vector3d> trajectory = this->evalTraj();
-		for (Eigen::Vector3d p : trajectory){
+		for (int i=0; i<(1.0-this->notCheckRatio_)*int(trajectory.size()); ++i){
+			Eigen::Vector3d p = trajectory[i];
 			bool hasCollision = false;
 			hasCollision = this->map_->isInflatedOccupied(p);
 			// if (p(2) > this->maxHeight_ or p(2) < this->minHeight_){
