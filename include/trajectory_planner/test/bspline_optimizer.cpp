@@ -352,6 +352,7 @@ namespace ego_planner
     // 进入条件是，超过三次的iteration（三次都未成功），并且轨迹足够smooth（不确定为什么需要这一个条件）
     if (iter_num > 3 && smoothness_cost / (cps_.size - 2 * order_) < 0.1) // 0.1 is an experimental value that indicates the trajectory is smooth enough.
     {
+      // cout << "force stop type change: " << iter_num << " smoothness_cost: " << smoothness_cost / (cps_.size - 2 * order_)  << endl;
       check_collision_and_rebound(); // 这个函数会检查是否rebound，并且设置force_stop_type，并且终止现在的优化
     }
     // 注意：如果上一步的return是true，这里下面就不会继续执行了，优化器直接停止退出
@@ -903,8 +904,10 @@ namespace ego_planner
     // 需要继续优化的条件：
     // 1. 轨迹的前三分之二有collision，并且没有达到最大重优化的数量：3次
     // 2. 如果lbfgs出现error 或者 需要重新rebound(全局变量控制，大概是重新assign点和gradient？) 或者 重新rebound的次数超过20
+    int count_iter = 0;
     do
     {
+      ++count_iter;
       /* ---------- prepare ---------- */
       min_cost_ = std::numeric_limits<double>::max();
       iter_num_ = 0;
@@ -940,11 +943,13 @@ namespace ego_planner
 
       /* ---------- success temporary, check collision again ---------- */
       // lbfgs优化成功（注意并不代表轨迹优化成功，只说明优化没有出错）
+      
       if (result == lbfgs::LBFGS_CONVERGENCE ||
           result == lbfgs::LBFGSERR_MAXIMUMITERATION ||
           result == lbfgs::LBFGS_ALREADY_MINIMIZED ||
           result == lbfgs::LBFGS_STOP)
       {
+        
         //ROS_WARN("Solver error in planning!, return = %s", lbfgs::lbfgs_strerror(result));
         flag_force_return = false;
 
@@ -1001,10 +1006,10 @@ namespace ego_planner
         ROS_WARN("Solver error. Return = %d, %s. Skip this planning.", result, lbfgs::lbfgs_strerror(result));
         // while (ros::ok());
       }
-
+      cout << "this iter: flag occ: " << flag_occ << " force_stop_type_: " << (force_stop_type_==STOP_FOR_REBOUND) << endl;
     } while ((flag_occ && restart_nums < MAX_RESART_NUMS_SET) ||
              (flag_force_return && force_stop_type_ == STOP_FOR_REBOUND && rebound_times <= 20));
-
+    cout << "finish with iter: " << count_iter << endl;
     return success;
   }
 

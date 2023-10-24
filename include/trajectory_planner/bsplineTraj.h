@@ -46,7 +46,7 @@ namespace trajPlanner{
 
 		// bspline
 		double controlPointDistance_ = 0.20; // magic number 0.2, 0.25 (new)
-		double controlPointsTs_ = 0.10; // magic number 0.1, 0.2 (new)
+		double controlPointsTs_ = 0.15; // magic number 0.1, 0.2 (new)
 		trajPlanner::bspline bspline_; // this is used to evaluate bspline. not for optimization
 		trajPlanner::optData optData_; // all optimization information including control points
 		double ts_; // original time step and adjusted time step (this is for control points)
@@ -114,6 +114,7 @@ namespace trajPlanner{
 		void assignGuidePointDynamicObstacle();
 		bool isReguideRequired(std::vector<std::pair<int, int>>& reguideCollisionSeg);
 		bool optimizeTrajectory();
+		bool optimizeTrajectoryEgo();
 		int optimize(); // optimize once
 		void adjustPathLength(const std::vector<Eigen::Vector3d>& path, std::vector<Eigen::Vector3d>& adjustedPath);
 		void adjustFitPointDistance(const std::vector<Eigen::Vector3d>& fitpoints, std::vector<Eigen::Vector3d>& adjustedFitPoints, double& adjustedTimeInterval);

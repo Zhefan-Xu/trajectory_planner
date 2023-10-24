@@ -364,7 +364,7 @@ int main(int argc, char** argv){
 			ps.pose.position.z = inputPointSet[i](2);
 			vanillaInputTraj.poses.push_back(ps);
 		}
-
+		cout << "vanilla ego planner time step: " << vanillaEgoTs << endl;
 		cout << "vanilla ego planner success: " << planSuccessVanilla << endl;
 
 		// Visualization

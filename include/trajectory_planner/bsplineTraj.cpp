@@ -367,6 +367,13 @@ namespace trajPlanner{
 
 		ros::Time endTime = ros::Time::now();
 		cout << "[BsplineTraj]: Total time: " << (endTime - startTime).toSec() << endl;
+		for (int i=0; i<this->optData_.controlPoints.cols();++i){
+			cout << "Current point: " << this->optData_.controlPoints.col(i).transpose() << endl;
+			cout << "---------------------------------------------------------" << endl;			
+			for (int j=0; j<this->optData_.guidePoints[i].size(); ++j){	
+				cout << "guide point " << j << " :" << this->optData_.guidePoints[i][j].transpose() << endl; 
+			}
+		}
 		return true;
 	}
 
@@ -389,7 +396,7 @@ namespace trajPlanner{
 		
 
 		// step 4. call solver
-		bool optimizationSuccess = this->optimizeTrajectory();
+		bool optimizationSuccess = this->optimizeTrajectoryEgo();
 		// this->clear();
 		if (not optimizationSuccess){
 			cout << "[BsplineTraj]: Fail because of optimizer not finding a solution." << endl; 
@@ -681,6 +688,74 @@ namespace trajPlanner{
 		return true;
 	}
 
+	bool bsplineTraj::optimizeTrajectoryEgo(){
+		this->optimize();
+		double weightDistance0 = this->weightDistance_;
+		double weightDynamicObstacle0 = this->weightDynamicObstacle_;
+		int failCount = 0; 
+		std::vector<vector<Eigen::Vector3d>> tempAstarPaths; // in case path search fail
+		bool hasCollision, hasDynamicCollision;
+		while (ros::ok()){
+			hasCollision = this->hasCollisionTrajectory(this->optData_.controlPoints);
+			if (this->optData_.dynamicObstaclesPos.size() != 0){
+				hasDynamicCollision = this->hasDynamicCollisionTrajectory(this->optData_.controlPoints);
+			}
+			else{
+				hasDynamicCollision = false;
+			}
+
+			if (not hasCollision and not hasDynamicCollision){
+				break;
+			}
+
+			if (failCount >= 4){
+				std::vector<std::pair<int, int>> collisionSeg;
+				this->findCollisionSeg(this->optData_.controlPoints, collisionSeg);
+				bool pathSearchSuccess = this->pathSearch(collisionSeg, tempAstarPaths);	
+				if (pathSearchSuccess){
+					this->astarPaths_ = tempAstarPaths; 
+					this->assignGuidePointsEgoGradient(tempAstarPaths, collisionSeg);
+				}				
+			}
+
+			if (failCount >= 8){
+				this->weightDistance_ = weightDistance0;
+				this->weightDynamicObstacle_ = weightDynamicObstacle0;
+				return false;
+			}
+
+			if (hasCollision){
+				// need to determine whether the reguide is required
+				std::vector<std::pair<int, int>> reguideCollisionSeg;
+				if (this->isReguideRequired(reguideCollisionSeg)){ // this will update collision segment for next iteration
+					bool pathSearchSuccess = this->pathSearch(reguideCollisionSeg, tempAstarPaths);
+					
+					if (pathSearchSuccess){
+						this->astarPaths_ = tempAstarPaths; 
+						this->assignGuidePointsEgoGradient(tempAstarPaths, reguideCollisionSeg);
+					}
+					else{
+						this->weightDistance_ *= 2.0;
+						++failCount;
+					}
+				}
+				else{
+					this->weightDistance_ *= 2.0; // no need reguide: this means weight is not big enough	
+					++failCount;
+				}
+			}
+
+			if (hasDynamicCollision){
+				this->weightDynamicObstacle_ *= 2.0;
+				++failCount;
+			}
+			this->optimize();
+		}
+		this->weightDistance_ = weightDistance0;
+		this->weightDynamicObstacle_ = weightDynamicObstacle0;
+		return true;
+	}
+
 	int bsplineTraj::optimize(){
 		// optimize information
 		int variableNum = 3 * (this->optData_.controlPoints.cols() - 2*bsplineDegree);
@@ -896,8 +971,8 @@ namespace trajPlanner{
 	void bsplineTraj::getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
 		// velocity and acceleration cost
 		cost = 0.0;
-		double maxVel = 1.0;
-		double maxAcc = 1.0;
+		double maxVel = this->maxVel_;
+		double maxAcc = this->maxAcc_;
 
 		// velocity cost
 		double tsInvSqr = 1/pow(this->controlPointsTs_, 2); // for balancing velocity and acceleration scales
