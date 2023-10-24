@@ -389,8 +389,8 @@ int main(int argc, char** argv){
 		// if (goal[0] == 0 and goal[1] == 0 and goal[2] == 0){ // fix corner issue
 		// 	firstTime = true;
 		// }
-		start = goal;
-		// firstTime = true;
+		// start = goal;
+		firstTime = true;
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;
 	}

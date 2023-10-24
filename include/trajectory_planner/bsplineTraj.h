@@ -45,8 +45,8 @@ namespace trajPlanner{
 
 
 		// bspline
-		double controlPointDistance_ = 0.25; // magic number 0.2, 0.25 (new)
-		double controlPointsTs_ = 0.2; // magic number 0.1, 0.2 (new)
+		double controlPointDistance_ = 0.20; // magic number 0.2, 0.25 (new)
+		double controlPointsTs_ = 0.10; // magic number 0.1, 0.2 (new)
 		trajPlanner::bspline bspline_; // this is used to evaluate bspline. not for optimization
 		trajPlanner::optData optData_; // all optimization information including control points
 		double ts_; // original time step and adjusted time step (this is for control points)
@@ -57,8 +57,8 @@ namespace trajPlanner{
 		double weightSmoothness_;
 		double weightFeasibility_;
 		double weightDynamicObstacle_;
-		// double notCheckRatio_ = 0.0;
-		double notCheckRatio_ = 1.0/3.0;
+		double notCheckRatio_ = 0.0;
+		// double notCheckRatio_ = 1.0/3.0;
 		bool planInZAxis_;
 		double minHeight_;
 		double maxHeight_;
