@@ -27,6 +27,8 @@ ros::Publisher egoBsplinePub;
 ros::Publisher egoCptsPub;
 ros::Publisher vanillaEgoBsplinePub;
 ros::Publisher vanillaEgoCptsPub;
+ros::Publisher inputTrajPub;
+ros::Publisher vanillaInputTrajPub;
 
 bool initStart = false;
 visualization_msgs::Marker startMarker;
@@ -36,6 +38,9 @@ Eigen::MatrixXd originCpts;
 Eigen::MatrixXd egoCpts;
 Eigen::MatrixXd vanillaEgoCpts;
 double vanillaEgoTs;
+nav_msgs::Path inputTraj;
+nav_msgs::Path vanillaInputTraj;
+
 
 void publishStartVis(){
 	ros::Rate r(10);
@@ -56,6 +61,7 @@ void publishGoalVis(){
 		r.sleep();
 	}
 }	
+
 
 
 void publishTrajectory(const Eigen::MatrixXd& controlPoints, const ros::Publisher& cptPublisher, const ros::Publisher& trajPublisher, std::string ns, double r, double g, double b, double ts){
@@ -103,9 +109,16 @@ void publishTrajectory(const Eigen::MatrixXd& controlPoints, const ros::Publishe
 	trajPublisher.publish(traj);
 }
 
+void publishPathMsg(const ros::Publisher& trajPub, nav_msgs::Path& traj){
+	traj.header.frame_id = "map";
+	trajPub.publish(traj);
+}
+
 void publishTraj(){
 	ros::Rate r (30);
 	while (ros::ok()){
+		publishPathMsg(inputTrajPub, inputTraj);
+		publishPathMsg(vanillaInputTrajPub, vanillaInputTraj);
 		publishTrajectory(originCpts, originalCptsPub, originalBsplinePub, "origin", 0, 0, 1, 0.2);
 		publishTrajectory(egoCpts, egoCptsPub, egoBsplinePub, "ego", 1, 0, 0, 0.2);
 		publishTrajectory(vanillaEgoCpts, vanillaEgoCptsPub, vanillaEgoBsplinePub, "vanilla_ego", 0, 1, 1, 0.2);
@@ -130,6 +143,8 @@ int main(int argc, char** argv){
 	egoCptsPub = nh.advertise<visualization_msgs::MarkerArray>("/ego_control_points", 1000);
 	vanillaEgoBsplinePub = nh.advertise<nav_msgs::Path>("/vanilla_ego_trajectory", 1000);
 	vanillaEgoCptsPub = nh.advertise<visualization_msgs::MarkerArray>("/vanilla_ego_control_points", 1000);
+	inputTrajPub = nh.advertise<nav_msgs::Path>("/input_traj", 1000);
+	vanillaInputTrajPub = nh.advertise<nav_msgs::Path>("/vanilla_ego_input_traj", 1000);
 
 	std::thread startVisWorker_ = std::thread(publishStartVis);
 	std::thread goalVisWorker_ = std::thread(publishGoalVis);
@@ -281,7 +296,6 @@ int main(int argc, char** argv){
 
 
 		// adjust input traj length
-		nav_msgs::Path inputTraj;
 		nav_msgs::Path adjustedInputPolyTraj;
 		bool satisfyDistanceCheck = false;
 		double initTs = bsplineTraj->getInitTs();
@@ -324,14 +338,33 @@ int main(int argc, char** argv){
 
 		}
 
+
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
 		// vanilla bspline
 		Eigen::Vector3d startPt (start[0], start[1], start[2]);
 		Eigen::Vector3d goalPt (goal[0], goal[1], goal[2]);
 		Eigen::Vector3d startVel = startEndConditions[0];
 		Eigen::Vector3d startAcc = startEndConditions[2];
 		Eigen::Vector3d goalVel = startEndConditions[1];
+		std::vector<Eigen::Vector3d> inputPointSet;
 
-		bool planSuccessVanilla = vanillaEgoPlanner->reboundReplan(startPt, startVel, startAcc, goalPt, goalVel,  true, false, vanillaEgoCpts, vanillaEgoTs);
+		bool planSuccessVanilla = vanillaEgoPlanner->reboundReplan(startPt, startVel, startAcc, goalPt, goalVel,  true, false, vanillaEgoCpts, vanillaEgoTs, inputPointSet);
+		vanillaInputTraj.poses.clear();
+		for (int i=0; i<int(inputPointSet.size()); ++i){
+			geometry_msgs::PoseStamped ps;
+			ps.pose.position.x = inputPointSet[i](0);
+			ps.pose.position.y = inputPointSet[i](1);
+			ps.pose.position.z = inputPointSet[i](2);
+			vanillaInputTraj.poses.push_back(ps);
+		}
+
 		cout << "vanilla ego planner success: " << planSuccessVanilla << endl;
 
 		// Visualization

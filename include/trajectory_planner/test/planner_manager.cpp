@@ -43,7 +43,7 @@ namespace ego_planner
   // flag_randomPolyTraj:是否产生随机点用于生成min snap轨迹，主要是用于首次规划失败后
   bool EGOPlannerManager::reboundReplan(Eigen::Vector3d start_pt, Eigen::Vector3d start_vel,
                                         Eigen::Vector3d start_acc, Eigen::Vector3d local_target_pt,
-                                        Eigen::Vector3d local_target_vel, bool flag_polyInit, bool flag_randomPolyTraj, Eigen::MatrixXd& output_cpts, double& output_ts)
+                                        Eigen::Vector3d local_target_vel, bool flag_polyInit, bool flag_randomPolyTraj, Eigen::MatrixXd& output_cpts, double& output_ts, vector<Eigen::Vector3d>& input_point_set)
   {
 
     static int count = 0;
@@ -223,6 +223,7 @@ namespace ego_planner
     // 用bspline进行拟合
     Eigen::MatrixXd ctrl_pts;
     UniformBspline::parameterizeToBspline(ts, point_set, start_end_derivatives, ctrl_pts);
+    input_point_set = point_set;
 
     // 这一步找到所有control points对应的gradient，a star paths只用于显示
     vector<vector<Eigen::Vector3d>> a_star_pathes;
