@@ -46,7 +46,7 @@ namespace trajPlanner{
 
 		// bspline
 		double controlPointDistance_ = 0.4; // magic number 0.2, 0.25 (new)
-		double controlPointsTs_ = 0.15; // magic number 0.1, 0.2 (new)
+		double controlPointsTs_ = 0.25; // magic number 0.1, 0.2 (new)
 		trajPlanner::bspline bspline_; // this is used to evaluate bspline. not for optimization
 		trajPlanner::optData optData_; // all optimization information including control points
 		double ts_; // original time step and adjusted time step (this is for control points)
