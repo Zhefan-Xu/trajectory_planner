@@ -366,14 +366,14 @@ namespace trajPlanner{
 
 
 		ros::Time endTime = ros::Time::now();
-		cout << "[BsplineTraj]: Total time: " << (endTime - startTime).toSec() << endl;
-		for (int i=0; i<this->optData_.controlPoints.cols();++i){
-			cout << "Current point: " << this->optData_.controlPoints.col(i).transpose() << endl;
-			cout << "---------------------------------------------------------" << endl;			
-			for (int j=0; j<this->optData_.guidePoints[i].size(); ++j){	
-				cout << "guide point " << j << " :" << this->optData_.guidePoints[i][j].transpose() << endl; 
-			}
-		}
+		// cout << "[BsplineTraj]: Total time: " << (endTime - startTime).toSec() << endl;
+		// for (int i=0; i<this->optData_.controlPoints.cols();++i){
+		// 	cout << "Current point: " << this->optData_.controlPoints.col(i).transpose() << endl;
+		// 	cout << "---------------------------------------------------------" << endl;			
+		// 	for (int j=0; j<this->optData_.guidePoints[i].size(); ++j){	
+		// 		cout << "guide point " << j << " :" << this->optData_.guidePoints[i][j].transpose() << endl; 
+		// 	}
+		// }
 		return true;
 	}
 
@@ -842,6 +842,10 @@ namespace trajPlanner{
 		this->getFeasibilityCost(this->optData_.controlPoints, feasibilityCost, feasibilityGradient);
 		this->getDynamicObstacleCost(this->optData_.controlPoints, dynamicObstacleCost, dynamicObstacleGradient);
 
+		cout << "Collision Cost: " << distanceCost << endl;
+		cout << "Smoothness Cost: " << smoothnessCost << endl;
+		cout << "Feasiblity Cost: " << feasibilityCost << endl;
+
 		// total cost and gradient
 		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + this->weightFeasibility_ * feasibilityCost + this->weightDynamicObstacle_ * dynamicObstacleCost;
 		Eigen::MatrixXd totalGradient = this->weightDistance_ * distanceGradient + this->weightSmoothness_ * smoothnessGradient + this->weightFeasibility_ * feasibilityGradient + this->weightDynamicObstacle_ * dynamicObstacleGradient;
@@ -971,8 +975,8 @@ namespace trajPlanner{
 	void bsplineTraj::getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
 		// velocity and acceleration cost
 		cost = 0.0;
-		double maxVel = this->maxVel_;
-		double maxAcc = this->maxAcc_;
+		double maxVel = this->controlPointDistance_/this->controlPointsTs_;
+		double maxAcc = this->controlPointDistance_/this->controlPointsTs_;
 
 		// velocity cost
 		double tsInvSqr = 1/pow(this->controlPointsTs_, 2); // for balancing velocity and acceleration scales

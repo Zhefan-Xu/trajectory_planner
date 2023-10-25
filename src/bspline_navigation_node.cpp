@@ -325,7 +325,6 @@ int main(int argc, char** argv){
 			bool planSuccess = bsplineTraj->makePlan();
 			originCpts = bsplineTraj->getControlPoints();
 			cout << "Original Plan success: " << planSuccess << endl;
-
 		}
 
 		updateSuccess = bsplineTraj->updatePath(inputTraj, startEndConditions);
