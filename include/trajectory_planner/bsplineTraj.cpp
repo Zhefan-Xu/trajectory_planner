@@ -735,12 +735,12 @@ namespace trajPlanner{
 						this->assignGuidePointsEgoGradient(tempAstarPaths, reguideCollisionSeg);
 					}
 					else{
-						this->weightDistance_ *= 2.0;
+						this->weightDistance_ *= 1.2;
 						++failCount;
 					}
 				}
 				else{
-					this->weightDistance_ *= 2.0; // no need reguide: this means weight is not big enough	
+					this->weightDistance_ *= 1.2; // no need reguide: this means weight is not big enough	
 					++failCount;
 				}
 			}
@@ -767,8 +767,8 @@ namespace trajPlanner{
 		lbfgs::lbfgs_parameter_t solverParams;
 		lbfgs::lbfgs_load_default_parameters(&solverParams);
 		solverParams.mem_size = 16;
-		solverParams.max_iterations = 200;
-		solverParams.g_epsilon = 0.01;
+		solverParams.max_iterations = 300;
+		solverParams.g_epsilon = 0.005;
 
 		int optimizeResult = lbfgs::lbfgs_optimize(variableNum, x, &finalCost, bsplineTraj::solverCostFunction, NULL, NULL, this, &solverParams);
 
