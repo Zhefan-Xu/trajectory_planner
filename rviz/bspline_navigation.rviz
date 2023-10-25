@@ -5,9 +5,6 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Grid1
-        - /input traj1
-        - /origin_traj1
-        - /vanilla_traj1
       Splitter Ratio: 0.5
     Tree Height: 1106
   - Class: rviz/Selection
@@ -305,17 +302,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -3.8098278045654297
-        Y: 2.869454860687256
-        Z: -1.4560201168060303
+        X: 0.029172047972679138
+        Y: -5.335804462432861
+        Z: -1.452034831047058
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.4947963953018188
       Target Frame: <Fixed Frame>
-      Yaw: 0.12543773651123047
+      Yaw: 1.628624677658081
     Saved: ~
 Window Geometry:
   Displays:

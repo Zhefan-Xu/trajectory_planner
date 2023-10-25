@@ -474,6 +474,17 @@ namespace trajPlanner{
 
 			previousHasCollision = hasCollision;
 		}
+
+		// finding collisions for line seg
+		for (int i=bsplineDegree; i<=endIdx-1; ++i){
+			Eigen::Vector3d p1 = controlPoints.col(i);
+			Eigen::Vector3d p2 = controlPoints.col(i+1);
+			if ((not this->map_->isInflatedOccupied(p1)) and (not this->map_->isInflatedOccupied(p2))){
+				if (this->map_->isInflatedOccupiedLine(p1, p2)){
+					collisionSeg.push_back({i, i+1});
+				}
+			}
+		}
 	}
 
 	bool bsplineTraj::pathSearch(const std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths){
@@ -842,9 +853,9 @@ namespace trajPlanner{
 		this->getFeasibilityCost(this->optData_.controlPoints, feasibilityCost, feasibilityGradient);
 		this->getDynamicObstacleCost(this->optData_.controlPoints, dynamicObstacleCost, dynamicObstacleGradient);
 
-		cout << "Collision Cost: " << distanceCost << endl;
-		cout << "Smoothness Cost: " << smoothnessCost << endl;
-		cout << "Feasiblity Cost: " << feasibilityCost << endl;
+		// cout << "Collision Cost: " << distanceCost << endl;
+		// cout << "Smoothness Cost: " << smoothnessCost << endl;
+		// cout << "Feasiblity Cost: " << feasibilityCost << endl;
 
 		// total cost and gradient
 		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + this->weightFeasibility_ * feasibilityCost + this->weightDynamicObstacle_ * dynamicObstacleCost;
