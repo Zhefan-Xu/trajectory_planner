@@ -424,6 +424,17 @@ namespace trajPlanner{
 
 			previousHasCollision = hasCollision;
 		}
+
+		// finding collisions for line seg
+		for (int i=bsplineDegree; i<=endIdx-1; ++i){
+			Eigen::Vector3d p1 = controlPoints.col(i);
+			Eigen::Vector3d p2 = controlPoints.col(i+1);
+			if ((not this->map_->isInflatedOccupied(p1)) and (not this->map_->isInflatedOccupied(p2))){
+				if (this->map_->isInflatedOccupiedLine(p1, p2)){
+					collisionSeg.push_back({i, i+1});
+				}
+			}
+		}
 	}
 
 	bool bsplineTraj::pathSearch(const std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths){
