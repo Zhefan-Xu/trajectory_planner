@@ -657,7 +657,7 @@ namespace trajPlanner{
 
 			if (exceedLength){
 				free = not this->map_->isInflatedOccupied(p2);
-				if (free and minLength >= 0.5){
+				if (free and minLength >= 1.5){
 					adjustedPath.push_back(p2);
 					return;
 				}
