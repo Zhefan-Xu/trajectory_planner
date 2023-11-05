@@ -223,23 +223,25 @@ namespace trajPlanner{
 		}
 
 		// remove too close points
-		Eigen::Vector3d prevPoint;
+		// Eigen::Vector3d prevPoint;
 		std::vector<Eigen::Vector3d> adjustedPoints;
-		for (size_t i=0; i<adjustedCurveFitPoints.size(); ++i){
-			Eigen::Vector3d p = adjustedCurveFitPoints[i];
-			if (i == 0){
-				adjustedPoints.push_back(p);
-				prevPoint = p;
-			}
-			else{
-				double dist = (p - prevPoint).norm();
-				if (dist >= this->controlPointDistance_ * 0.8){
-					adjustedPoints.push_back(p);
-					prevPoint = p;
-				}
-			}
-		}
-		adjustedPoints.push_back(adjustedPoints.back());		
+		// for (size_t i=0; i<adjustedCurveFitPoints.size(); ++i){
+		// 	Eigen::Vector3d p = adjustedCurveFitPoints[i];
+		// 	if (i == 0){
+		// 		adjustedPoints.push_back(p);
+		// 		prevPoint = p;
+		// 	}
+		// 	else{
+		// 		double dist = (p - prevPoint).norm();
+		// 		if (dist >= this->controlPointDistance_ * 0.8){
+		// 			adjustedPoints.push_back(p);
+		// 			prevPoint = p;
+		// 		}
+		// 	}
+		// }
+		// adjustedPoints.push_back(adjustedPoints.back());		
+
+		adjustedPoints = adjustedCurveFitPoints;
 
 		this->eigenPointsToPathMsg(adjustedPoints, adjustedPath);
 		finalTime = (adjustedCurveFitPoints.size()-1) * dt;
@@ -986,8 +988,12 @@ namespace trajPlanner{
 	void bsplineTraj::getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
 		// velocity and acceleration cost
 		cost = 0.0;
-		double maxVel = 1.5 * this->controlPointDistance_/this->controlPointsTs_;
-		double maxAcc = 3 * maxVel;
+		// double maxVel = 1.5 * this->controlPointDistance_/this->controlPointsTs_;
+		// double maxAcc = 3 * maxVel;
+
+		double maxVel = this->maxVel_;
+		double maxAcc = this->maxAcc_;
+
 
 		// velocity cost
 		double tsInvSqr = 1/pow(this->controlPointsTs_, 2); // for balancing velocity and acceleration scales

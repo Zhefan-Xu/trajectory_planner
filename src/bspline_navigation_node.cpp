@@ -29,6 +29,8 @@ ros::Publisher vanillaEgoBsplinePub;
 ros::Publisher vanillaEgoCptsPub;
 ros::Publisher inputTrajPub;
 ros::Publisher vanillaInputTrajPub;
+ros::Publisher inputTrajPointPub;
+ros::Publisher vanillaInputTrajPointPub;
 
 bool initStart = false;
 visualization_msgs::Marker startMarker;
@@ -114,6 +116,36 @@ void publishPathMsg(const ros::Publisher& trajPub, nav_msgs::Path& traj){
 	trajPub.publish(traj);
 }
 
+void publishInputPath(const ros::Publisher& inputPathPub, const nav_msgs::Path& input, std::string ns, double r, double g, double b){
+	visualization_msgs::MarkerArray msg;
+	std::vector<visualization_msgs::Marker> pointVec;
+	visualization_msgs::Marker point;
+	int pointCount = 0;
+	for (int i=0; i<int(input.poses.size()); ++i){
+		point.header.frame_id = "map";
+		point.header.stamp = ros::Time::now();
+		point.ns = ns;
+		point.id = pointCount;
+		point.type = visualization_msgs::Marker::SPHERE;
+		point.action = visualization_msgs::Marker::ADD;
+		point.pose.position.x = input.poses[i].pose.position.x;
+		point.pose.position.y = input.poses[i].pose.position.y;
+		point.pose.position.z = input.poses[i].pose.position.z;
+		point.lifetime = ros::Duration(0.1);
+		point.scale.x = 0.15;
+		point.scale.y = 0.15;
+		point.scale.z = 0.15;
+		point.color.a = 0.7;
+		point.color.r = r;
+		point.color.g = g;
+		point.color.b = b;
+		pointVec.push_back(point);
+		++pointCount;			
+	}
+	msg.markers = pointVec;
+	inputPathPub.publish(msg);
+}
+
 void publishTraj(){
 	ros::Rate r (30);
 	while (ros::ok()){
@@ -122,9 +154,15 @@ void publishTraj(){
 		publishTrajectory(originCpts, originalCptsPub, originalBsplinePub, "origin", 0, 0, 1, 0.2);
 		publishTrajectory(egoCpts, egoCptsPub, egoBsplinePub, "ego", 1, 0, 0, 0.2);
 		publishTrajectory(vanillaEgoCpts, vanillaEgoCptsPub, vanillaEgoBsplinePub, "vanilla_ego", 0, 1, 1, 0.2);
+		
+		publishInputPath(inputTrajPointPub, inputTraj, "origin", 0, 0, 1);
+		publishInputPath(vanillaInputTrajPointPub, vanillaInputTraj, "vanilla_ego", 0, 1, 0);
 		r.sleep();
 	}
 }
+
+
+
 
 
 
@@ -145,6 +183,8 @@ int main(int argc, char** argv){
 	vanillaEgoCptsPub = nh.advertise<visualization_msgs::MarkerArray>("/vanilla_ego_control_points", 1000);
 	inputTrajPub = nh.advertise<nav_msgs::Path>("/input_traj", 1000);
 	vanillaInputTrajPub = nh.advertise<nav_msgs::Path>("/vanilla_ego_input_traj", 1000);
+	inputTrajPointPub = nh.advertise<visualization_msgs::MarkerArray>("/input_traj_point", 1000);
+	vanillaInputTrajPointPub = nh.advertise<visualization_msgs::MarkerArray>("/vanilla_ego_input_traj_point", 1000);
 
 	std::thread startVisWorker_ = std::thread(publishStartVis);
 	std::thread goalVisWorker_ = std::thread(publishGoalVis);

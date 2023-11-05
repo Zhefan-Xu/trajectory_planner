@@ -29,7 +29,7 @@ bspline_traj/timestep: 0.1
 bspline_traj/distance_threshold: 0.5
 bspline_traj/max_vel: 1.0 #velocity
 bspline_traj/max_acc: 1.0
-bspline_traj/weight_distance: 1.0
+bspline_traj/weight_distance: 0.5
 bspline_traj/weight_smoothness: 1.0
 bspline_traj/weight_feasibility: 0.1
 bspline_traj/plan_in_z_axis: false
