@@ -392,6 +392,18 @@ namespace trajPlanner{
 		// step 1. find collision segment
 		this->findCollisionSeg(this->optData_.controlPoints, this->collisionSeg_); // upodate collision seg
 
+		// print the size of control points and size of collision segments
+		cout << "----------------OUR---------------------------" << endl;
+		cout << "total control points size: " << this->optData_.controlPoints.cols() << endl;
+		cout << "Number of collision segments: " << int(this->collisionSeg_.size()) << endl;
+		cout << "==================================================" << endl;
+		for (int i=0; i<int(this->collisionSeg_.size()); ++i){
+			cout << "collision seg: " << i << " from " <<  this->collisionSeg_[i].first << " to " << this->collisionSeg_[i].second << endl;
+		    cout << "First point: " << this->optData_.controlPoints.col(this->collisionSeg_[i].first).transpose() << " Second point: " <<  this->optData_.controlPoints.col(this->collisionSeg_[i].second).transpose() << endl;
+		}
+		cout << "==================================================" << endl;
+
+
 		// step 2. A* to find collision free path
 		bool pathSearchSuccess = this->pathSearch(this->collisionSeg_, this->astarPaths_);
 		if (not pathSearchSuccess){
@@ -459,7 +471,7 @@ namespace trajPlanner{
 					pairStartIdx = i-1;
 				}
 				else{ // if no collision and collision status changes: this means this is an end of a collision segment. record the previous point
-					pairEndIdx = i+1;
+					pairEndIdx = i;
 					std::pair<int, int> seg {pairStartIdx, pairEndIdx};
 					collisionSeg.push_back(seg);
 				}

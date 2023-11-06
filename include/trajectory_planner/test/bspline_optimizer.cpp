@@ -98,6 +98,17 @@ namespace ego_planner
       }
     }
 
+    // print collision segments
+    cout << "----------------EGO---------------------------" << endl;
+    cout << "total control points size (EGO): " << init_points.cols() << endl;
+    cout << "Number of collision segments (EGO): " << int(segment_ids.size()) << endl;
+    cout << "==================================================" << endl;
+    for (int i=0; i<int(segment_ids.size()); ++i){
+      cout << "collision seg (EGO): " << i << " from " <<  segment_ids[i].first << " to " << segment_ids[i].second << endl;
+      cout << "First point (EGO): " << init_points.col(segment_ids[i].first).transpose() << " Second point (EGO): " <<  init_points.col(segment_ids[i].second).transpose() << endl;
+    }
+    cout << "==================================================" << endl;    
+
     /*** a star search ***/
     vector<vector<Eigen::Vector3d>> a_star_pathes;
     for (size_t i = 0; i < segment_ids.size(); ++i)

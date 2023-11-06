@@ -440,8 +440,8 @@ int main(int argc, char** argv){
 
 
 		// bspline trajectory
-		// bsplineTraj->updateControlPointTs(vanillaEgoTs);
-		// inputTraj = vanillaInputTraj;
+		bsplineTraj->updateControlPointTs(vanillaEgoTs);
+		inputTraj = vanillaInputTraj;
 		bool updateSuccess = bsplineTraj->updatePath(inputTraj, startEndConditions);
 		// bool updateSuccess = bsplineTraj->updatePath(vanillaInputTraj, startEndConditions);
 		controlPointsBefore = bsplineTraj->getControlPoints();
@@ -465,11 +465,11 @@ int main(int argc, char** argv){
 
 		}
 
-		for (int i=0; i<4; ++i){
-			cout << "i: " << i << endl;
-			cout << "our start end condition: " << startEndConditions[i].transpose() << endl;
-			cout << "ego start end condition: " << egoBsplineStartEndConditions[i].transpose() << endl;
-		}
+		// for (int i=0; i<4; ++i){
+		// 	cout << "i: " << i << endl;
+		// 	cout << "our start end condition: " << startEndConditions[i].transpose() << endl;
+		// 	cout << "ego start end condition: " << egoBsplineStartEndConditions[i].transpose() << endl;
+		// }
 
 
 
