@@ -241,7 +241,7 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 2.549999952316284
+        Max Value: 0.949999988079071
         Min Value: 0.05000000074505806
         Value: true
       Axis: Z
@@ -267,21 +267,46 @@ Visualization Manager:
       Use rainbow: true
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /input_traj_point
       Name: input_points
       Namespaces:
-        origin: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /vanilla_ego_input_traj_point
       Name: vanilla_ego_input_points
       Namespaces:
-        vanilla_ego: true
+        {}
       Queue Size: 100
+      Value: false
+    - Alpha: 1
+      Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: <Fixed Frame>
+      Show Trail: false
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /control_points_before
+      Name: cptsBefore
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /ego_control_points_before
+      Name: egoCptsBefore
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -310,7 +335,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 30.504955291748047
+      Distance: 23.755483627319336
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -318,9 +343,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 4.937218189239502
-        Y: 0.023348890244960785
-        Z: -3.0679094791412354
+        X: 5.0067362785339355
+        Y: 0.9083198308944702
+        Z: -6.14232063293457
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -328,7 +353,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 1.4336203336715698
+      Yaw: 5.896791458129883
     Saved: ~
 Window Geometry:
   Displays:

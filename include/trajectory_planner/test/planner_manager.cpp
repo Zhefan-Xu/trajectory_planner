@@ -43,7 +43,7 @@ namespace ego_planner
   // flag_randomPolyTraj:是否产生随机点用于生成min snap轨迹，主要是用于首次规划失败后
   bool EGOPlannerManager::reboundReplan(Eigen::Vector3d start_pt, Eigen::Vector3d start_vel,
                                         Eigen::Vector3d start_acc, Eigen::Vector3d local_target_pt,
-                                        Eigen::Vector3d local_target_vel, bool flag_polyInit, bool flag_randomPolyTraj, Eigen::MatrixXd& output_cpts, double& output_ts, vector<Eigen::Vector3d>& input_point_set)
+                                        Eigen::Vector3d local_target_vel, bool flag_polyInit, bool flag_randomPolyTraj, Eigen::MatrixXd& output_cpts, double& output_ts, vector<Eigen::Vector3d>& input_point_set, Eigen::MatrixXd& controlPointBefore, std::vector<Eigen::Vector3d>& bsplineStartEndConditions)
   {
 
     static int count = 0;
@@ -222,8 +222,10 @@ namespace ego_planner
 
     // 用bspline进行拟合
     Eigen::MatrixXd ctrl_pts;
+    bsplineStartEndConditions = start_end_derivatives;
     UniformBspline::parameterizeToBspline(ts, point_set, start_end_derivatives, ctrl_pts);
     input_point_set = point_set;
+    controlPointBefore = ctrl_pts;
 
     // 这一步找到所有control points对应的gradient，a star paths只用于显示
     vector<vector<Eigen::Vector3d>> a_star_pathes;
@@ -257,8 +259,9 @@ namespace ego_planner
 
     double ratio;
     bool flag_step_2_success = true;
-    // if (false){
+    
     Eigen::MatrixXd optimal_control_points = ctrl_pts;
+    // if (false){
     if (!pos.checkFeasibility(ratio, false)){ // 通过检查control points来确定是否符合feasiblity, 这里的ratio实际上就是时间上需要放慢的倍速（>1）
     
       // cout << "Need to reallocate time." << endl;

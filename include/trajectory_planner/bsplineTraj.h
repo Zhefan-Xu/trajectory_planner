@@ -46,7 +46,7 @@ namespace trajPlanner{
 
 		// bspline
 		double controlPointDistance_ = 0.4; // magic number 0.2, 0.25 (new)
-		double controlPointsTs_ = 0.2; // magic number 0.1, 0.2 (new)
+		double controlPointsTs_ = 0.20; // magic number 0.1, 0.2 (new)
 		trajPlanner::bspline bspline_; // this is used to evaluate bspline. not for optimization
 		trajPlanner::optData optData_; // all optimization information including control points
 		double ts_; // original time step and adjusted time step (this is for control points)
@@ -102,6 +102,8 @@ namespace trajPlanner{
 		bool fillPath(const nav_msgs::Path& path, nav_msgs::Path& adjustedPath);
 		bool updatePath(const nav_msgs::Path& adjustedPath, const std::vector<Eigen::Vector3d>& startEndConditions);
 		void updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize); // position, velocity, size
+		void updateControlPointTs(double ts);
+		void updateControlPoints(const Eigen::MatrixXd& controlPoints);
 
 		bool makePlan();
 		bool makePlanEgoGradient();
@@ -145,6 +147,7 @@ namespace trajPlanner{
 
 		// user functions
 		double getInitTs(); // initial sample time
+		double getControlPointTs();
 		double getControlPointDist();
 		trajPlanner::bspline getTrajectory();
 		geometry_msgs::PoseStamped getPose(double t, bool yaw=true);

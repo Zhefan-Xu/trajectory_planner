@@ -27,5 +27,6 @@ grid_map/local_update_range_z: 4.5
 grid_map/obstacles_inflation: 0.8
 # grid_map/obstacles_inflation: 0.2
 grid_map/ground_height: 0.0
+grid_map/visualization_truncate_height: 1.0
 # grid_map/map_path: "/home/zhefan/catkin_ws/src/CERLAB-Autonomy/trajectory_planner/map/ego_env.pcd"
 grid_map/map_path: "/home/zhefan/catkin_ws/src/CERLAB-Autonomy/trajectory_planner/map/square_static_map2.pcd"

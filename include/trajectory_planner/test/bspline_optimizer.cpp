@@ -586,7 +586,6 @@ namespace ego_planner
     }
 
 #else
-
     cost = 0.0;
     /* abbreviation */
     double ts, /*vm2, am2, */ ts_inv2;

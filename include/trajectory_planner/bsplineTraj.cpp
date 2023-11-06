@@ -329,6 +329,14 @@ namespace trajPlanner{
 		this->optData_.dynamicObstaclesSize = obstaclesSize;
 	}
 
+	void bsplineTraj::updateControlPointTs(double ts){
+		this->controlPointsTs_ = ts;
+	}
+
+
+	void bsplineTraj::updateControlPoints(const Eigen::MatrixXd& controlPoints){
+		this->optData_.controlPoints = controlPoints;
+	}
 
 	bool bsplineTraj::makePlan(){
 		// if (not this->isGoalValid()){
@@ -634,13 +642,18 @@ namespace trajPlanner{
 
 
 	bool bsplineTraj::optimizeTrajectory(){
+		// std::cin.clear();
+		// fflush(stdin);
+		// std::cin.get();
 		this->optimize();
 		double weightDistance0 = this->weightDistance_;
 		double weightDynamicObstacle0 = this->weightDynamicObstacle_;
 		int failCount = 0; 
 		std::vector<vector<Eigen::Vector3d>> tempAstarPaths; // in case path search fail
 		bool hasCollision, hasDynamicCollision;
+		int countIter = 1;
 		while (ros::ok()){
+			// cout << "iteration: " << countIter << endl;
 			hasCollision = this->hasCollisionTrajectory(this->optData_.controlPoints);
 			if (this->optData_.dynamicObstaclesPos.size() != 0){
 				hasDynamicCollision = this->hasDynamicCollisionTrajectory(this->optData_.controlPoints);
@@ -650,6 +663,7 @@ namespace trajPlanner{
 			}
 
 			if (not hasCollision and not hasDynamicCollision){
+				// cout << "success on iteration: " << countIter << endl;
 				break;
 			}
 
@@ -694,6 +708,9 @@ namespace trajPlanner{
 				this->weightDynamicObstacle_ *= 2.0;
 				++failCount;
 			}
+			// std::cin.clear();
+			// fflush(stdin);
+			// std::cin.get();
 			this->optimize();
 		}
 		this->weightDistance_ = weightDistance0;
@@ -993,7 +1010,8 @@ namespace trajPlanner{
 
 		double maxVel = this->maxVel_;
 		double maxAcc = this->maxAcc_;
-
+		// cout << "maxVel: " << this->maxVel_ << endl;
+		// cout << "maxAcc: " << this->maxAcc_ << endl;
 
 		// velocity cost
 		double tsInvSqr = 1/pow(this->controlPointsTs_, 2); // for balancing velocity and acceleration scales
@@ -1422,6 +1440,10 @@ namespace trajPlanner{
 	double bsplineTraj::getInitTs(){
 		return this->controlPointDistance_/this->maxVel_;
 		// return this->controlPointsTs_;
+	}
+
+	double bsplineTraj::getControlPointTs(){
+		return this->controlPointsTs_;
 	}
 
 	double bsplineTraj::getControlPointDist(){

@@ -27,7 +27,7 @@ namespace ego_planner
 
     /* main planning interface */
     bool reboundReplan(Eigen::Vector3d start_pt, Eigen::Vector3d start_vel, Eigen::Vector3d start_acc,
-                       Eigen::Vector3d end_pt, Eigen::Vector3d end_vel, bool flag_polyInit, bool flag_randomPolyTraj, Eigen::MatrixXd& output_cpts, double& output_ts, vector<Eigen::Vector3d>& input_point_set);
+                       Eigen::Vector3d end_pt, Eigen::Vector3d end_vel, bool flag_polyInit, bool flag_randomPolyTraj, Eigen::MatrixXd& output_cpts, double& output_ts, vector<Eigen::Vector3d>& input_point_set, Eigen::MatrixXd& controlPointBefore, std::vector<Eigen::Vector3d>& bsplineStartEndConditions);
     bool EmergencyStop(Eigen::Vector3d stop_pos);
     bool planGlobalTraj(const Eigen::Vector3d &start_pos, const Eigen::Vector3d &start_vel, const Eigen::Vector3d &start_acc,
                         const Eigen::Vector3d &end_pos, const Eigen::Vector3d &end_vel, const Eigen::Vector3d &end_acc);

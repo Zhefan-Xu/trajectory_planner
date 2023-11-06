@@ -31,6 +31,8 @@ ros::Publisher inputTrajPub;
 ros::Publisher vanillaInputTrajPub;
 ros::Publisher inputTrajPointPub;
 ros::Publisher vanillaInputTrajPointPub;
+ros::Publisher originalCptsBeforePub;
+ros::Publisher vanillaEgoCptsBeforePub;
 
 bool initStart = false;
 visualization_msgs::Marker startMarker;
@@ -39,9 +41,12 @@ visualization_msgs::Marker goalMarker;
 Eigen::MatrixXd originCpts;
 Eigen::MatrixXd egoCpts;
 Eigen::MatrixXd vanillaEgoCpts;
+double controlPointTs;
 double vanillaEgoTs;
 nav_msgs::Path inputTraj;
 nav_msgs::Path vanillaInputTraj;
+Eigen::MatrixXd controlPointsBefore;
+Eigen::MatrixXd egoControlPointsBefore;
 
 
 void publishStartVis(){
@@ -67,6 +72,7 @@ void publishGoalVis(){
 
 
 void publishTrajectory(const Eigen::MatrixXd& controlPoints, const ros::Publisher& cptPublisher, const ros::Publisher& trajPublisher, std::string ns, double r, double g, double b, double ts){
+	if (controlPoints.cols() == 0) return;
 	visualization_msgs::MarkerArray msg;
 	std::vector<visualization_msgs::Marker> pointVec;
 	visualization_msgs::Marker point;
@@ -146,17 +152,50 @@ void publishInputPath(const ros::Publisher& inputPathPub, const nav_msgs::Path& 
 	inputPathPub.publish(msg);
 }
 
+void publishControlPoints(const Eigen::MatrixXd& controlPoints, const ros::Publisher& cptPublisher, std::string ns, double r, double g, double b){
+	visualization_msgs::MarkerArray msg;
+	std::vector<visualization_msgs::Marker> pointVec;
+	visualization_msgs::Marker point;
+	int pointCount = 0;
+	for (int i=0; i<controlPoints.cols(); ++i){
+		point.header.frame_id = "map";
+		point.header.stamp = ros::Time::now();
+		point.ns = ns;
+		point.id = pointCount;
+		point.type = visualization_msgs::Marker::SPHERE;
+		point.action = visualization_msgs::Marker::ADD;
+		point.pose.position.x = controlPoints(0, i);
+		point.pose.position.y = controlPoints(1, i);
+		point.pose.position.z = controlPoints(2, i);
+		point.lifetime = ros::Duration(0.05);
+		point.scale.x = 0.2;
+		point.scale.y = 0.2;
+		point.scale.z = 0.2;
+		point.color.a = 1.0;
+		point.color.r = r;
+		point.color.g = g;
+		point.color.b = b;
+		pointVec.push_back(point);
+		++pointCount;			
+	}
+	msg.markers = pointVec;	
+	cptPublisher.publish(msg);
+}
+
 void publishTraj(){
 	ros::Rate r (30);
 	while (ros::ok()){
 		publishPathMsg(inputTrajPub, inputTraj);
 		publishPathMsg(vanillaInputTrajPub, vanillaInputTraj);
-		publishTrajectory(originCpts, originalCptsPub, originalBsplinePub, "origin", 0, 0, 1, 0.2);
-		publishTrajectory(egoCpts, egoCptsPub, egoBsplinePub, "ego", 1, 0, 0, 0.2);
-		publishTrajectory(vanillaEgoCpts, vanillaEgoCptsPub, vanillaEgoBsplinePub, "vanilla_ego", 0, 1, 1, 0.2);
+		publishTrajectory(originCpts, originalCptsPub, originalBsplinePub, "origin", 0, 0, 1, controlPointTs);
+		publishTrajectory(egoCpts, egoCptsPub, egoBsplinePub, "ego", 1, 0, 0, controlPointTs);
+		publishTrajectory(vanillaEgoCpts, vanillaEgoCptsPub, vanillaEgoBsplinePub, "vanilla_ego", 0, 1, 1, vanillaEgoTs);
 		
 		publishInputPath(inputTrajPointPub, inputTraj, "origin", 0, 0, 1);
 		publishInputPath(vanillaInputTrajPointPub, vanillaInputTraj, "vanilla_ego", 0, 1, 0);
+
+		publishControlPoints(controlPointsBefore, originalCptsBeforePub, "origin_cpts_before", 0, 0, 1);
+		publishControlPoints(egoControlPointsBefore, vanillaEgoCptsBeforePub, "vanilla_ego_cpts_before", 0, 1, 1);
 		r.sleep();
 	}
 }
@@ -185,6 +224,8 @@ int main(int argc, char** argv){
 	vanillaInputTrajPub = nh.advertise<nav_msgs::Path>("/vanilla_ego_input_traj", 1000);
 	inputTrajPointPub = nh.advertise<visualization_msgs::MarkerArray>("/input_traj_point", 1000);
 	vanillaInputTrajPointPub = nh.advertise<visualization_msgs::MarkerArray>("/vanilla_ego_input_traj_point", 1000);
+	originalCptsBeforePub =  nh.advertise<visualization_msgs::MarkerArray>("/control_points_before", 1000);
+	vanillaEgoCptsBeforePub = nh.advertise<visualization_msgs::MarkerArray>("/ego_control_points_before", 1000);;
 
 	std::thread startVisWorker_ = std::thread(publishStartVis);
 	std::thread goalVisWorker_ = std::thread(publishGoalVis);
@@ -308,6 +349,7 @@ int main(int argc, char** argv){
 		}
 
 		std::vector<Eigen::Vector3d> startEndConditions;
+		std::vector<Eigen::Vector3d> egoBsplineStartEndConditions;
 		Eigen::Vector3d currVel (0.0, 0.0, 0.0);
 		Eigen::Vector3d currAcc (0.0, 0.0, 0.0);
 		Eigen::Vector3d endVel (0.0, 0.0, 0.0);
@@ -318,6 +360,45 @@ int main(int argc, char** argv){
 		startEndConditions.push_back(currAcc);
 		startEndConditions.push_back(endAcc);
 		
+
+
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// vanilla ego
+		Eigen::Vector3d startPt (start[0], start[1], start[2]);
+		Eigen::Vector3d goalPt (goal[0], goal[1], goal[2]);
+		Eigen::Vector3d startVel = startEndConditions[0];
+		Eigen::Vector3d startAcc = startEndConditions[2];
+		Eigen::Vector3d goalVel = startEndConditions[1];
+		std::vector<Eigen::Vector3d> inputPointSet;
+		cout << "here" << endl;
+		bool planSuccessVanilla = vanillaEgoPlanner->reboundReplan(startPt, startVel, startAcc, goalPt, goalVel,  true, false, vanillaEgoCpts, vanillaEgoTs, inputPointSet, egoControlPointsBefore, egoBsplineStartEndConditions);
+		vanillaInputTraj.poses.clear();
+		for (int i=0; i<int(inputPointSet.size()); ++i){
+			geometry_msgs::PoseStamped ps;
+			ps.pose.position.x = inputPointSet[i](0);
+			ps.pose.position.y = inputPointSet[i](1);
+			ps.pose.position.z = inputPointSet[i](2);
+			vanillaInputTraj.poses.push_back(ps);
+		}
+		cout << "vanilla ego planner time step: " << vanillaEgoTs << endl;
+		cout << "vanilla ego planner success: " << planSuccessVanilla << endl;
+
+
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
+		// =========================================================================================================================================
 
 		// min snap traj generation
 		nav_msgs::Path waypointsMsg;
@@ -359,13 +440,20 @@ int main(int argc, char** argv){
 
 
 		// bspline trajectory
+		// bsplineTraj->updateControlPointTs(vanillaEgoTs);
+		// inputTraj = vanillaInputTraj;
 		bool updateSuccess = bsplineTraj->updatePath(inputTraj, startEndConditions);
+		// bool updateSuccess = bsplineTraj->updatePath(vanillaInputTraj, startEndConditions);
+		controlPointsBefore = bsplineTraj->getControlPoints();
 		if (updateSuccess){
 			// original
+			// bsplineTraj->updateControlPoints(egoControlPointsBefore);
 			bool planSuccess = bsplineTraj->makePlan();
 			originCpts = bsplineTraj->getControlPoints();
 			cout << "Original Plan success: " << planSuccess << endl;
 		}
+
+		controlPointTs = bsplineTraj->getControlPointTs();
 
 		updateSuccess = bsplineTraj->updatePath(inputTraj, startEndConditions);
 		if (updateSuccess){
@@ -377,34 +465,13 @@ int main(int argc, char** argv){
 
 		}
 
-
-		// =========================================================================================================================================
-		// =========================================================================================================================================
-		// =========================================================================================================================================
-		// =========================================================================================================================================
-		// =========================================================================================================================================
-		// =========================================================================================================================================
-		// =========================================================================================================================================
-		// =========================================================================================================================================
-		// vanilla bspline
-		Eigen::Vector3d startPt (start[0], start[1], start[2]);
-		Eigen::Vector3d goalPt (goal[0], goal[1], goal[2]);
-		Eigen::Vector3d startVel = startEndConditions[0];
-		Eigen::Vector3d startAcc = startEndConditions[2];
-		Eigen::Vector3d goalVel = startEndConditions[1];
-		std::vector<Eigen::Vector3d> inputPointSet;
-
-		bool planSuccessVanilla = vanillaEgoPlanner->reboundReplan(startPt, startVel, startAcc, goalPt, goalVel,  true, false, vanillaEgoCpts, vanillaEgoTs, inputPointSet);
-		vanillaInputTraj.poses.clear();
-		for (int i=0; i<int(inputPointSet.size()); ++i){
-			geometry_msgs::PoseStamped ps;
-			ps.pose.position.x = inputPointSet[i](0);
-			ps.pose.position.y = inputPointSet[i](1);
-			ps.pose.position.z = inputPointSet[i](2);
-			vanillaInputTraj.poses.push_back(ps);
+		for (int i=0; i<4; ++i){
+			cout << "i: " << i << endl;
+			cout << "our start end condition: " << startEndConditions[i].transpose() << endl;
+			cout << "ego start end condition: " << egoBsplineStartEndConditions[i].transpose() << endl;
 		}
-		cout << "vanilla ego planner time step: " << vanillaEgoTs << endl;
-		cout << "vanilla ego planner success: " << planSuccessVanilla << endl;
+
+
 
 		// Visualization
 		// ros::Time startTime = ros::Time::now();

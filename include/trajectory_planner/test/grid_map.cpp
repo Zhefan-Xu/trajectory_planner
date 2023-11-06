@@ -168,6 +168,8 @@ void GridMap::initMap(ros::NodeHandle &nh)
       int yInflateSize = ceil(mp_.obstacles_inflation_/(2*mp_.resolution_));
       int zInflateSize = ceil(mp_.obstacles_inflation_/(2*mp_.resolution_));
 
+      cout << "x inflate size: " << xInflateSize << endl;
+
       Eigen::Vector3d currMapRangeMin (0.0, 0.0, 0.0);
       Eigen::Vector3d currMapRangeMax (0.0, 0.0, 0.0);
 
