@@ -974,7 +974,7 @@ namespace ego_planner
       t2 = ros::Time::now();
       double time_ms = (t2 - t1).toSec() * 1000;
       double total_time_ms = (t2 - t0).toSec() * 1000;
-
+      
       /* ---------- success temporary, check collision again ---------- */
       // lbfgs优化成功（注意并不代表轨迹优化成功，只说明优化没有出错）
       
