@@ -412,10 +412,37 @@ namespace trajPlanner{
 			return false;
 		}
 
+
+		// print A star path for each segment
+		cout << "--------------------A star path------------------" << endl;
+		for (int i=0; i<int(this->astarPaths_.size()); ++i){
+			std::vector<Eigen::Vector3d> path = this->astarPaths_[i];
+			cout << "A* path " << i << endl;
+			for (int j=0; j<int(path.size()); ++j){
+				cout << "[" << path[j].transpose() << "]->";
+			}
+			cout << "end." << endl;
+		}
+
+
 		// step 3. Assign guide point and directions
 		// change this function to make it ego planner's gradient
 		this->assignGuidePointsEgoGradient(this->astarPaths_, this->collisionSeg_);
 		
+
+		// print guide points and guide directions
+		cout << "--------------------Guide points and directions------------------" << endl;
+		for (int i=0; i<int(this->optData_.guidePoints.size()); ++i){
+			std::vector<Eigen::Vector3d> points = this->optData_.guidePoints[i];
+			std::vector<Eigen::Vector3d> directions = this->optData_.guideDirections[i];
+			if (int(points.size()) != 0){
+				cout << "gudie points and direction for control points: " << i << " [" << this->optData_.controlPoints.col(i).transpose() << "]" << endl;
+			}
+			for (int j=0; j<int(points.size()); ++j){ 
+				cout << j << " guide point: " << points[j].transpose() << " direction: " << directions[j].transpose() << endl; 
+			}
+		}
+
 
 		// step 4. call solver
 		bool optimizationSuccess = this->optimizeTrajectoryEgo();
@@ -587,6 +614,7 @@ namespace trajPlanner{
 		for (size_t i=0; i<collisionSeg.size(); ++i){
 			seg = collisionSeg[i];
 			path = astarPathsSC[i];
+			bool inloop = false;
 			for (int controlPointIdx=seg.first+1; controlPointIdx<seg.second; ++controlPointIdx){ // iterate through all collision control points
 				bool findGuidePoint = this->findGuidePointEgoGradient(controlPointIdx, seg, path, guidePoint);
 				this->optData_.guidePoints[controlPointIdx].push_back(guidePoint);
@@ -596,7 +624,16 @@ namespace trajPlanner{
 				if (not findGuidePoint){
 					ROS_ERROR("[BsplineTraj]: Impossible Assignment. Something wrong!");
 				}
+				inloop = true;
 			}
+
+			if (inloop){
+				this->optData_.guidePoints[seg.first].push_back(this->optData_.guidePoints[seg.first+1].back());
+				this->optData_.guideDirections[seg.first].push_back(this->optData_.guideDirections[seg.first+1].back());
+				this->optData_.guidePoints[seg.second].push_back(this->optData_.guidePoints[seg.second-1].back());
+				this->optData_.guideDirections[seg.second].push_back(this->optData_.guideDirections[seg.second-1].back());
+			}
+
 
 			bool lineCollision = (seg.second - seg.first - 1 == 0);
 			if (lineCollision){
@@ -737,6 +774,7 @@ namespace trajPlanner{
 		int failCount = 0; 
 		std::vector<vector<Eigen::Vector3d>> tempAstarPaths; // in case path search fail
 		bool hasCollision, hasDynamicCollision;
+		int iterCount = 1;
 		while (ros::ok()){
 			hasCollision = this->hasCollisionTrajectory(this->optData_.controlPoints);
 			if (this->optData_.dynamicObstaclesPos.size() != 0){
@@ -768,23 +806,34 @@ namespace trajPlanner{
 
 			if (hasCollision){
 				// need to determine whether the reguide is required
-				std::vector<std::pair<int, int>> reguideCollisionSeg;
-				if (this->isReguideRequired(reguideCollisionSeg)){ // this will update collision segment for next iteration
-					bool pathSearchSuccess = this->pathSearch(reguideCollisionSeg, tempAstarPaths);
+				// std::vector<std::pair<int, int>> reguideCollisionSeg;
+				// if (this->isReguideRequired(reguideCollisionSeg)){ // this will update collision segment for next iteration
+				// 	bool pathSearchSuccess = this->pathSearch(reguideCollisionSeg, tempAstarPaths);
 					
-					if (pathSearchSuccess){
-						this->astarPaths_ = tempAstarPaths; 
-						this->assignGuidePointsEgoGradient(tempAstarPaths, reguideCollisionSeg);
-					}
-					else{
-						this->weightDistance_ *= 1.2;
-						++failCount;
-					}
+				// 	if (pathSearchSuccess){
+				// 		this->astarPaths_ = tempAstarPaths; 
+				// 		this->assignGuidePointsEgoGradient(tempAstarPaths, reguideCollisionSeg);
+				// 	}
+				// 	else{
+				// 		this->weightDistance_ *= 2.0;
+				// 		++failCount;
+				// 	}
+				// }
+				// else{
+				// 	this->weightDistance_ *= 2.0; // no need reguide: this means weight is not big enough	
+				// 	++failCount;
+				// }
+
+				std::vector<std::pair<int, int>> collisionSeg;
+				this->findCollisionSeg(this->optData_.controlPoints, collisionSeg);
+				bool pathSearchSuccess = this->pathSearch(collisionSeg, tempAstarPaths);
+				
+				if (pathSearchSuccess){
+					this->astarPaths_ = tempAstarPaths; 
+					this->assignGuidePointsEgoGradient(tempAstarPaths, collisionSeg);
 				}
-				else{
-					this->weightDistance_ *= 1.2; // no need reguide: this means weight is not big enough	
-					++failCount;
-				}
+				this->weightDistance_ *= 2.0;
+				++failCount;
 			}
 
 			if (hasDynamicCollision){
@@ -792,9 +841,11 @@ namespace trajPlanner{
 				++failCount;
 			}
 			this->optimize();
+			++iterCount;
 		}
 		this->weightDistance_ = weightDistance0;
 		this->weightDynamicObstacle_ = weightDynamicObstacle0;
+		cout << "exit with iteration number: " << iterCount << endl;
 		return true;
 	}
 
@@ -809,8 +860,8 @@ namespace trajPlanner{
 		lbfgs::lbfgs_parameter_t solverParams;
 		lbfgs::lbfgs_load_default_parameters(&solverParams);
 		solverParams.mem_size = 16;
-		solverParams.max_iterations = 300;
-		solverParams.g_epsilon = 0.005;
+		solverParams.max_iterations = 200;
+		solverParams.g_epsilon = 0.01;
 
 		int optimizeResult = lbfgs::lbfgs_optimize(variableNum, x, &finalCost, bsplineTraj::solverCostFunction, NULL, NULL, this, &solverParams);
 

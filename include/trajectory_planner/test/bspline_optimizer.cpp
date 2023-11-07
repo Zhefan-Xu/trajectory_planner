@@ -126,6 +126,16 @@ namespace ego_planner
       }
     }
 
+    cout << "--------------------A star path (EGO)------------------" << endl;
+    for (int i=0; i<int(a_star_pathes.size()); ++i){
+      std::vector<Eigen::Vector3d> path = a_star_pathes[i];
+      cout << "A* path " << i << endl;
+      for (int j=0; j<int(path.size()); ++j){
+        cout << setprecision (2) << "[" << path[j].transpose() << "]->";
+      }
+      cout << "end." << endl;
+    }
+
     /*** calculate bounds ***/
     int id_low_bound, id_up_bound;
     vector<std::pair<int, int>> bounds(segment_ids.size());
@@ -316,6 +326,19 @@ namespace ego_planner
       }
     }
 
+    // print guide points and guide directions
+    cout << "--------------------Guide points and directions (EGO)------------------" << endl;
+    for (int i=0; i<int(cps_.base_point.size()); ++i){
+      std::vector<Eigen::Vector3d> points = cps_.base_point[i];
+      std::vector<Eigen::Vector3d> directions =  cps_.direction[i];
+      if (int(points.size()) != 0){
+        cout << "gudie points and direction for control points: " << i << " [" << init_points.col(i).transpose() << "]" << endl;
+      }
+      for (int j=0; j<int(points.size()); ++j){ 
+        cout << j << " guide point: " << points[j].transpose() << " direction: " << directions[j].transpose() << endl; 
+      }
+    }
+
     return a_star_pathes;
   }
 
@@ -364,7 +387,7 @@ namespace ego_planner
     if (iter_num > 3 && smoothness_cost / (cps_.size - 2 * order_) < 0.1) // 0.1 is an experimental value that indicates the trajectory is smooth enough.
     {
       // cout << "force stop type change: " << iter_num << " smoothness_cost: " << smoothness_cost / (cps_.size - 2 * order_)  << endl;
-      check_collision_and_rebound(); // 这个函数会检查是否rebound，并且设置force_stop_type，并且终止现在的优化
+      // check_collision_and_rebound(); // 这个函数会检查是否rebound，并且设置force_stop_type，并且终止现在的优化
     }
     // 注意：如果上一步的return是true，这里下面就不会继续执行了，优化器直接停止退出
     // =========================
@@ -1017,6 +1040,7 @@ namespace ego_planner
         // while (ros::ok());
       }
       cout << "this iter: flag occ: " << flag_occ << " force_stop_type_: " << (force_stop_type_==STOP_FOR_REBOUND) << endl;
+      // return true;
     } while ((flag_occ && restart_nums < MAX_RESART_NUMS_SET) ||
              (flag_force_return && force_stop_type_ == STOP_FOR_REBOUND && rebound_times <= 20));
     cout << "finish with iter: " << count_iter << endl;

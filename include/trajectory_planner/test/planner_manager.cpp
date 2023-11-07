@@ -237,6 +237,8 @@ namespace ego_planner
     visualization_->displayInitPathList(point_set, 0.2, 0);
     visualization_->displayAStarList(a_star_pathes, vis_id);
 
+
+
     t_start = ros::Time::now();
 
     /*** STEP 2: OPTIMIZE ***/
@@ -261,8 +263,8 @@ namespace ego_planner
     bool flag_step_2_success = true;
     
     Eigen::MatrixXd optimal_control_points = ctrl_pts;
-    // if (false){
-    if (!pos.checkFeasibility(ratio, false)){ // 通过检查control points来确定是否符合feasiblity, 这里的ratio实际上就是时间上需要放慢的倍速（>1）
+    if (false){
+    // if (!pos.checkFeasibility(ratio, false)){ // 通过检查control points来确定是否符合feasiblity, 这里的ratio实际上就是时间上需要放慢的倍速（>1）
     
       // cout << "Need to reallocate time." << endl;
 

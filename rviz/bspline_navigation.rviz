@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Grid1
+        - /ego_traj1
       Splitter Ratio: 0.5
     Tree Height: 1079
   - Class: rviz/Selection
@@ -191,7 +192,7 @@ Visualization Manager:
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
       Line Style: Billboards
-      Line Width: 0.03999999910593033
+      Line Width: 0.07999999821186066
       Name: ego_traj
       Offset:
         X: 0
@@ -343,9 +344,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 5.0067362785339355
-        Y: 0.9083198308944702
-        Z: -6.14232063293457
+        X: 4.360218048095703
+        Y: 3.736161708831787
+        Z: -6.138983249664307
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -353,7 +354,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 5.896791458129883
+      Yaw: 4.621771812438965
     Saved: ~
 Window Geometry:
   Displays:
