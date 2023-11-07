@@ -543,8 +543,8 @@ namespace trajPlanner{
 			Eigen::Vector3d pEnd (this->optData_.controlPoints.col(seg.second));
 			if (this->pathSearch_->AstarSearch(this->map_->getRes(), pStart, pEnd)){
 				std::vector<Eigen::Vector3d> searchedPath = this->pathSearch_->getPath();
-				searchedPath[0] = pStart;
-				searchedPath[searchedPath.size()-1] = pEnd;
+				// searchedPath[0] = pStart;
+				// searchedPath[searchedPath.size()-1] = pEnd;
 				paths.push_back(searchedPath);
 				
 			}
