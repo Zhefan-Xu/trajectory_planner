@@ -399,7 +399,7 @@ namespace trajPlanner{
 					pairStartIdx = i-1;
 				}
 				else{ // if no collision and collision status changes: this means this is an end of a collision segment. record the previous point
-					pairEndIdx = i+1;
+					pairEndIdx = i;
 					std::pair<int, int> seg {pairStartIdx, pairEndIdx};
 					collisionSeg.push_back(seg);
 				}
@@ -424,17 +424,6 @@ namespace trajPlanner{
 
 			previousHasCollision = hasCollision;
 		}
-
-		// finding collisions for line seg
-		for (int i=bsplineDegree; i<=endIdx-1; ++i){
-			Eigen::Vector3d p1 = controlPoints.col(i);
-			Eigen::Vector3d p2 = controlPoints.col(i+1);
-			if ((not this->map_->isInflatedOccupied(p1)) and (not this->map_->isInflatedOccupied(p2))){
-				if (this->map_->isInflatedOccupiedLine(p1, p2)){
-					collisionSeg.push_back({i, i+1});
-				}
-			}
-		}
 	}
 
 	bool bsplineTraj::pathSearch(const std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths){
@@ -445,7 +434,7 @@ namespace trajPlanner{
 			if (this->pathSearch_->AstarSearch(this->map_->getRes(), pStart, pEnd)){
 				std::vector<Eigen::Vector3d> searchedPath = this->pathSearch_->getPath();
 				searchedPath[0] = pStart;
-				searchedPath[searchedPath.size()-1] = pEnd;
+				searchedPath.push_back(pEnd);
 				paths.push_back(searchedPath);
 				
 			}
