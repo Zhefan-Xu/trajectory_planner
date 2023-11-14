@@ -974,7 +974,7 @@ namespace ego_planner
       t2 = ros::Time::now();
       double time_ms = (t2 - t1).toSec() * 1000;
       double total_time_ms = (t2 - t0).toSec() * 1000;
-      
+
       /* ---------- success temporary, check collision again ---------- */
       // lbfgs优化成功（注意并不代表轨迹优化成功，只说明优化没有出错）
       
@@ -1042,6 +1042,9 @@ namespace ego_planner
       }
       cout << "this iter: flag occ: " << flag_occ << " force_stop_type_: " << (force_stop_type_==STOP_FOR_REBOUND) << endl;
       // return true;
+      if (count_iter == 1){
+        return true;
+      }
     } while ((flag_occ && restart_nums < MAX_RESART_NUMS_SET) ||
              (flag_force_return && force_stop_type_ == STOP_FOR_REBOUND && rebound_times <= 20));
     cout << "finish with iter: " << count_iter << endl;
