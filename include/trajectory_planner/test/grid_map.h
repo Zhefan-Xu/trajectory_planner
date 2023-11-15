@@ -167,7 +167,7 @@ public:
 
   void publishMap();
   void publishMapInflate(bool all_info = false);
-
+  void publishProjectedPoints();
   void publishUnknown();
   void publishDepth();
 
@@ -227,6 +227,7 @@ private:
   ros::Subscriber indep_cloud_sub_, indep_odom_sub_;
   ros::Publisher map_pub_, map_inf_pub_;
   ros::Publisher unknown_pub_;
+  ros::Publisher ego_projected_points_pub_;
   ros::Timer occ_timer_, vis_timer_;
 
   //
