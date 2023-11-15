@@ -111,7 +111,7 @@ find_package(OsqpEigen REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES trajectory_planner
+ LIBRARIES trajectory_planner ego_planner
  CATKIN_DEPENDS roscpp rospy std_msgs 
  DEPENDS OsqpEigen
 )
