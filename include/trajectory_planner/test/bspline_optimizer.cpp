@@ -1042,9 +1042,9 @@ namespace ego_planner
       }
       cout << "this iter: flag occ: " << flag_occ << " force_stop_type_: " << (force_stop_type_==STOP_FOR_REBOUND) << endl;
       // return true;
-      if (count_iter == 1){
-        return true;
-      }
+      // if (count_iter == 1){
+      //   return true;
+      // }
     } while ((flag_occ && restart_nums < MAX_RESART_NUMS_SET) ||
              (flag_force_return && force_stop_type_ == STOP_FOR_REBOUND && rebound_times <= 20));
     cout << "finish with iter: " << count_iter << endl;
