@@ -105,7 +105,7 @@ namespace trajPlanner{
 		bool makePlan(nav_msgs::Path& trajectory, bool yaw=true);
 		void clear();
 		void findCollisionSeg(const Eigen::MatrixXd& controlPoints, std::vector<std::pair<int, int>>& collisionSeg); // find collision segment of current control points
-		bool pathSearch(const std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths);
+		bool pathSearch(std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths);
 		void assignGuidePointsSemiCircle(const std::vector<std::vector<Eigen::Vector3d>>& paths, const std::vector<std::pair<int, int>>& collisionSeg);
 		void assignGuidePointDynamicObstacle();
 		bool isReguideRequired(std::vector<std::pair<int, int>>& reguideCollisionSeg);

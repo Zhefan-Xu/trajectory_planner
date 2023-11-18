@@ -426,9 +426,12 @@ namespace trajPlanner{
 		}
 	}
 
-	bool bsplineTraj::pathSearch(const std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths){
+	bool bsplineTraj::pathSearch(std::vector<std::pair<int, int>>& collisionSeg, std::vector<std::vector<Eigen::Vector3d>>& paths){
 		paths.clear();
-		for (std::pair<int, int> seg : collisionSeg){
+		std::vector<int> mergeIndices;
+		int collisionSegNum = int(collisionSeg.size());
+		for (int i=0; i<collisionSegNum; ++i){
+			std::pair<int, int> seg = collisionSeg[i];
 			Eigen::Vector3d pStart (this->optData_.controlPoints.col(seg.first));
 			Eigen::Vector3d pEnd (this->optData_.controlPoints.col(seg.second));
 			if (this->pathSearch_->AstarSearch(this->map_->getRes(), pStart, pEnd)){
@@ -436,18 +439,59 @@ namespace trajPlanner{
 				searchedPath[0] = pStart;
 				searchedPath.push_back(pEnd);
 				paths.push_back(searchedPath);
-				
 			}
 			else{
-				// cout << "[BsplineTraj]: Path Search Error. Force return." << endl;
-				// cout << "start: " << endl;
-				// cout << pStart << endl;
-				// cout << "end: " << endl;
-				// cout << pEnd << endl;
+				// In some cases, because of the obstacle inflation, some control points inside the obstacle will be recognized as free.
+				// In those cases, we will try merging with the next segment
+				cout << "\033[1;34m[BsplineTraj]: Cannot find A* path. try merging...\033[0m" << endl;
+				if (i+1 < collisionSegNum){ // in this case, it has a next segment
+					std::pair<int, int> nextSeg = collisionSeg[i+1];
+					if (nextSeg.first - seg.second <= 1){
+						Eigen::Vector3d pStart (this->optData_.controlPoints.col(seg.first));
+						Eigen::Vector3d pEnd (this->optData_.controlPoints.col(nextSeg.second));
+						if (this->pathSearch_->AstarSearch(this->map_->getRes(), pStart, pEnd)){
+							std::vector<Eigen::Vector3d> searchedPath = this->pathSearch_->getPath();
+							searchedPath[0] = pStart;
+							searchedPath.push_back(pEnd);
+							paths.push_back(searchedPath);	
+							mergeIndices.push_back(i);						
+							++i; // jump to the next after the next
+							continue;
+						}
+					}
+					else{ 
+
+						cout << "\033[1;34m[BsplineTraj]: Collision segment merge fail due to a big gap: \033[0m" << nextSeg.first - seg.second << endl; 
+					}
+				}
+				else{
+					cout << "\033[1;34m[BsplineTraj]: Collision segment merge fail due to insufficient collision segments.\033[0m" << endl;
+				}
+
+
+				cout << "[BsplineTraj]: Path Search Error. Force return. start: " << pStart.transpose() << " end: " << pEnd.transpose() << endl;
 				return false; 
 			}
 		}	
 
+
+		// if we have merged the collision segments, we will need to update in the collision seg variable
+		if (int(mergeIndices.size()) != 0){
+			cout << "\033[1;34m[BsplineTraj]: Merge collision segments success.\033[0m" << endl;
+			int midx = 0;
+			std::vector<std::pair<int, int>> collisionSegTemp;
+			for (int i=0; i<collisionSegNum; ++i){
+				if (midx < int(mergeIndices.size()) and i == mergeIndices[midx]){
+					collisionSegTemp.push_back(std::pair<int, int> {collisionSeg[i].first, collisionSeg[i+1].second});
+					++i;
+					++midx;
+				}
+				else{
+					collisionSeg.push_back(collisionSeg[i]);
+				}
+			}
+			collisionSeg = collisionSegTemp;
+		}
 
 		return true;
 	}
