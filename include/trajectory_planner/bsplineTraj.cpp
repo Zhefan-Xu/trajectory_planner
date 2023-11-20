@@ -209,7 +209,8 @@ namespace trajPlanner{
 
 		std::vector<Eigen::Vector3d> curveFitPoints, adjustedCurveFitPoints;
 		this->pathMsgToEigenPoints(path, curveFitPoints);
-		this->adjustPathLength(curveFitPoints, adjustedCurveFitPoints);
+		// this->adjustPathLength(curveFitPoints, adjustedCurveFitPoints);
+		this->adjustPathLengthDirect(curveFitPoints, adjustedCurveFitPoints);
 
 		// find distance between trajectory points
 		for (size_t i=0; i<adjustedCurveFitPoints.size()-1; ++i){
@@ -678,7 +679,7 @@ namespace trajPlanner{
 		double totalLength = 0.0;
 		bool free = false;
 		bool exceedLength = false;
-		double minLength = 1000000.0;
+		double minLength = 0.0;
 		for (size_t i=0; i<path.size()-1; ++i){
 			Eigen::Vector3d p1 = path[i];
 			Eigen::Vector3d p2 = path[i+1];
@@ -689,14 +690,14 @@ namespace trajPlanner{
 			adjustedPath.push_back(p1);
 
 			if (exceedLength){
-				free = not this->map_->isInflatedOccupied(p2);
+				free = not this->map_->isInflatedOccupiedLine(p1, p2);
 				if (free and minLength >= 1.5){
 					adjustedPath.push_back(p2);
 					return;
 				}
 			}
 
-			bool occupied = this->map_->isInflatedOccupied(p2);
+			bool occupied = this->map_->isInflatedOccupiedLine(p1, p2);
 			if (occupied){
 				minLength = 0.0;
 			}
@@ -705,6 +706,41 @@ namespace trajPlanner{
 			}
 		}
 		adjustedPath.push_back(path.back());
+	}
+
+	void bsplineTraj::adjustPathLengthDirect(const std::vector<Eigen::Vector3d>& path, std::vector<Eigen::Vector3d>& adjustedPath){
+		// iterate through the raw path
+		double totalLength = 0.0;
+		bool free = false;
+		bool exceedLength = false;
+		double minLength = 0.0;
+		Eigen::Vector3d pStart = path[0];
+		for (size_t i=0; i<path.size()-1; ++i){
+			Eigen::Vector3d p1 = path[i];
+			Eigen::Vector3d p2 = path[i+1];
+			totalLength = (p2 - pStart).norm();
+			if (totalLength >= this->maxPathLength_){
+				exceedLength = true;
+			}
+			adjustedPath.push_back(p1);
+
+			if (exceedLength){
+				free = not this->map_->isInflatedOccupiedLine(p1, p2);
+				if (free and minLength >= 1.5){
+					adjustedPath.push_back(p2);
+					return;
+				}
+			}
+
+			bool occupied = this->map_->isInflatedOccupiedLine(p1, p2);
+			if (occupied){
+				minLength = 0.0;
+			}
+			else{
+				minLength += (p2 - p1).norm();
+			}
+		}
+		adjustedPath.push_back(path.back());		
 	}
 
 

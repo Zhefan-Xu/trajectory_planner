@@ -112,7 +112,7 @@ namespace trajPlanner{
 		bool optimizeTrajectory();
 		int optimize(); // optimize once
 		void adjustPathLength(const std::vector<Eigen::Vector3d>& path, std::vector<Eigen::Vector3d>& adjustedPath);
-		void adjustFitPointDistance(const std::vector<Eigen::Vector3d>& fitpoints, std::vector<Eigen::Vector3d>& adjustedFitPoints, double& adjustedTimeInterval);
+		void adjustPathLengthDirect(const std::vector<Eigen::Vector3d>& path, std::vector<Eigen::Vector3d>& adjustedPath);
 
 		// cost functions
 		static double solverCostFunction(void* func_data, const double* x, double* grad, const int n); // deal with solver
