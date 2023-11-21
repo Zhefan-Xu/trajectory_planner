@@ -709,6 +709,10 @@ namespace trajPlanner{
 	}
 
 	void bsplineTraj::adjustPathLengthDirect(const std::vector<Eigen::Vector3d>& path, std::vector<Eigen::Vector3d>& adjustedPath){
+		// create a variable to record the previous goal distance 
+		static double prevPathLength = 0.0; // although I say the path length, but actually is the goal distance
+		cout << "\033[1;34m[BsplineTraj]: prev path length is:\033[0m " << prevPathLength << endl;
+
 		// iterate through the raw path
 		double totalLength = 0.0;
 		bool free = false;
@@ -719,7 +723,7 @@ namespace trajPlanner{
 			Eigen::Vector3d p1 = path[i];
 			Eigen::Vector3d p2 = path[i+1];
 			totalLength = (p2 - pStart).norm();
-			if (totalLength >= this->maxPathLength_){
+			if (totalLength >= std::max(prevPathLength, this->maxPathLength_)){
 				exceedLength = true;
 			}
 			adjustedPath.push_back(p1);
@@ -728,6 +732,7 @@ namespace trajPlanner{
 				free = not this->map_->isInflatedOccupiedLine(p1, p2);
 				if (free and minLength >= 1.5){
 					adjustedPath.push_back(p2);
+					prevPathLength = totalLength;
 					return;
 				}
 			}
@@ -740,7 +745,8 @@ namespace trajPlanner{
 				minLength += (p2 - p1).norm();
 			}
 		}
-		adjustedPath.push_back(path.back());		
+		adjustedPath.push_back(path.back());	
+		prevPathLength = totalLength;	
 	}
 
 
