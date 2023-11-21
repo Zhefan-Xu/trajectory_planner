@@ -355,6 +355,20 @@ namespace trajPlanner{
 			return false;
 		}
 
+
+		// for debugging: get all costs:
+		double distanceCost, smoothnessCost, feasibilityCost, dynamicObstacleCost;
+		Eigen::MatrixXd distanceGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		Eigen::MatrixXd smoothnessGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		Eigen::MatrixXd feasibilityGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		Eigen::MatrixXd dynamicObstacleGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		this->getDistanceCost(this->optData_.controlPoints, distanceCost, distanceGradient);
+		this->getSmoothnessCost(this->optData_.controlPoints, smoothnessCost, smoothnessGradient);
+		this->getFeasibilityCost(this->optData_.controlPoints, feasibilityCost, feasibilityGradient);
+		this->getDynamicObstacleCost(this->optData_.controlPoints, dynamicObstacleCost, dynamicObstacleGradient);
+		cout << "\033[1;34m[BsplineTraj]:\033[0m" << "d: " << distanceCost << " s: " << smoothnessCost << " f: " << feasibilityCost << " do: " << dynamicObstacleCost << endl;
+
+
 		// step 5. save the result to the class attribute
 		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 
@@ -654,8 +668,8 @@ namespace trajPlanner{
 		lbfgs::lbfgs_parameter_t solverParams;
 		lbfgs::lbfgs_load_default_parameters(&solverParams);
 		solverParams.mem_size = 16;
-		solverParams.max_iterations = 200;
-		solverParams.g_epsilon = 0.01;
+		solverParams.max_iterations = 1000;
+		solverParams.g_epsilon = 0.001;
 
 		int optimizeResult = lbfgs::lbfgs_optimize(variableNum, x, &finalCost, bsplineTraj::solverCostFunction, NULL, NULL, this, &solverParams);
 
@@ -670,6 +684,8 @@ namespace trajPlanner{
 		// else{
 		// 	cout << "solver error" << endl;
 		// }
+
+
 
 		return optimizeResult;
 	}
@@ -711,7 +727,7 @@ namespace trajPlanner{
 	void bsplineTraj::adjustPathLengthDirect(const std::vector<Eigen::Vector3d>& path, std::vector<Eigen::Vector3d>& adjustedPath){
 		// create a variable to record the previous goal distance 
 		static double prevPathLength = 0.0; // although I say the path length, but actually is the goal distance
-		cout << "\033[1;34m[BsplineTraj]: prev path length is:\033[0m " << prevPathLength << endl;
+		// cout << "\033[1;34m[BsplineTraj]: prev path length is:\033[0m " << prevPathLength << endl;
 
 		// iterate through the raw path
 		double totalLength = 0.0;
@@ -894,6 +910,7 @@ namespace trajPlanner{
 			gradient.col(i+2) += -3.0 * gradTemp;
 			gradient.col(i+3) += gradTemp;
 		}
+
 	}
 
 	void bsplineTraj::getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
@@ -940,6 +957,7 @@ namespace trajPlanner{
 				}
 			}
 		}
+
 	}
 
 	void bsplineTraj::getDynamicObstacleCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
