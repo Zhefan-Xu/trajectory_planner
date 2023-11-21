@@ -306,7 +306,9 @@ namespace trajPlanner{
 		std::vector<Eigen::Vector3d> trajectory;
 		Eigen::Vector3d p;
 		trajPlanner::bspline bsplineTraj = trajPlanner::bspline (bsplineDegree, controlPoints, this->controlPointsTs_);
-		for (double t=0; t<=(1.0-this->notCheckRatio_)*bsplineTraj.getDuration(); t+=this->ts_){
+		
+		double ts = this->map_->getRes()/(this->maxVel_)/2.0;
+		for (double t=0; t<=(1.0-this->notCheckRatio_)*bsplineTraj.getDuration(); t+=ts){
 			p = bsplineTraj.at(t);
 			trajectory.push_back(p);
 		}		

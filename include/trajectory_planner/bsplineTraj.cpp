@@ -668,8 +668,8 @@ namespace trajPlanner{
 		lbfgs::lbfgs_parameter_t solverParams;
 		lbfgs::lbfgs_load_default_parameters(&solverParams);
 		solverParams.mem_size = 16;
-		solverParams.max_iterations = 1000;
-		solverParams.g_epsilon = 0.001;
+		solverParams.max_iterations = 200;
+		solverParams.g_epsilon = 0.01;
 
 		int optimizeResult = lbfgs::lbfgs_optimize(variableNum, x, &finalCost, bsplineTraj::solverCostFunction, NULL, NULL, this, &solverParams);
 
@@ -786,9 +786,9 @@ namespace trajPlanner{
 		this->getFeasibilityCost(this->optData_.controlPoints, feasibilityCost, feasibilityGradient);
 		this->getDynamicObstacleCost(this->optData_.controlPoints, dynamicObstacleCost, dynamicObstacleGradient);
 
-		// total cost and gradient
+		// total cost and gradient (because feasibility includes both velocity and acc, so divide 2 for scaling)
 		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + this->weightFeasibility_ * feasibilityCost + this->weightDynamicObstacle_ * dynamicObstacleCost;
-		Eigen::MatrixXd totalGradient = this->weightDistance_ * distanceGradient + this->weightSmoothness_ * smoothnessGradient + this->weightFeasibility_ * feasibilityGradient + this->weightDynamicObstacle_ * dynamicObstacleGradient;
+		Eigen::MatrixXd totalGradient = this->weightDistance_ * distanceGradient + this->weightSmoothness_ * smoothnessGradient + 0.5 * this->weightFeasibility_ * feasibilityGradient + this->weightDynamicObstacle_ * dynamicObstacleGradient;
 
 		// update gradient
 		memcpy(grad, totalGradient.data()+3*bsplineDegree, n*sizeof(grad[0]));
@@ -807,7 +807,7 @@ namespace trajPlanner{
 		double costTemp;
 		Eigen::Vector3d gradientTemp;
 		double a, b, c;
-		a = 3.0 * this->dthresh_; b = -3 * pow(this->dthresh_, 2); c = pow(this->dthresh_, 3);
+		a = 3.0 * this->dthresh_; b = -3.0 * pow(this->dthresh_, 2); c = pow(this->dthresh_, 3);
 		const double heightDistThresh = 0.2;
 		double ah = 3.0 * heightDistThresh, bh = -3 * pow(heightDistThresh, 2), ch = pow(heightDistThresh, 3);
 		for (int i=bsplineDegree; i<=controlPoints.cols()-bsplineDegree-1; ++i){ // for each control points
@@ -821,8 +821,13 @@ namespace trajPlanner{
 				// Eigen::Vector3d grad = (this->optData_.guidePoints[i][j] - controlPoints.col(i))/(this->optData_.guidePoints[i][j] - controlPoints.col(i)).norm();
 				// grad(2) = 0;
 
-				if (distErr <= 0){
-					// no punishment	
+				// if (distErr <= 0){
+				// 	// no punishment	
+				// }
+				if (distErr <= -2 * this->dthresh_){
+					// punishment for going too far
+					cost += pow(-distErr, 3);
+					gradient += 3.0 * pow(-distErr, 2) * grad;
 				}
 				else if (distErr > 0 and distErr <= this->dthresh_){
 					// cost += pow(distErr, 3);
@@ -910,7 +915,8 @@ namespace trajPlanner{
 			gradient.col(i+2) += -3.0 * gradTemp;
 			gradient.col(i+3) += gradTemp;
 		}
-
+		cost /= controlPoints.cols();
+		gradient /= controlPoints.cols();
 	}
 
 	void bsplineTraj::getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
@@ -958,6 +964,8 @@ namespace trajPlanner{
 			}
 		}
 
+		cost /= controlPoints.cols();
+		gradient /= controlPoints.cols();
 	}
 
 	void bsplineTraj::getDynamicObstacleCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
@@ -1385,7 +1393,8 @@ namespace trajPlanner{
 	}
 
 	std::vector<Eigen::Vector3d> bsplineTraj::evalTraj(){
-		return this->evalTraj(this->ts_);
+		double ts = this->map_->getRes()/(this->maxVel_)/2.0;
+		return this->evalTraj(ts);
 	}	
 
 	std::vector<Eigen::Vector3d> bsplineTraj::evalTraj(double dt){
