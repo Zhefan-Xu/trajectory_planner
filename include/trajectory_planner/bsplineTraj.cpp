@@ -787,7 +787,7 @@ namespace trajPlanner{
 		this->getDynamicObstacleCost(this->optData_.controlPoints, dynamicObstacleCost, dynamicObstacleGradient);
 
 		// total cost and gradient (because feasibility includes both velocity and acc, so divide 2 for scaling)
-		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + this->weightFeasibility_ * feasibilityCost + this->weightDynamicObstacle_ * dynamicObstacleCost;
+		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + 0.5 * this->weightFeasibility_ * feasibilityCost + this->weightDynamicObstacle_ * dynamicObstacleCost;
 		Eigen::MatrixXd totalGradient = this->weightDistance_ * distanceGradient + this->weightSmoothness_ * smoothnessGradient + 0.5 * this->weightFeasibility_ * feasibilityGradient + this->weightDynamicObstacle_ * dynamicObstacleGradient;
 
 		// update gradient
@@ -824,10 +824,13 @@ namespace trajPlanner{
 				// if (distErr <= 0){
 				// 	// no punishment	
 				// }
-				if (distErr <= -2 * this->dthresh_){
+				if (distErr <= - 1.0 * this->dthresh_){
 					// punishment for going too far
 					cost += pow(-distErr, 3);
 					gradient += 3.0 * pow(-distErr, 2) * grad;
+					if (not this->planInZAxis_){
+						gradient(2) = 0.0;
+					}
 				}
 				else if (distErr > 0 and distErr <= this->dthresh_){
 					// cost += pow(distErr, 3);
@@ -915,8 +918,8 @@ namespace trajPlanner{
 			gradient.col(i+2) += -3.0 * gradTemp;
 			gradient.col(i+3) += gradTemp;
 		}
-		cost /= controlPoints.cols();
-		gradient /= controlPoints.cols();
+		// cost /= controlPoints.cols();
+		// gradient /= controlPoints.cols();
 	}
 
 	void bsplineTraj::getFeasibilityCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
@@ -964,8 +967,8 @@ namespace trajPlanner{
 			}
 		}
 
-		cost /= controlPoints.cols();
-		gradient /= controlPoints.cols();
+		// cost /= controlPoints.cols();
+		// gradient /= controlPoints.cols();
 	}
 
 	void bsplineTraj::getDynamicObstacleCost(const Eigen::MatrixXd& controlPoints, double& cost, Eigen::MatrixXd& gradient){
