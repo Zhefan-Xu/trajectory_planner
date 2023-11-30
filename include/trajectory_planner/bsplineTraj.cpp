@@ -366,7 +366,7 @@ namespace trajPlanner{
 		this->getSmoothnessCost(this->optData_.controlPoints, smoothnessCost, smoothnessGradient);
 		this->getFeasibilityCost(this->optData_.controlPoints, feasibilityCost, feasibilityGradient);
 		this->getDynamicObstacleCost(this->optData_.controlPoints, dynamicObstacleCost, dynamicObstacleGradient);
-		cout << "\033[1;34m[BsplineTraj]:\033[0m" << "d: " << distanceCost << " s: " << smoothnessCost << " f: " << feasibilityCost << " do: " << dynamicObstacleCost << endl;
+		// cout << "\033[1;34m[BsplineTraj]:\033[0m" << "d: " << distanceCost << " s: " << smoothnessCost << " f: " << feasibilityCost << " do: " << dynamicObstacleCost << endl;
 
 
 		// step 5. save the result to the class attribute
@@ -461,7 +461,7 @@ namespace trajPlanner{
 				cout << "\033[1;34m[BsplineTraj]: Cannot find A* path. try merging...\033[0m" << endl;
 				if (i+1 < collisionSegNum){ // in this case, it has a next segment
 					std::pair<int, int> nextSeg = collisionSeg[i+1];
-					if (nextSeg.first - seg.second <= 1){
+					if (nextSeg.first - seg.second <= 2){
 						Eigen::Vector3d pStart (this->optData_.controlPoints.col(seg.first));
 						Eigen::Vector3d pEnd (this->optData_.controlPoints.col(nextSeg.second));
 						if (this->pathSearch_->AstarSearch(this->map_->getRes(), pStart, pEnd)){
