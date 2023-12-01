@@ -539,9 +539,6 @@ namespace trajPlanner{
 
 			bool lineCollision = (seg.second - seg.first - 1 == 0);
 			if (lineCollision){
-				cout << "line seg cpts" << endl;
-				cout << "1: " << this->optData_.controlPoints.col(seg.first).transpose() << " 2: " << this->optData_.controlPoints.col(seg.second).transpose() << endl;
-				
 				int forwardIdx = 1;
 				bool findGuidePoint = this->findGuidePointSemiCircle(seg.first, seg, path, guidePoint);
 				Eigen::Vector3d midPoint = (this->optData_.controlPoints.col(seg.first) + this->optData_.controlPoints.col(seg.second))/2.0;
