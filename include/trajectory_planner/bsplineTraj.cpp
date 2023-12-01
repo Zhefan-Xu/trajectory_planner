@@ -332,6 +332,7 @@ namespace trajPlanner{
 		// 	return false;
 		// }
 
+
 		ros::Time startTime = ros::Time::now();
 		// step 1. find collision segment
 		this->findCollisionSeg(this->optData_.controlPoints, this->collisionSeg_); // upodate collision seg
@@ -344,6 +345,7 @@ namespace trajPlanner{
 			return false;
 		}
 
+
 		// step 3. Assign guide point and directions
 		this->assignGuidePointsSemiCircle(this->astarPaths_, this->collisionSeg_);
 
@@ -355,23 +357,24 @@ namespace trajPlanner{
 			return false;
 		}
 
-
 		// for debugging: get all costs:
-		double distanceCost, smoothnessCost, feasibilityCost, dynamicObstacleCost;
-		Eigen::MatrixXd distanceGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
-		Eigen::MatrixXd smoothnessGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
-		Eigen::MatrixXd feasibilityGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
-		Eigen::MatrixXd dynamicObstacleGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
-		this->getDistanceCost(this->optData_.controlPoints, distanceCost, distanceGradient);
-		this->getSmoothnessCost(this->optData_.controlPoints, smoothnessCost, smoothnessGradient);
-		this->getFeasibilityCost(this->optData_.controlPoints, feasibilityCost, feasibilityGradient);
-		this->getDynamicObstacleCost(this->optData_.controlPoints, dynamicObstacleCost, dynamicObstacleGradient);
+		// double distanceCost, smoothnessCost, feasibilityCost, dynamicObstacleCost;
+		// Eigen::MatrixXd distanceGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		// Eigen::MatrixXd smoothnessGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		// Eigen::MatrixXd feasibilityGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		// Eigen::MatrixXd dynamicObstacleGradient = Eigen::MatrixXd::Zero(3, this->optData_.controlPoints.cols());
+		// this->getDistanceCost(this->optData_.controlPoints, distanceCost, distanceGradient);
+		// this->getSmoothnessCost(this->optData_.controlPoints, smoothnessCost, smoothnessGradient);
+		// this->getFeasibilityCost(this->optData_.controlPoints, feasibilityCost, feasibilityGradient);
+		// this->getDynamicObstacleCost(this->optData_.controlPoints, dynamicObstacleCost, dynamicObstacleGradient);
 		// cout << "\033[1;34m[BsplineTraj]:\033[0m" << "d: " << distanceCost << " s: " << smoothnessCost << " f: " << feasibilityCost << " do: " << dynamicObstacleCost << endl;
 
 
+		// cout << "step 5" << endl;
 		// step 5. save the result to the class attribute
 		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 
+		// cout << "step 6" << endl;
 		// step 6. Time reparameterization
 		this->linearFeasibilityReparam();
 
@@ -483,7 +486,6 @@ namespace trajPlanner{
 					cout << "\033[1;34m[BsplineTraj]: Collision segment merge fail due to insufficient collision segments.\033[0m" << endl;
 				}
 
-
 				cout << "[BsplineTraj]: Path Search Error. Force return. start: " << pStart.transpose() << " end: " << pEnd.transpose() << endl;
 				return false; 
 			}
@@ -537,16 +539,36 @@ namespace trajPlanner{
 
 			bool lineCollision = (seg.second - seg.first - 1 == 0);
 			if (lineCollision){
-				for (int controlPointIdx=seg.first; controlPointIdx<=seg.second; ++controlPointIdx){ // iterate through all collision control points
-					bool findGuidePoint = this->findGuidePointSemiCircle(controlPointIdx, seg, path, guidePoint);
-					this->optData_.guidePoints[controlPointIdx].push_back(guidePoint);
-					guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx))/(guidePoint - this->optData_.controlPoints.col(controlPointIdx)).norm();
-					// guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx));
-					this->optData_.guideDirections[controlPointIdx].push_back(guideDirection);
-					if (not findGuidePoint){
-						ROS_ERROR("[BsplineTraj]: Impossible Assignment. Something wrong!");
+				cout << "line seg cpts" << endl;
+				cout << "1: " << this->optData_.controlPoints.col(seg.first).transpose() << " 2: " << this->optData_.controlPoints.col(seg.second).transpose() << endl;
+				
+				int forwardIdx = 1;
+				bool findGuidePoint = this->findGuidePointSemiCircle(seg.first, seg, path, guidePoint);
+				Eigen::Vector3d midPoint = (this->optData_.controlPoints.col(seg.first) + this->optData_.controlPoints.col(seg.second))/2.0;
+				guideDirection = (guidePoint - midPoint)/(guidePoint - midPoint).norm();
+				for (int controlPointIdx=seg.first-forwardIdx; controlPointIdx<=seg.second+forwardIdx; ++controlPointIdx){
+					if (controlPointIdx >= bsplineDegree and controlPointIdx <= int((this->optData_.controlPoints.cols() - bsplineDegree - 1))){
+						this->optData_.guidePoints[controlPointIdx].push_back(guidePoint);
+						this->optData_.guideDirections[controlPointIdx].push_back(guideDirection);
 					}
 				}
+
+
+				// for (int controlPointIdx=seg.first; controlPointIdx<=seg.second; ++controlPointIdx){ // iterate through all collision control points
+				// 	bool findGuidePoint = this->findGuidePointSemiCircle(controlPointIdx, seg, path, guidePoint);
+
+				// 	cout << "find guide point: " << findGuidePoint << " : " << guidePoint.transpose() << endl;
+				// 	this->optData_.guidePoints[controlPointIdx].push_back(guidePoint);
+				// 	Eigen::Vector3d midPoint = (this->optData_.controlPoints.col(seg.first) + this->optData_.controlPoints.col(seg.second))/2.0;
+				// 	guideDirection = (guidePoint - midPoint)/(guidePoint - midPoint).norm();
+				// 	cout << "guide direction is: " << guideDirection.transpose() << endl;
+				// 	// guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx))/(guidePoint - this->optData_.controlPoints.col(controlPointIdx)).norm();
+				// 	// guideDirection = (guidePoint - this->optData_.controlPoints.col(controlPointIdx));
+				// 	this->optData_.guideDirections[controlPointIdx].push_back(guideDirection);
+				// 	if (not findGuidePoint){
+				// 		ROS_ERROR("[BsplineTraj]: Impossible Assignment. Something wrong!");
+				// 	}
+				// }
 			}
 		}
 	}
@@ -609,17 +631,17 @@ namespace trajPlanner{
 				break;
 			}
 
-			if (failCount >= 4){
+			if (failCount >= 3){
 				std::vector<std::pair<int, int>> collisionSeg;
 				this->findCollisionSeg(this->optData_.controlPoints, collisionSeg);
 				bool pathSearchSuccess = this->pathSearch(collisionSeg, tempAstarPaths);	
 				if (pathSearchSuccess){
 					this->astarPaths_ = tempAstarPaths; 
 					this->assignGuidePointsSemiCircle(tempAstarPaths, collisionSeg);
-				}				
+				}
 			}
 
-			if (failCount >= 8){
+			if (failCount >= 15){
 				this->weightDistance_ = weightDistance0;
 				this->weightDynamicObstacle_ = weightDynamicObstacle0;
 				return false;
@@ -628,9 +650,8 @@ namespace trajPlanner{
 			if (hasCollision){
 				// need to determine whether the reguide is required
 				std::vector<std::pair<int, int>> reguideCollisionSeg;
-				if (this->isReguideRequired(reguideCollisionSeg)){ // this will update collision segment for next iteration
+				if (failCount < 4 and this->isReguideRequired(reguideCollisionSeg)){ // this will update collision segment for next iteration
 					bool pathSearchSuccess = this->pathSearch(reguideCollisionSeg, tempAstarPaths);
-					
 					if (pathSearchSuccess){
 						this->astarPaths_ = tempAstarPaths; 
 						this->assignGuidePointsSemiCircle(tempAstarPaths, reguideCollisionSeg);
@@ -648,8 +669,12 @@ namespace trajPlanner{
 
 			if (hasDynamicCollision){
 				this->weightDynamicObstacle_ *= 2.0;
-				++failCount;
+				if (not hasCollision){
+					++failCount;
+				}
 			}
+
+			
 			this->optimize();
 		}
 		this->weightDistance_ = weightDistance0;
@@ -787,8 +812,8 @@ namespace trajPlanner{
 		this->getDynamicObstacleCost(this->optData_.controlPoints, dynamicObstacleCost, dynamicObstacleGradient);
 
 		// total cost and gradient (because feasibility includes both velocity and acc, so divide 2 for scaling)
-		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + 0.5 * this->weightFeasibility_ * feasibilityCost + this->weightDynamicObstacle_ * dynamicObstacleCost;
-		Eigen::MatrixXd totalGradient = this->weightDistance_ * distanceGradient + this->weightSmoothness_ * smoothnessGradient + 0.5 * this->weightFeasibility_ * feasibilityGradient + this->weightDynamicObstacle_ * dynamicObstacleGradient;
+		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + this->weightFeasibility_ * feasibilityCost + this->weightDynamicObstacle_ * dynamicObstacleCost;
+		Eigen::MatrixXd totalGradient = this->weightDistance_ * distanceGradient + this->weightSmoothness_ * smoothnessGradient + this->weightFeasibility_ * feasibilityGradient + this->weightDynamicObstacle_ * dynamicObstacleGradient;
 
 		// update gradient
 		memcpy(grad, totalGradient.data()+3*bsplineDegree, n*sizeof(grad[0]));
