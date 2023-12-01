@@ -332,7 +332,6 @@ namespace trajPlanner{
 		// 	return false;
 		// }
 
-
 		ros::Time startTime = ros::Time::now();
 		// step 1. find collision segment
 		this->findCollisionSeg(this->optData_.controlPoints, this->collisionSeg_); // upodate collision seg
@@ -344,7 +343,6 @@ namespace trajPlanner{
 			cout << "[BsplineTraj]: Fail because of A* failure." << endl;
 			return false;
 		}
-
 
 		// step 3. Assign guide point and directions
 		this->assignGuidePointsSemiCircle(this->astarPaths_, this->collisionSeg_);
@@ -370,11 +368,9 @@ namespace trajPlanner{
 		// cout << "\033[1;34m[BsplineTraj]:\033[0m" << "d: " << distanceCost << " s: " << smoothnessCost << " f: " << feasibilityCost << " do: " << dynamicObstacleCost << endl;
 
 
-		// cout << "step 5" << endl;
 		// step 5. save the result to the class attribute
 		this->bspline_ = trajPlanner::bspline (bsplineDegree, this->optData_.controlPoints, this->controlPointsTs_);
 
-		// cout << "step 6" << endl;
 		// step 6. Time reparameterization
 		this->linearFeasibilityReparam();
 
@@ -615,6 +611,7 @@ namespace trajPlanner{
 		int failCount = 0; 
 		std::vector<vector<Eigen::Vector3d>> tempAstarPaths; // in case path search fail
 		bool hasCollision, hasDynamicCollision;
+		ros::Time startTime = ros::Time::now();
 		while (ros::ok()){
 			hasCollision = this->hasCollisionTrajectory(this->optData_.controlPoints);
 			if (this->optData_.dynamicObstaclesPos.size() != 0){
@@ -628,17 +625,25 @@ namespace trajPlanner{
 				break;
 			}
 
-			if (failCount >= 3){
+			ros::Time currTime = ros::Time::now();
+			if ((currTime - startTime).toSec() > 0.03){
+				this->weightDistance_ = weightDistance0;
+				this->weightDynamicObstacle_ = weightDynamicObstacle0;
+				cout << "[BsplineTraj]: Optimization timeout." << endl;
+				return false;			
+			}
+
+			if (failCount >= 4){
 				std::vector<std::pair<int, int>> collisionSeg;
 				this->findCollisionSeg(this->optData_.controlPoints, collisionSeg);
 				bool pathSearchSuccess = this->pathSearch(collisionSeg, tempAstarPaths);	
 				if (pathSearchSuccess){
 					this->astarPaths_ = tempAstarPaths; 
 					this->assignGuidePointsSemiCircle(tempAstarPaths, collisionSeg);
-				}
+				}				
 			}
 
-			if (failCount >= 15){
+			if (failCount >= 8){
 				this->weightDistance_ = weightDistance0;
 				this->weightDynamicObstacle_ = weightDynamicObstacle0;
 				return false;
@@ -647,8 +652,9 @@ namespace trajPlanner{
 			if (hasCollision){
 				// need to determine whether the reguide is required
 				std::vector<std::pair<int, int>> reguideCollisionSeg;
-				if (failCount < 4 and this->isReguideRequired(reguideCollisionSeg)){ // this will update collision segment for next iteration
+				if (this->isReguideRequired(reguideCollisionSeg)){ // this will update collision segment for next iteration
 					bool pathSearchSuccess = this->pathSearch(reguideCollisionSeg, tempAstarPaths);
+					
 					if (pathSearchSuccess){
 						this->astarPaths_ = tempAstarPaths; 
 						this->assignGuidePointsSemiCircle(tempAstarPaths, reguideCollisionSeg);
@@ -666,12 +672,7 @@ namespace trajPlanner{
 
 			if (hasDynamicCollision){
 				this->weightDynamicObstacle_ *= 2.0;
-				if (not hasCollision){
-					++failCount;
-				}
 			}
-
-			
 			this->optimize();
 		}
 		this->weightDistance_ = weightDistance0;
@@ -807,11 +808,9 @@ namespace trajPlanner{
 		this->getSmoothnessCost(this->optData_.controlPoints, smoothnessCost, smoothnessGradient);
 		this->getFeasibilityCost(this->optData_.controlPoints, feasibilityCost, feasibilityGradient);
 		this->getDynamicObstacleCost(this->optData_.controlPoints, dynamicObstacleCost, dynamicObstacleGradient);
-
 		// total cost and gradient (because feasibility includes both velocity and acc, so divide 2 for scaling)
 		double totalCost = this->weightDistance_ * distanceCost + this->weightSmoothness_ * smoothnessCost + this->weightFeasibility_ * feasibilityCost + this->weightDynamicObstacle_ * dynamicObstacleCost;
 		Eigen::MatrixXd totalGradient = this->weightDistance_ * distanceGradient + this->weightSmoothness_ * smoothnessGradient + this->weightFeasibility_ * feasibilityGradient + this->weightDynamicObstacle_ * dynamicObstacleGradient;
-
 		// update gradient
 		memcpy(grad, totalGradient.data()+3*bsplineDegree, n*sizeof(grad[0]));
 		return totalCost;
@@ -848,11 +847,13 @@ namespace trajPlanner{
 				// }
 				if (distErr <= - 1.0 * this->dthresh_){
 					// punishment for going too far
-					cost += pow(-distErr, 3);
-					gradient += 3.0 * pow(-distErr, 2) * grad;
+					costTemp = pow(-distErr, 3);
+					gradientTemp = 3.0 * pow(-distErr, 2) * grad;
 					if (not this->planInZAxis_){
-						gradient(2) = 0.0;
+						gradientTemp(2) = 0.0;
 					}
+					cost += costTemp;
+					gradient.col(i) += gradientTemp;
 				}
 				else if (distErr > 0 and distErr <= this->dthresh_){
 					// cost += pow(distErr, 3);
