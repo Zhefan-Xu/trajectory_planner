@@ -159,10 +159,10 @@ add_executable(polyRRTNode src/polyRRTNode.cpp)
 add_executable(polyRRTStarNode src/polyRRTStarNode.cpp)
 add_executable(polyRRTGoalNode src/polyRRTGoalNode.cpp)
 add_executable(polyRRTStarGoalNode src/polyRRTGoalNode.cpp)
-add_executable(testEigen src/test/testEigen.cpp)
-add_executable(testTrajSolver src/test/testTrajSolver.cpp)
-add_executable(testBspline src/test/testBspline.cpp)
-add_executable(test_bspline_fit src/test/test_bspline_fit.cpp)
+# add_executable(testEigen src/test/testEigen.cpp)
+# add_executable(testTrajSolver src/test/testTrajSolver.cpp)
+# add_executable(testBspline src/test/testBspline.cpp)
+# add_executable(test_bspline_fit src/test/test_bspline_fit.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -185,10 +185,10 @@ target_link_libraries(polyRRTNode ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(polyRRTStarNode ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(polyRRTGoalNode ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(polyRRTStarGoalNode ${catkin_LIBRARIES} ${PROJECT_NAME})
-target_link_libraries(testEigen ${catkin_LIBRARIES} OsqpEigen::OsqpEigen)
-target_link_libraries(testTrajSolver ${catkin_LIBRARIES} ${PROJECT_NAME})
-target_link_libraries(testBspline ${catkin_LIBRARIES} ${PROJECT_NAME})
-target_link_libraries(test_bspline_fit ${catkin_LIBRARIES} ${PROJECT_NAME})
+# target_link_libraries(testEigen ${catkin_LIBRARIES} OsqpEigen::OsqpEigen)
+# target_link_libraries(testTrajSolver ${catkin_LIBRARIES} ${PROJECT_NAME})
+# target_link_libraries(testBspline ${catkin_LIBRARIES} ${PROJECT_NAME})
+# target_link_libraries(test_bspline_fit ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 
 #############
