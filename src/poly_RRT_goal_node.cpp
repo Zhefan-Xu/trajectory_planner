@@ -1,3 +1,8 @@
+/*
+*	File: poly_RRT_goal_node.cpp
+*	---------------
+*   polynomial trajectory with RRT navigation 
+*/
 #include <ros/ros.h>
 #include <global_planner/rrtOctomap.h>
 #include <geometry_msgs/PoseStamped.h>

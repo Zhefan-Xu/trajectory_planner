@@ -1,5 +1,10 @@
+/*
+*	File: poly_RRT_node.cpp
+*	---------------
+*   polynomial trajectory with RRT for two points
+*/
 #include <ros/ros.h>
-#include <global_planner/rrtStarOctomap.h>
+#include <global_planner/rrtOctomap.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <trajectory_planner/polyTrajOctomap.h>
 
@@ -43,9 +48,8 @@ void publishGoalVis(){
 	}
 }	
 
-
 int main(int argc, char** argv){
-	ros::init(argc, argv, "Poly_RRT*_test_node");
+	ros::init(argc, argv, "Poly_RRT_test_node");
 	ros::NodeHandle nh;
 
 	// subscriber for clicked start and goal:
@@ -57,8 +61,8 @@ int main(int argc, char** argv){
 	std::thread goalVisWorker_ = std::thread(publishGoalVis);
 	
 	const int N = 3; // dimension
-	globalPlanner::rrtStarOctomap<N> rrtStarPlanner (nh);
-	cout << rrtStarPlanner << endl;
+	globalPlanner::rrtOctomap<N> rrtplanner (nh);
+	cout << rrtplanner << endl;
 
 	trajPlanner::polyTrajOctomap polyPlanner (nh);
 	cout << polyPlanner << endl;
@@ -72,7 +76,7 @@ int main(int argc, char** argv){
 		while (ros::ok()){
 			if (newMsg){
 				std::vector<double> start = newPoint;
-				rrtStarPlanner.updateStart(start);
+				rrtplanner.updateStart(start);
 				newMsg = false;
 				cout << "[Planner Node]: start point OK. (" << start[0] << " " << start[1] << " " << start[2] << ")" << endl;
 				
@@ -106,7 +110,7 @@ int main(int argc, char** argv){
 		while (ros::ok()){
 			if (newMsg){
 				std::vector<double> goal = newPoint;
-				rrtStarPlanner.updateGoal(goal);
+				rrtplanner.updateGoal(goal);
 				newMsg = false;
 				cout << "[Planner Node]: goal point OK. (" << goal[0] << " " << goal[1] << " " << goal[2] << ")" << endl;
 				
@@ -135,9 +139,9 @@ int main(int argc, char** argv){
 			r.sleep();
 		}
 
-		// generate waypoint path
+		// Generate waypoint path
 		nav_msgs::Path path;
-		rrtStarPlanner.makePlan(path);
+		rrtplanner.makePlan(path);
 
 
 		// generate trajectory:
@@ -146,8 +150,7 @@ int main(int argc, char** argv){
 		double duration = polyPlanner.getDuration();
 		cout << "[Planner Node]: Duration: " << duration << "s." << endl;
 
-
-		// visualization
+		// Visualization
 		// ros::Time startTime = ros::Time::now();
 		// ros::Time currTime = ros::Time::now();
 		// ros::Rate r(50);

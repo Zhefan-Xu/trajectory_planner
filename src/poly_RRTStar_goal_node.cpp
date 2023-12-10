@@ -1,7 +1,13 @@
+/*
+*	File: poly_RRTStar_goal_node.cpp
+*	---------------
+*   polynomial trajectory with RRT* navigation 
+*/
 #include <ros/ros.h>
-#include <global_planner/rrtOctomap.h>
+#include <global_planner/rrtStarOctomap.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <trajectory_planner/polyTrajOctomap.h>
+
 
 using std::cout;
 using std::endl;
@@ -58,7 +64,7 @@ int main(int argc, char** argv){
 	
 	const int N = 3; // dimension
 	globalPlanner::rrtStarOctomap<N> rrtStarPlanner (nh);
-	cout << rrtplanner << endl;
+	cout << rrtStarPlanner << endl;
 
 	trajPlanner::polyTrajOctomap polyPlanner (nh);
 	cout << polyPlanner << endl;

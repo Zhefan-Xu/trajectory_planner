@@ -1,48 +1,37 @@
-# Robot:
-# collision_box: [1.0, 1.0, 0.6]
-# collision_box: [0.8, 0.8, 0.4]
-collision_box: [0.4, 0.4, 0.2]
+rrt/map_resolution: 0.1
+rrt/timeout: 0.1
+rrt/env_box: [-100, 100, -100, 100, 1.0, 1.0]
+rrt/incremental_distance: 0.5
+rrt/goal_reach_distance: 0.4
+rrt/connect_goal_ratio: 0.2
+rrt/max_shortcut_dist: 5
+rrt/ignore_unknown: true
+rrt/pass_goal_check: true
 
+poly_traj/polynomial_degree: 7
+poly_traj/differential_degree: 4
+poly_traj/continuity_degree: 3
+poly_traj/desired_velocity: 1.0 # this is not used. Will be overwritten.
+poly_traj/initial_radius: 0.5
+poly_traj/timeout: 0.1
+poly_traj/corridor_res: 5.0
+poly_traj/shrinking_factor: 0.5
+poly_traj/soft_constraint: false
+poly_traj/constraint_radius: 0.5
+poly_traj/sample_delta_time: 0.1
+poly_traj/maximum_iteration_num: 10
+poly_traj/use_pwl_failsafe: true
 
-# Environment:
-env_box: [-100, 100, -100, 100, 0.5, 0.5] # xmin, xmax, ymin, ymax, zmin, zmax
-
-
-# Planner parameters:
-timeout: 0.1 #s
-rrt_incremental_distance: 1.0 #m
-rrt_connect_goal_ratio: 0.2
-goal_reach_distance: 0.4 #m
-map_resolution: 0.2 # this should be at least bigger or equal to the true map resolution
-ignore_unknown: true
-max_shortcut_dist: 5.0
-
-
-# Planner Visualization:
-vis_RRT: False # does not support for RRT*
-vis_path: True
-
-# RRT* parameter:
-neighborhood_radius: 1.0 #m
-max_num_neighbors: 10
-
-
-# # polynomial trajectory
-mode: false # True: adding waypoint, False: corridor constraint 
-polynomial_degree: 7
-differential_degree: 4 # 3: jerk 4: snap
-continuity_degree: 4 # second order continuous
-desired_velocity: 1 # m/s
-desired_angular_velocity: 0.5 # rad/s
-maximum_iteration_num: 100
-traj_timeout: 0.1
-sample_delta_time: 0.1
-
-# soft waypoint constraint
-soft_constraint: false
-constraint_size: 0.5 # not in z diection
-
-# corridor constraint (only for mode=false):
-initial_radius: 0.5 # m
-shrinking_factor: 0.8
-corridor_res: 8.0 # how many corridor per second 
+bspline_traj/timestep: 0.1
+bspline_traj/distance_threshold: 0.5
+bspline_traj/max_vel: 1.0 # this is not used. Will be overwritten.
+bspline_traj/max_acc: 1.0 # this is not used. Will be overwritten.
+bspline_traj/weight_distance: 1.0
+bspline_traj/weight_smoothness: 1.0
+bspline_traj/weight_feasibility: 1.0
+bspline_traj/plan_in_z_axis: false
+bspline_traj/min_height: 0.7
+bspline_traj/max_height: 1.3
+bspline_traj/uncertain_aware_factor: 1.0
+bspline_traj/max_path_length: 7
+bspline_traj/max_obstacle_size: [10, 10, 10]

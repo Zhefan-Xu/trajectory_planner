@@ -1,8 +1,8 @@
 <launch>
 	<rosparam>/use_sim_time: 0</rosparam>
 	<!-- planner -->
-	<rosparam file="$(find trajectory_planner)/cfg/planner.yaml" />
-	<node pkg="trajectory_planner" type="polyRRTNode" name="polyRRTNode" output="screen" />
+	<rosparam file="$(find trajectory_planner)/cfg/planner_interactive.yaml" />
+	<node pkg="trajectory_planner" type="poly_RRTStar_goal_node" name="poly_RRTStar_goal_node" output="screen" />
 
 	<!-- map -->
 	<arg name="map_location" default="$(find trajectory_planner)/map/box.bt"/>
