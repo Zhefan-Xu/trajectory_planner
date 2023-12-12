@@ -12,7 +12,8 @@
 #define POLYTRAJSOLVER_H
 #include <trajectory_planner/utils.h>
 #include <geometry_msgs/Twist.h>
-#include <OsqpEigen/OsqpEigen.h>
+// #include <OsqpEigen/OsqpEigen.h>
+#include <trajectory_planner/third_party/OsqpEigen/OsqpEigen.h>
 #include <thread>
 #include <mutex>
 #include <unordered_map>

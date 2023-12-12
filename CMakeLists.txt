@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(OsqpEigen REQUIRED)
+# find_package(OsqpEigen REQUIRED)
 
 
 
@@ -113,7 +113,7 @@ catkin_package(
  INCLUDE_DIRS include
  LIBRARIES trajectory_planner
  CATKIN_DEPENDS roscpp rospy std_msgs 
- DEPENDS OsqpEigen
+ # DEPENDS OsqpEigen
 )
 
 ###########
@@ -125,7 +125,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${OsqpEigen_INCLUDE_DIRS}
+  # ${OsqpEigen_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -179,7 +179,8 @@ add_executable(poly_RRTStar_goal_node src/poly_RRTStar_goal_node.cpp)
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} OsqpEigen::OsqpEigen)
+# target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} OsqpEigen::OsqpEigen)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} "${CMAKE_CURRENT_SOURCE_DIR}/include/trajectory_planner/third_party/libosqp.a" "${CMAKE_CURRENT_SOURCE_DIR}/include/trajectory_planner/third_party/libOsqpEigen.so.0.7.0")
 # target_link_libraries(polyTrajSolver OsqpEigen::OsqpEigen)
 # target_link_libraries(polyTrajOctomap polyTrajSolver pwlTraj)
 target_link_libraries(poly_RRT_node ${catkin_LIBRARIES} ${PROJECT_NAME})
