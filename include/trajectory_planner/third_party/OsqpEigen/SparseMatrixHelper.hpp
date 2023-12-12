@@ -73,6 +73,6 @@ namespace OsqpEigen
     };
 }
 
-#include <OsqpEigen/SparseMatrixHelper.tpp>
+#include "SparseMatrixHelper.tpp"
 
 #endif
