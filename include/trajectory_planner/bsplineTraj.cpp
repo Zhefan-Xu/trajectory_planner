@@ -1383,6 +1383,10 @@ namespace trajPlanner{
 		// return this->controlPointsTs_;
 	}
 
+	double bsplineTraj::getControlPointTs(){
+		return this->controlPointsTs_;
+	}
+
 	double bsplineTraj::getControlPointDist(){
 		return this->controlPointDistance_;
 	}
@@ -1416,6 +1420,10 @@ namespace trajPlanner{
 
 	double bsplineTraj::getTimestep(){
 		return this->ts_;
+	}
+
+	Eigen::MatrixXd bsplineTraj::getControlPoints(){
+		return this->optData_.controlPoints;
 	}
 
 	std::vector<Eigen::Vector3d> bsplineTraj::evalTraj(){

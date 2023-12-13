@@ -140,11 +140,13 @@ namespace trajPlanner{
 
 		// user functions
 		double getInitTs(); // initial sample time
+		double getControlPointTs();
 		double getControlPointDist();
 		trajPlanner::bspline getTrajectory();
 		geometry_msgs::PoseStamped getPose(double t, bool yaw=true);
 		double getDuration();
 		double getTimestep();
+		Eigen::MatrixXd getControlPoints();
 		bool isCurrTrajValid();
 		bool isCurrTrajValid(Eigen::Vector3d& firstCollisionPos);
 		void writeCurrentTrajInfo(const std::string& filePath, double dt);
