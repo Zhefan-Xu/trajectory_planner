@@ -43,28 +43,10 @@ Use ```2D Nav Goal``` in ```Rviz``` to select start and goal position in the map
 https://github.com/Zhefan-Xu/trajectory_planner/assets/55560905/ec5baa33-07a8-4854-b34f-679d03b519a0
 
 
-## Usage:
-- #### I. Generate trajectory from start and goal click point:
-    ```
-    roslaunch trajectory_planner polyRRTInteractive.launch
-    ```
-    See quick demo video for its example.
+## III. Code Exmaple & API
+a. For the B-spline-based trajectory optimization ([ViGO](https://ieeexplore.ieee.org/abstract/document/10160638)), the example code can be found in ```trajectory_planner/src/bspline_node.cpp```
 
-- #### II. Navigation:
-    ```
-    roslaunch trajectory_planner polyRRTGoalInteractive.launch
-    ```
-    - Example 1 (Navigation):
-
-    https://user-images.githubusercontent.com/55560905/153731254-ba3a311e-9c64-4056-8285-c466f475d7b1.mp4
-
-
-    - Example 2 (Navigation):
-
-    https://user-images.githubusercontent.com/55560905/153731258-8d41a6e3-d908-4fa0-9397-53baae93dd13.mp4
-
-## Code API:
-The following code explains how to use the ```trajPlanner::polyTrajOctomap``` to generate collision-free trajectory from waypoints. 
+b. For the min snap trajectory planner, the following code explains how to use the ```trajPlanner::polyTrajOctomap``` to generate collision-free trajectory from waypoints:
 ```
 #include <trajectory_planner/polyTrajOctomap.h>
 
@@ -84,15 +66,38 @@ int main(){
     ...
 }
 ```
-You can check ```src/polyRRTNode.cpp``` for more details.
+You can check ```src/poly_RRT_node.cpp``` for more details.
 
-## Parameters:
-Planner paramters can be edited in ```cfg/planner.yaml```. The paramter names are pretty self-explained.
-
-
-## Reference:
-- Mellinger, D. and Kumar, V., 2011, May. Minimum snap trajectory generation and control for quadrotors. In 2011 IEEE international conference on robotics and automation (pp. 2520-2525).
-- Richter, C., Bry, A. and Roy, N., 2016. Polynomial trajectory planning for aggressive quadrotor flight in dense indoor environments. In Robotics research (pp. 649-666). Springer, Cham.
+## IV. Parameters:
+All planners parameters can be edited and modified in ```trajectory_planner/cfg/***.yaml```. 
 
 
-debug pwl
+## V. Issues
+If you cannot visulize the Octomap with ROS noetic, that is because the [octomap_ros](http://wiki.ros.org/octomap) package has some tf name incompatibility issue. To solve that, please try building the octomap_ros from [source](https://github.com/OctoMap/octomap_mapping) with the following steps:
+
+**Step1: download the octomap mapping source files**
+
+```
+cd ~/catkin_ws/src
+git clone https://github.com/OctoMap/octomap_mapping.git
+```
+
+**Step2: modify source files and catkin make**
+Please change all the frame id ```/map``` to ```map``` in ```octomap_mapping/octomap_server/OctomapServer.cpp``` and ```octomap_mapping/octomap_server/octomap_server_static.cpp```. There should be 2 places. 
+```
+cd ~/catkin_ws
+catkin_make
+```
+
+## VI. Citation and Reference:
+If you find this work useful, please cite the paper:
+```
+@inproceedings{xu2023vision,
+  title={Vision-aided UAV navigation and dynamic obstacle avoidance using gradient-based B-spline trajectory optimization},
+  author={Xu, Zhefan and Xiu, Yumeng and Zhan, Xiaoyang and Chen, Baihan and Shimada, Kenji},
+  booktitle={2023 IEEE International Conference on Robotics and Automation (ICRA)},
+  pages={1214--1220},
+  year={2023},
+  organization={IEEE}
+}
+```
