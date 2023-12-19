@@ -1,5 +1,5 @@
-# Trajectory Planner for Quadcopter 
-This repo implements minimum snap trajectory optimization methods for quadcopters based on [Octomap](http://wiki.ros.org/octomap) (C++/ROS). 
+# Trajectory Planning Library for Autonomous Robots 
+This repo implements multiple trajectory optimization methods, such as Min-Snap Polynomial Trajectory Optimization, ViGO (Our vision-aided local trajectory planner), based on the occupancy voxel map and the Octomap for autonomous robots.
 
 ## Get Started:
 This packages allow you generating collision-free trajectory based on your map. You can set start and goal by clicking or use code API.
