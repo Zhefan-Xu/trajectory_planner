@@ -1,6 +1,22 @@
 # Trajectory Planning Library for Autonomous Robots 
 This repo implements multiple trajectory optimization methods, such as min-snap trajectory planner, [ViGO](https://ieeexplore.ieee.org/abstract/document/10160638) (our local trajectory planner), based on the occupancy voxel map and the Octomap for autonomous robots.
 
+## I. Installation Guide
+This repo has been tested on ROS Melodic with Ubuntu 18.04 and ROS Noetic with Ubuntu 20.04 and it depends on [map_manager](https://github.com/Zhefan-Xu/map_manager) which provides the occupancy voxel map implementation and [octomap_ros](http://wiki.ros.org/octomap) for octree-based map. It also depends on [global_planner](https://github.com/Zhefan-Xu/global_planner) for global waypoint generation.
+
+```
+# install dependency
+sudo apt install ros-[melodic/noetic]-octomap* # octomap
+
+cd ~/catkin_ws/src
+git clone https://github.com/Zhefan-Xu/map_manager.git # occupancy voxel map. please refer to the original repo if you meet any issue.
+git clone https://github.com/Zhefan-Xu/global_planner.git
+git clone https://github.com/Zhefan-Xu/trajectory_planner.git
+cd ~/catkin_ws
+catkin_make
+```
+
+
 ## Get Started:
 This packages allow you generating collision-free trajectory based on your map. You can set start and goal by clicking or use code API.
 - #### Quick DEMO:
