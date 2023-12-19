@@ -22,6 +22,10 @@ a. Example of the **local** trajectory planning using the B-spline-based traject
 
 https://github.com/Zhefan-Xu/trajectory_planner/assets/55560905/dd5b4dc1-2290-44f5-b657-202f589ec772
 
+The related paper can be found on:
+
+**Zhefan Xu, Yumeng Xiu, Xiaoyang Zhan, Baihan Chen, and Kenji Shimada, “Vision-aided UAV Navigation and Dynamic Obstacle Avoidance using Gradient-based B-spline Trajectory Optimization”, IEEE International Conference on Robotics and Automation (ICRA), 2023.** [\[paper\]](https://ieeexplore.ieee.org/abstract/document/10160638) [\[video\]](https://youtu.be/xlMAL8aBHHg?si=4E5vShz7spxZDzps)
+
 b. Example of the **global** trajectory planning using the min-snap trajectory optimization with the global planner:
 
 https://github.com/Zhefan-Xu/trajectory_planner/assets/55560905/ec5baa33-07a8-4854-b34f-679d03b519a0
