@@ -17,49 +17,14 @@ cd ~/catkin_ws
 catkin_make
 ```
 
+## II. Run Planner DEMO
+a. Example of **local** trajectory planning using the B-spline-based trajectory optimization ([ViGO](https://ieeexplore.ieee.org/abstract/document/10160638)):
 
-## Get Started:
-This packages allow you generating collision-free trajectory based on your map. You can set start and goal by clicking or use code API.
-- #### Quick DEMO:
-   
-   https://user-images.githubusercontent.com/55560905/153730534-7900340a-a9f6-4301-ab42-569a87c0c1a3.mp4
+a. Example of **global** trajectory planning using the min-snap trajectory optimization with the global planner:
 
-## Installation
-- #### Prerequiste:
-    This pacakge depends on [OSQP](https://osqp.org/), [OSQP-Eigen](https://github.com/robotology/osqp-eigen) (C++/Eigen version of OSQP), [Octomap](http://wiki.ros.org/octomap). Please go to their official website for installation. If you are not familiar with CMake, you can follow the instruction below:
-    ```
-    # install OSQP
-    cd PATH/TO/YOUR/PREFERED/DIRECTORY
-    git clone --recursive https://github.com/osqp/osqp
-    cd osqp
-    mkdir build && cd build
-    cmake -G "Unix Makefiles" ..
-    cmake --build .
-    sudo cmake --build . --target install
+https://user-images.githubusercontent.com/55560905/153730534-7900340a-a9f6-4301-ab42-569a87c0c1a3.mp4
 
-    # install OSQP-Eigen
-    cd PATH/TO/YOUR/PREFERED/DIRECTORY
-    git clone https://github.com/robotology/osqp-eigen.git
-    cd osqp-eigen
-    mkdir build && cd build
-    cmake ..
-    make
-    sudo make install
 
-    # install octoamp related packages
-    sudo apt install ros-noetic-octomap*
-    ```
-- #### install:
-    To realize global navigation, RRT/RRT* planner is used the global planner in this [repo](https://github.com/Zhefan-Xu/global_planner). It is not required if you want to write your own code using this repo. It is just for navigation demo.
-    ```
-    cd ~/catkin_ws/src
-    git clone https://github.com/Zhefan-Xu/global_planner.git # OPTIONAL (ONLY required if you want to play with our demo)
-    git clone https://github.com/Zhefan-Xu/trajectory_planner.git
-
-    # make
-    cd ~/catkin_ws
-    catkin_make
-    ```
 
 ## Usage:
 - #### I. Generate trajectory from start and goal click point:
