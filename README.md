@@ -22,6 +22,8 @@ catkin_make
 ## II. Run Planner DEMO
 a. The example of the **local** trajectory planning using the B-spline-based trajectory optimization ([ViGO](https://ieeexplore.ieee.org/abstract/document/10160638)):
 
+Please modify the correct path for the prebuilt map in ```trajectory_planner/cfg/bspline_interactive/occupancy_map.yaml```. All the prebuilt maps are under ```trajectory_planner/map```.
+
 ```
 roslaunch trajectory_planner bspline_interactive.launch
 ```
