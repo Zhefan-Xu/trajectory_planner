@@ -1,7 +1,7 @@
 # Trajectory Planning Library for Autonomous Robots 
 This repo implements multiple trajectory optimization methods, such as min-snap trajectory planner, [ViGO](https://ieeexplore.ieee.org/abstract/document/10160638) (our local trajectory planner), based on the occupancy voxel map and the Octomap for autonomous robots.
 
-**Author**: [Zhefan Xu](https://zhefanxu.com/) from the Computational Engineering & Robotics Lab (CERLAB) at Carnegie Mellon University (CMU).
+**Author**: [Zhefan Xu](https://zhefanxu.com/), Computational Engineering & Robotics Lab (CERLAB) at Carnegie Mellon University (CMU).
 
 ## I. Installation Guide
 This repo has been tested on ROS Melodic with Ubuntu 18.04 and ROS Noetic with Ubuntu 20.04 and it depends on [map_manager](https://github.com/Zhefan-Xu/map_manager) which provides the occupancy voxel map implementation and [octomap_ros](http://wiki.ros.org/octomap) for octree-based map. It also depends on [global_planner](https://github.com/Zhefan-Xu/global_planner) for global waypoint generation.
