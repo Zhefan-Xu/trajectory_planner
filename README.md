@@ -20,9 +20,18 @@ catkin_make
 ## II. Run Planner DEMO
 a. Example of **local** trajectory planning using the B-spline-based trajectory optimization ([ViGO](https://ieeexplore.ieee.org/abstract/document/10160638)):
 
+
+
+https://github.com/Zhefan-Xu/trajectory_planner/assets/55560905/dd5b4dc1-2290-44f5-b657-202f589ec772
+
+
+
 a. Example of **global** trajectory planning using the min-snap trajectory optimization with the global planner:
 
-https://user-images.githubusercontent.com/55560905/153730534-7900340a-a9f6-4301-ab42-569a87c0c1a3.mp4
+
+
+
+https://github.com/Zhefan-Xu/trajectory_planner/assets/55560905/ec5baa33-07a8-4854-b34f-679d03b519a0
 
 
 
