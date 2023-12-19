@@ -40,8 +40,7 @@ roslaunch trajectory_planner poly_RRT_goal_interactive.launch
 ```
 Use ```2D Nav Goal``` in ```Rviz``` to select start and goal position in the map as shown below:
 
-https://github.com/Zhefan-Xu/trajectory_planner/assets/55560905/ec5baa33-07a8-4854-b34f-679d03b519a0
-
+https://github.com/Zhefan-Xu/trajectory_planner/assets/55560905/08ac272e-6934-4ed8-a0b0-1fc4f4097dad
 
 ## III. Code Exmaple & API
 a. For the B-spline-based trajectory optimization ([ViGO](https://ieeexplore.ieee.org/abstract/document/10160638)), the example code can be found in ```trajectory_planner/src/bspline_node.cpp```
