@@ -88,7 +88,7 @@ cd ~/catkin_ws
 catkin_make
 ```
 
-## VI. Citation and Reference:
+## VI. Citation and Reference
 If you find this work useful, please cite the paper:
 ```
 @inproceedings{xu2023vision,
