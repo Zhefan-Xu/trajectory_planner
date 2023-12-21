@@ -47,5 +47,5 @@ max_height_visualization: 2.5 # m
 visualize_global_map: true
 verbose: false
 
-prebuilt_map_directory: "/home/zhefanx/catkin_ws/src/CERLAB-Autonomy/trajectory_planner/map/square_static_map.pcd"
+prebuilt_map_directory: "/home/zhefan/catkin_ws/src/CERLAB-UAV-Autonomy/trajectory_planner/map/square_static_map.pcd"
 
