@@ -294,8 +294,12 @@ namespace trajPlanner{
 			return false;
 		}
 
-
-		nav_msgs::Path inputPath = adjustedPath;
+		std::vector<Eigen::Vector3d> adjustedPathVec, inputPathVec;
+		this->pathMsgToEigenPoints(adjustedPath, adjustedPathVec);
+		this->adjustPathLengthDirect(adjustedPathVec, inputPathVec);
+		nav_msgs::Path inputPath;
+		this->eigenPointsToPathMsg(inputPathVec, inputPath);
+		// nav_msgs::Path inputPath = adjustedPath;
 		if (inputPath.poses.size() < 4){
 			bool fillPathSuccess = this->fillPath(adjustedPath, inputPath);
 			if (not fillPathSuccess){

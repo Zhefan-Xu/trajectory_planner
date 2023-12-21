@@ -5,7 +5,7 @@ collision_box: [0.4, 0.4, 0.2]
 
 
 # Environment:
-env_box: [-100, 100, -100, 100, 0.5, 0.5] # xmin, xmax, ymin, ymax, zmin, zmax
+env_box: [-100, 100, -100, 100, 1.0, 1.0] # xmin, xmax, ymin, ymax, zmin, zmax
 
 
 # Planner parameters:
