@@ -540,7 +540,7 @@ namespace trajPlanner{
 			bool lineCollision = (seg.second - seg.first - 1 == 0);
 			if (lineCollision){
 				int forwardIdx = 1;
-				bool findGuidePoint = this->findGuidePointSemiCircle(seg.first, seg, path, guidePoint);
+				this->findGuidePointSemiCircle(seg.first, seg, path, guidePoint);
 				Eigen::Vector3d midPoint = (this->optData_.controlPoints.col(seg.first) + this->optData_.controlPoints.col(seg.second))/2.0;
 				guideDirection = (guidePoint - midPoint)/(guidePoint - midPoint).norm();
 				for (int controlPointIdx=seg.first-forwardIdx; controlPointIdx<=seg.second+forwardIdx; ++controlPointIdx){
