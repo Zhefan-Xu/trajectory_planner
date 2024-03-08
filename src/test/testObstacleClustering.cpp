@@ -5,9 +5,11 @@
 
 using std::cout; using std::endl;
 ros::Publisher currPoseVisPub;
+ros::Publisher localCloudVisPub;
 visualization_msgs::Marker currPoseMarker;
 bool initCurrPose = false;
 
+std::vector<Eigen::Vector3d> currCloud;
 
 bool newMsg = false;
 std::vector<double> newPoint {0, 0, 1.0, 0};
@@ -30,6 +32,33 @@ void publishCurrPoseVis(){
 	}
 }
 
+void publishLocalCloudVis(){
+	ros::Rate r(10);
+	while (ros::ok()){
+		if (currCloud.size() != 0){
+			pcl::PointXYZ pt;
+			pcl::PointCloud<pcl::PointXYZ> cloud;
+
+			for (int i=0; i<int(currCloud.size()); ++i){
+				pt.x = currCloud[i](0);
+				pt.y = currCloud[i](1);
+				pt.z = currCloud[i](2);
+				cloud.push_back(pt);
+			}
+
+			cloud.width = cloud.points.size();
+			cloud.height = 1;
+			cloud.is_dense = true;
+			cloud.header.frame_id = "map";
+
+			sensor_msgs::PointCloud2 cloudMsg;
+			pcl::toROSMsg(cloud, cloudMsg);
+			localCloudVisPub.publish(cloudMsg);		
+		}
+		r.sleep();
+	}
+}
+
 
 int main(int argc, char** argv){
 	ros::init(argc, argv, "test_obstacle_clustering");
@@ -37,7 +66,9 @@ int main(int argc, char** argv){
 
 	ros::Subscriber clickedPointSub = nh.subscribe("/move_base_simple/goal", 1000, clickedPointCB);
 	currPoseVisPub = nh.advertise<visualization_msgs::Marker>("/current_pose", 1000);
-	std::thread startVisWorker = std::thread(publishCurrPoseVis);
+	localCloudVisPub = nh.advertise<sensor_msgs::PointCloud2>("/local_cloud", 1000);
+	std::thread currPoseVisWorker = std::thread(publishCurrPoseVis);
+	std::thread localCloudVisWorker = std::thread(publishLocalCloudVis);
 
 	obstacleClustering oc;
 	std::shared_ptr<mapManager::occMap> map;
@@ -49,9 +80,10 @@ int main(int argc, char** argv){
 		cout << "----------------------------------------------------" << endl;
 		cout << "[Test Clustering Node]: Request No. " << countLoop+1 << endl;
 		cout << "[Planner Node]: Wait for current pose point..." << endl;
+		std::vector<double> currPose;
 		while (ros::ok()){
 			if (newMsg){
-				std::vector<double> currPose = newPoint;
+				currPose = newPoint;
 				newMsg = false;
 				cout << "[Planner Node]: current pose point OK. (" << currPose[0] << " " << currPose[1] << " " << currPose[2] << " " << currPose[3] << ")" << endl;
 				
@@ -83,7 +115,33 @@ int main(int argc, char** argv){
 
 
 		// get local point cloud
-		
+		Eigen::Vector3d mapMin, mapMax;
+		map->getCurrMapRange(mapMin, mapMax);
+		double regionSize = 5.0;
+		double groundHeight = 0.3;
+		double cloudRes = 0.2;
+		double angle = currPose[3];
+
+		// angle -= 3.1415926/4;
+		double xStart = std::min(currPose[0], currPose[0]+regionSize*cos(angle))- 1.0;
+		double xEnd = std::max(currPose[0], currPose[0]+regionSize*cos(angle)) + 1.0;
+		double yStart = std::min(currPose[1], currPose[1]+regionSize*sin(angle)) - 1.0;
+		double yEnd = std::max(currPose[1], currPose[1]+regionSize*sin(angle)) + 1.0;	
+
+
+		currCloud.clear();
+		for (double ix=xStart; ix<=xEnd; ix+=cloudRes){
+			for (double iy=yStart; iy<=yEnd; iy+=cloudRes){
+				for (double iz=groundHeight; iz<=mapMax(2); iz+=cloudRes){
+					Eigen::Vector3d p (ix, iy, iz);
+					// cout << p.transpose() << endl;
+					if (map->isInflatedOccupied(p)){
+						currCloud.push_back(p);
+					}
+				}
+			}
+		}
+
 
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;
