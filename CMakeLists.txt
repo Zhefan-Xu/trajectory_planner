@@ -166,6 +166,7 @@ add_executable(bspline_node src/bspline_node.cpp)
 # add_executable(testTrajSolver src/test/testTrajSolver.cpp)
 # add_executable(testBspline src/test/testBspline.cpp)
 # add_executable(testBsplineFit src/test/testBsplineFit.cpp)
+add_executable(testObstacleClustering src/test/testObstacleClustering.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -207,6 +208,7 @@ target_link_libraries(bspline_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 # target_link_libraries(testTrajSolver ${catkin_LIBRARIES} ${PROJECT_NAME})
 # target_link_libraries(testBspline ${catkin_LIBRARIES} ${PROJECT_NAME})
 # target_link_libraries(testBsplineFit ${catkin_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(testObstacleClustering ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 
 #############

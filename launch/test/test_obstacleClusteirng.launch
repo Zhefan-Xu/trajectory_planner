@@ -1,0 +1,9 @@
+<launch>
+	<rosparam>/use_sim_time: 0</rosparam>
+	<!-- planner -->
+	<rosparam file="$(find trajectory_planner)/cfg/test/occupancy_map.yaml" ns="/occupancy_map" />
+	<node pkg="trajectory_planner" type="testObstacleClustering" name="testObstacleClustering" output="screen" />
+
+	<!-- map -->
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find trajectory_planner)/rviz/test_obstacleClustering.rviz"/>
+</launch>
