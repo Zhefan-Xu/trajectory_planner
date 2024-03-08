@@ -79,13 +79,13 @@ int main(int argc, char** argv){
 	while (ros::ok()){
 		cout << "----------------------------------------------------" << endl;
 		cout << "[Test Clustering Node]: Request No. " << countLoop+1 << endl;
-		cout << "[Planner Node]: Wait for current pose point..." << endl;
+		cout << "[Test Clustering Node]: Wait for current pose point..." << endl;
 		std::vector<double> currPose;
 		while (ros::ok()){
 			if (newMsg){
 				currPose = newPoint;
 				newMsg = false;
-				cout << "[Planner Node]: current pose point OK. (" << currPose[0] << " " << currPose[1] << " " << currPose[2] << " " << currPose[3] << ")" << endl;
+				cout << "[Test Clustering Nodeg]: current pose point OK. (" << currPose[0] << " " << currPose[1] << " " << currPose[2] << " " << currPose[3] << ")" << endl;
 				
 				// visualization:
 				initCurrPose = true;
@@ -102,7 +102,7 @@ int main(int argc, char** argv){
 				currPoseMarker.lifetime = ros::Duration(0.5);
 				currPoseMarker.scale.x = 0.8;
 				currPoseMarker.scale.y = 0.2;
-				currPoseMarker.scale.z = 0.4;
+				currPoseMarker.scale.z = 0.2;
 				currPoseMarker.color.a = 0.7;
 				currPoseMarker.color.r = 1.0;
 				currPoseMarker.color.g = 0.5;
@@ -114,19 +114,32 @@ int main(int argc, char** argv){
 		}
 
 
+		ros::Time localCloudStartTime = ros::Time::now();
 		// get local point cloud
 		Eigen::Vector3d mapMin, mapMax;
 		map->getCurrMapRange(mapMin, mapMax);
-		double regionSize = 5.0;
+		double offset = 0.0;
+		double regionSizeX = 5.0;
+		double regionSizeY = 2.0; // half
 		double groundHeight = 0.3;
 		double cloudRes = 0.2;
 		double angle = currPose[3];
+		Eigen::Vector3d pCurr (currPose[0], currPose[1], currPose[2]);
+		Eigen::Vector3d faceDirection (cos(angle), sin(angle), 0);
+		Eigen::Vector3d sideDirection (-sin(angle), cos(angle), 0); // positive (left side)
+		Eigen::Vector3d pOrigin = pCurr - offset * faceDirection;
 
-		// angle -= 3.1415926/4;
-		double xStart = std::min(currPose[0], currPose[0]+regionSize*cos(angle))- 1.0;
-		double xEnd = std::max(currPose[0], currPose[0]+regionSize*cos(angle)) + 1.0;
-		double yStart = std::min(currPose[1], currPose[1]+regionSize*sin(angle)) - 1.0;
-		double yEnd = std::max(currPose[1], currPose[1]+regionSize*sin(angle)) + 1.0;	
+		// find four vextex of the bounding boxes
+		Eigen::Vector3d p1, p2, p3, p4;
+		p1 = pOrigin + regionSizeY * sideDirection;
+		p2 = pOrigin - regionSizeY * sideDirection;
+		p3 = p1 + (regionSizeX + offset) * faceDirection;
+		p4 = p2 + (regionSizeX + offset) * faceDirection;
+
+		double xStart = std::min({p1(0), p2(0), p3(0), p4(0)});
+		double xEnd = std::max({p1(0), p2(0), p3(0), p4(0)});
+		double yStart = std::min({p1(1), p2(1), p3(1), p4(1)});
+		double yEnd = std::max({p1(1), p2(1), p3(1), p4(1)});
 
 
 		currCloud.clear();
@@ -134,14 +147,17 @@ int main(int argc, char** argv){
 			for (double iy=yStart; iy<=yEnd; iy+=cloudRes){
 				for (double iz=groundHeight; iz<=mapMax(2); iz+=cloudRes){
 					Eigen::Vector3d p (ix, iy, iz);
-					// cout << p.transpose() << endl;
-					if (map->isInflatedOccupied(p)){
-						currCloud.push_back(p);
+					if ((p - pOrigin).dot(faceDirection) >= 0){
+						// cout << p.transpose() << endl;
+						if (map->isInflatedOccupied(p)){
+							currCloud.push_back(p);
+						}
 					}
 				}
 			}
 		}
-
+		ros::Time localCloudEndTime = ros::Time::now();
+		cout << "[Test Clustering Node]: local cloud obtain time: " << (localCloudEndTime - localCloudStartTime).toSec() << "s." << endl;
 
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;
