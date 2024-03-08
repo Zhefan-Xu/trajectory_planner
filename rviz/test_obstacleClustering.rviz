@@ -101,8 +101,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.15000000596046448
-        Min Value: -0.05000000074505806
+        Max Value: 1.7000000476837158
+        Min Value: 0.30000001192092896
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -125,6 +125,14 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /initial_cluster_bbox
+      Name: MarkerArray
+      Namespaces:
+        initial box: true
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -154,7 +162,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 17.279499053955078
+      Distance: 24.56451416015625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -162,17 +170,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.8899385929107666
-        Y: -0.3698091506958008
-        Z: 0.2571067810058594
+        X: 3.9092283248901367
+        Y: 1.613052487373352
+        Z: 1.9587349891662598
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.2897965908050537
+      Pitch: 1.3947961330413818
       Target Frame: <Fixed Frame>
-      Yaw: 4.615166664123535
+      Yaw: 4.710137367248535
     Saved: ~
 Window Geometry:
   Displays:
