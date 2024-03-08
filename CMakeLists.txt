@@ -144,6 +144,7 @@ add_library(
   include/${PROJECT_NAME}/bspline.cpp
   include/${PROJECT_NAME}/bsplineTraj.cpp
   include/${PROJECT_NAME}/polyTrajOccMap.cpp
+  include/${PROJECT_NAME}/clustering/obstacleClustering.cpp
 )
 
 
