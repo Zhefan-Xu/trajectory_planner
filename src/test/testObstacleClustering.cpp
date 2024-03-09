@@ -7,11 +7,13 @@ using std::cout; using std::endl;
 ros::Publisher currPoseVisPub;
 ros::Publisher localCloudVisPub;
 ros::Publisher initialClusterBBoxPub;
+ros::Publisher rotatedBBoxPub;
 visualization_msgs::Marker currPoseMarker;
 bool initCurrPose = false;
 
 std::vector<Eigen::Vector3d> currCloud;
 std::vector<pointCluster> initialClusters;
+std::vector<bboxVertex> rotatedBBoxVertices;
 bool newMsg = false;
 std::vector<double> newPoint {0, 0, 1.0, 0};
 void clickedPointCB(const geometry_msgs::PoseStamped::ConstPtr& cp){
@@ -72,7 +74,7 @@ visualization_msgs::MarkerArray cluster2MarkerArray(const std::vector<pointClust
     line.color.g = g;
     line.color.b = b;
     line.color.a = 1.0;
-    line.lifetime = ros::Duration(0.1);
+    line.lifetime = ros::Duration(0.15);
 	for (int i=0; i<int(cluster.size()); ++i){
 		double x = cluster[i].centroid(0); 
         double y = cluster[i].centroid(1); 
@@ -143,12 +145,72 @@ visualization_msgs::MarkerArray cluster2MarkerArray(const std::vector<pointClust
     return lines;
 }
 
+visualization_msgs::MarkerArray vertex2MarkerArray(const std::vector<bboxVertex>& bboxVertices, double r, double g, double b){
+    visualization_msgs::Marker line;
+    visualization_msgs::MarkerArray lines;
+
+    line.header.frame_id = "map";
+    line.type = visualization_msgs::Marker::LINE_LIST;
+    line.action = visualization_msgs::Marker::ADD;
+    line.ns = "rotated_box";  
+    line.scale.x = 0.06;
+    line.color.r = r;
+    line.color.g = g;
+    line.color.b = b;
+    line.color.a = 1.0;
+    line.lifetime = ros::Duration(0.15);
+    Eigen::Vector3d vertex_pose;
+    for(int i=0; i<int(bboxVertices.size()); ++i){
+        bboxVertex v = bboxVertices[i];
+        std::vector<geometry_msgs::Point> verts;
+        geometry_msgs::Point p;
+
+		for (int j=0; j<int(v.vert.size());++j){
+			p.x = v.vert[j](0); p.y = v.vert[j](1); p.z = v.vert[j](2);
+        	verts.push_back(p);
+		}
+
+        int vert_idx[12][2] = {
+            {0,1},
+            {1,2},
+            {2,3},
+            {0,3},
+            {0,4},
+            {1,5},
+            {3,7},
+            {2,6},
+            {4,5},
+            {5,6},
+            {4,7},
+            {6,7}
+        };
+        for (int j=0;j<12;++j){
+            line.points.push_back(verts[vert_idx[j][0]]);
+            line.points.push_back(verts[vert_idx[j][1]]);
+        }
+        lines.markers.push_back(line);
+        line.id++;
+    }
+	return lines;	
+}
+
 void publishInitialClusterBBoxVis(){
 	ros::Rate r(10);
 	while (ros::ok()){
 		if (initialClusters.size() != 0){
 			visualization_msgs::MarkerArray bboxVis = cluster2MarkerArray(initialClusters, 1, 0, 0);
 			initialClusterBBoxPub.publish(bboxVis);
+		}
+		r.sleep();
+	}
+}
+
+void publishRotatedBBoxVis(){
+	ros::Rate r(10);
+	while (ros::ok()){
+		if (rotatedBBoxVertices.size() != 0){
+			visualization_msgs::MarkerArray bboxVis = vertex2MarkerArray(rotatedBBoxVertices, 0, 0, 1);
+			rotatedBBoxPub.publish(bboxVis);
 		}
 		r.sleep();
 	}
@@ -163,12 +225,13 @@ int main(int argc, char** argv){
 	currPoseVisPub = nh.advertise<visualization_msgs::Marker>("/current_pose", 1000);
 	localCloudVisPub = nh.advertise<sensor_msgs::PointCloud2>("/local_cloud", 1000);
 	initialClusterBBoxPub = nh.advertise<visualization_msgs::MarkerArray>("/initial_cluster_bbox", 1000);
+	rotatedBBoxPub = nh.advertise<visualization_msgs::MarkerArray>("/rotated_initial_bbox", 1000);
 	std::thread currPoseVisWorker = std::thread(publishCurrPoseVis);
 	std::thread localCloudVisWorker = std::thread(publishLocalCloudVis);
 	std::thread initialClusterBBoxVisWorker = std::thread(publishInitialClusterBBoxVis);
+	std::thread rotatedBBoxVisWorker = std::thread(publishRotatedBBoxVis);
 
 
-	obstacleClustering oc;
 	std::shared_ptr<mapManager::occMap> map;
 	map.reset(new mapManager::occMap (nh));
 
@@ -259,11 +322,14 @@ int main(int argc, char** argv){
 		cout << "[Test Clustering Node]: local cloud obtain time: " << (localCloudEndTime - localCloudStartTime).toSec() << "s." << endl;
 
 
-
+		obstacleClustering oc (cloudRes);
 		// cluster the local pointcloud into bounding boxes
+		ros::Time clusterStartTime = ros::Time::now();
 		oc.getStaticObstacles(currCloud);
 		initialClusters = oc.getInitialCluster();
-
+		rotatedBBoxVertices = oc.getRotatedInitialBBoxes();
+		ros::Time clusterEndTime = ros::Time::now();
+		cout << "[Test Clustering Node]: cluster time: " << (clusterEndTime - clusterStartTime).toSec() << "s." << endl;
 
 		++countLoop;
 		cout << "----------------------------------------------------" << endl;
