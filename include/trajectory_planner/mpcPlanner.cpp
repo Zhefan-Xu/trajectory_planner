@@ -8,4 +8,30 @@
 
 namespace trajPlanner{
 	mpcPlanner::mpcPlanner(){}
+
+	void mpcPlanner::makePlan(){
+		DifferentialState x;
+		DifferentialState y;
+		DifferentialState z;
+		DifferentialState vx;
+		DifferentialState vy;
+		DifferentialState vz;	
+
+		//Control Input
+		Control ax;
+		Control ay;
+		Control az;
+		
+		DifferentialEquation f;
+		f << dot(x) == vx;
+		f << dot(y) == vy;
+		f << dot(z) == vz;
+		f << dot(vx) == ax; 
+		f << dot(vy) == ay;
+		f << dot(vz) == az;
+		
+		for (int i=0; i<size_t(10); ++i){
+
+		}	
+	}
 }

@@ -4,6 +4,7 @@ project(trajectory_planner)
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS} -O3 -Wall")
+add_compile_options(-w)
 
 
 ## Find catkin macros and libraries
@@ -125,6 +126,8 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  include/${PROJECT_NAME}/third_party/ACADO/acado
+  include/${PROJECT_NAME}/third_party/ACADO
   # ${OsqpEigen_INCLUDE_DIRS}
 )
 
@@ -169,6 +172,7 @@ add_executable(bspline_node src/bspline_node.cpp)
 # add_executable(testBspline src/test/testBspline.cpp)
 # add_executable(testBsplineFit src/test/testBsplineFit.cpp)
 add_executable(testObstacleClustering src/test/testObstacleClustering.cpp)
+add_executable(mpc_node src/mpc_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -188,14 +192,14 @@ add_executable(testObstacleClustering src/test/testObstacleClustering.cpp)
 # target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} "${CMAKE_CURRENT_SOURCE_DIR}/include/trajectory_planner/third_party/libosqp.a" "${CMAKE_CURRENT_SOURCE_DIR}/include/trajectory_planner/third_party/libOsqpEigen.so.0.7.0")
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
   message("Detected x86_64 architecture.")
-  target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/x86/libosqp.so ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/x86/libOsqpEigen.so.0.7.0)
+  target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/x86/libosqp.so ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/x86/libOsqpEigen.so.0.7.0 ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/ACADO/libacado_toolkit_s.so.1.2.2beta)
   # target_link_libraries(test_time_optimizer ${PROJECT_NAME})
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
   message("Detected ARM architecture.")
-  target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/ARM/libosqp.so ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/ARM/libOsqpEigen.so.0.8.0)
+  target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/ARM/libosqp.so ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/ARM/libOsqpEigen.so.0.8.0 ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/ACADO/libacado_toolkit_s.so.1.2.2beta)
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
   message("Detected ARM64 architecture.")
-  target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/ARM/libosqp.so ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/ARM/libOsqpEigen.so.0.8.0)
+  target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/ARM/libosqp.so ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/lib/ARM/libOsqpEigen.so.0.8.0 ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/ACADO/libacado_toolkit_s.so.1.2.2beta)
 else()
     message("Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 endif()
@@ -211,7 +215,7 @@ target_link_libraries(bspline_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 # target_link_libraries(testBspline ${catkin_LIBRARIES} ${PROJECT_NAME})
 # target_link_libraries(testBsplineFit ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(testObstacleClustering ${catkin_LIBRARIES} ${PROJECT_NAME})
-
+target_link_libraries(mpc_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 #############
 ## Install ##

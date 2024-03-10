@@ -2,10 +2,11 @@
 #include <trajectory_planner/mpcPlanner.h>
 
 int main(int argc, char** argv){
-	ros::init(argc, argv, "bspline_navigation_node");
+	ros::init(argc, argv, "mpc_navigation_node");
 	ros::NodeHandle nh;
 
-	mpcPlanner mp ();
+	trajPlanner::mpcPlanner mp;
+	mp.makePlan();
 
 	return 0;
 }
