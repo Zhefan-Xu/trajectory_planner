@@ -11,7 +11,7 @@ obstacleClustering::obstacleClustering(double res){
 }
 
 
-void obstacleClustering::getStaticObstacles(const std::vector<Eigen::Vector3d>& localCloud){
+void obstacleClustering::run(const std::vector<Eigen::Vector3d>& localCloud){
 	// run DBSCAN clustering
 	this->runDBSCAN(localCloud, this->initialClusters_);
 
@@ -20,18 +20,69 @@ void obstacleClustering::getStaticObstacles(const std::vector<Eigen::Vector3d>& 
 	std::vector<bool> refineComplete (int(refinedCluster.size()), false);
 	std::vector<bboxVertex> rotatedInitialBBoxes;
 	for (int level=0; level<this->treeLevel_; ++level){
+		std::vector<pointCluster> newRefinedCluster;
+		std::vector<bool> newRefinedComplete;
 		for (int n=0; n<int(refinedCluster.size()); ++n){
+			cout << "1" << endl;
 			if (not refineComplete[n]){
 				// if the refinement is not completed, find the bbox orientation and density
 				bboxVertex vertex;
 				double density = this->getOrientation(refinedCluster[n], vertex);
 				rotatedInitialBBoxes.push_back(vertex);
+				cout << "2" << endl;
+				cout << "density: " << n << " " << density << endl;
 				// if the density is greater than threshold, mark it as complete
-
-				// else split it into two
+				if (density >= this->densityThresh_){
+					newRefinedCluster.push_back(refinedCluster[n]);
+					newRefinedComplete.push_back(true);
+				}
+				else{ // else split it into two
+					std::vector<pointCluster> subCloudClusters;
+					this->runKmeans(refinedCluster[n], subCloudClusters);
+					cout << "3" << endl;
+					// evaluate new clusters
+					// if got improvement, add new clusters into the refined bbox array
+					std::vector<bboxVertex> subVertices;
+					double avgDensity = 0.0;
+					for (int i=0; i<int(subCloudClusters.size()); ++i){
+						bboxVertex subVertex;
+						double subDensity = this->getOrientation(subCloudClusters[i], subVertex);
+						avgDensity += subDensity/int(subCloudClusters.size());
+						subVertices.push_back(subVertex);
+					}
+					cout << "4" << endl;
+					if (avgDensity/density < this->improveThresh_){
+						for (int i=0; i<int(subCloudClusters.size()); ++i){
+							newRefinedCluster.push_back(subCloudClusters[i]);
+							newRefinedComplete.push_back(false);
+						}
+					}
+					else{
+						newRefinedCluster.push_back(refinedCluster[n]);
+						newRefinedComplete.push_back(true);
+					}
+					cout << "5" << endl;
+				}
+			}
+			else{
+				cout << "121" << endl;
+				newRefinedCluster.push_back(refinedCluster[n]);
+				newRefinedComplete.push_back(true);
+				cout << "122" << endl;
 			}
 		}
+		refinedCluster = newRefinedCluster;
+		refineComplete = newRefinedComplete;
 	}
+
+	std::vector<bboxVertex> refinedRotatedBBoxes;
+	for (int i=0; i<int(refinedCluster.size()); ++i){
+		bboxVertex vertex;
+		this->getOrientation(refinedCluster[i], vertex);
+		refinedRotatedBBoxes.push_back(vertex);
+	}
+
+	this->refinedRotatedBBoxes_ = refinedRotatedBBoxes;
 	this->rotatedInitialBBoxes_ = rotatedInitialBBoxes;
 }
 
@@ -81,6 +132,99 @@ void obstacleClustering::runDBSCAN(const std::vector<Eigen::Vector3d>& localClou
 	}
 }
 
+void obstacleClustering::runKmeans(const pointCluster& cluster, std::vector<pointCluster>& cloudClusters){
+	int dimension = 3;
+	int clusterNum = 2;
+	
+	// initialize centroid
+	// find the point furthest from the cloud centroid
+	double** data = new double*[int(cluster.points.size())];
+	double maxDist = 0.0;
+	Eigen::Vector3d fpoint;
+	for (int i=0; i<int(cluster.points.size()); ++i){
+		double dist = (cluster.points[i] - cluster.centroid).norm();
+		if (dist > maxDist){
+			maxDist = dist;
+			fpoint = cluster.points[i];
+		}
+
+		// convert data
+		data[i] = new double[dimension];
+		data[i][0] = cluster.points[i](0);
+		data[i][1] = cluster.points[i](1);
+		data[i][2] = cluster.points[i](2);
+	}
+
+	// find the furthest point from the above point
+	maxDist = 0.0;
+	Eigen::Vector3d ffpoint;
+	for (int i=0; i<int(cluster.points.size()); ++i){
+		double dist = (cluster.points[i] - fpoint).norm();
+		if (dist > maxDist){
+			maxDist = dist;
+			ffpoint = cluster.points[i];
+		}
+	}
+	std::vector<Eigen::Vector3d> initPoints {fpoint, ffpoint};
+
+	// run kmeans-----------------------------------------
+	this->kmeans_.reset(new KMeans (dimension, clusterNum));
+
+	// init centroid
+	this->kmeans_->centroid = new double*[clusterNum];
+	for (int i=0; i<clusterNum; ++i){
+		this->kmeans_->centroid[i] = new double[dimension];
+		this->kmeans_->centroid[i][0] = initPoints[i](0);
+		this->kmeans_->centroid[i][1] = initPoints[i](1);
+		this->kmeans_->centroid[i][2] = initPoints[i](2);
+	}
+
+	for (int i=0; i<this->kmeansIterNum_; ++i){
+		this->kmeans_->Cluster(int(cluster.points.size()), data);
+	}
+
+	// retrive results
+	cloudClusters.resize(clusterNum);
+	for (int i=0; i<int(cluster.points.size()); ++i){
+		int clusterIdx = this->kmeans_->Classify(data[i]); 
+		cloudClusters[clusterIdx].id = clusterIdx;
+		cloudClusters[clusterIdx].points.push_back(cluster.points[i]);
+	}
+
+	for (int i=0; i<int(cloudClusters.size()); ++i){
+		Eigen::Vector3d clusterMin = cloudClusters[i].points[0];
+		Eigen::Vector3d clusterMax = cloudClusters[i].points[0];
+		for (int j=0; j<int(cloudClusters[i].points.size()); ++j){
+			Eigen::Vector3d p = cloudClusters[i].points[j];
+
+			if (p(0) < clusterMin(0)){
+				clusterMin(0) = p(0);
+			}
+			else if (p(0) > clusterMax(0)){
+				clusterMax(0) = p(0);
+			}
+
+			if (p(1) < clusterMin(1)){
+				clusterMin(1) = p(1);
+			}
+			else if (p(1) > clusterMax(1)){
+				clusterMax(1) = p(1);
+			}
+
+			if (p(2) < clusterMin(2)){
+				clusterMin(2) = p(2);
+			}
+			else if (p(2) > clusterMax(2)){
+				clusterMax(2) = p(2);
+			}
+		}
+		cloudClusters[i].centroid = (clusterMin + clusterMax)/2.0;
+		cloudClusters[i].clusterMin = clusterMin;
+		cloudClusters[i].clusterMax = clusterMax;
+	}
+
+	delete data;
+}
 
 double obstacleClustering::getOrientation(const pointCluster& cluster, bboxVertex& vertex){
 	double maxDensity = 0.0;
@@ -123,7 +267,7 @@ double obstacleClustering::getOrientation(const pointCluster& cluster, bboxVerte
 		double lengthNum = (rotClusterMax(0) - rotClusterMin(0))/this->res_;
 		double widthNum = (rotClusterMax(1) - rotClusterMin(1))/this->res_;
 		double heightNum = (rotClusterMax(2) - rotClusterMin(2))/this->res_;
-		double density = int(cluster.points.size())/(lengthNum * widthNum * heightNum);
+		double density = double(cluster.points.size())/(lengthNum * widthNum * heightNum);
 		if (density > maxDensity){
 			maxDensity = density;
 			bestAngle = angle;
@@ -150,4 +294,8 @@ std::vector<pointCluster> obstacleClustering::getInitialCluster(){
 
 std::vector<bboxVertex> obstacleClustering::getRotatedInitialBBoxes(){
 	return this->rotatedInitialBBoxes_;
+}
+
+std::vector<bboxVertex> obstacleClustering::getStaticObstacles(){
+	return this->refinedRotatedBBoxes_;
 }
