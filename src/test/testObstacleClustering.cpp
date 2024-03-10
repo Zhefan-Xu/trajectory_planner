@@ -343,7 +343,7 @@ int main(int argc, char** argv){
 		oc.run(currCloud);
 		initialClusters = oc.getInitialCluster();
 		rotatedBBoxVertices = oc.getRotatedInitialBBoxes();
-		refinedBBoxVertices = oc.getStaticObstacles();
+		refinedBBoxVertices = oc.getRefinedBBoxes();
 		ros::Time clusterEndTime = ros::Time::now();
 		cout << "[Test Clustering Node]: size of objects: " << refinedBBoxVertices.size() << endl;
 		cout << "[Test Clustering Node]: cluster time: " << (clusterEndTime - clusterStartTime).toSec() << "s." << endl;

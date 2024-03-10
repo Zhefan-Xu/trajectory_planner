@@ -294,6 +294,18 @@ std::vector<bboxVertex> obstacleClustering::getRotatedInitialBBoxes(){
 	return this->rotatedInitialBBoxes_;
 }
 
-std::vector<bboxVertex> obstacleClustering::getStaticObstacles(){
+std::vector<bboxVertex> obstacleClustering::getRefinedBBoxes(){
 	return this->refinedRotatedBBoxes_;
+}
+
+std::vector<staticObstacle> obstacleClustering::getStaticObstacles(){
+	std::vector<staticObstacle> staticObstacles;
+	for (int i=0; i<int(this->refinedRotatedBBoxes_.size()); ++i){
+		staticObstacle sob;
+		sob.centroid = this->refinedRotatedBBoxes_[i].centroid;
+		sob.size = this->refinedRotatedBBoxes_[i].dimension;
+		sob.yaw = this->refinedRotatedBBoxes_[i].angle;
+		staticObstacles.push_back(sob);
+	}
+	return staticObstacles;
 }

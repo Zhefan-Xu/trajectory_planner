@@ -53,6 +53,11 @@ struct bboxVertex{
 	}
 };
 
+struct staticObstacle{
+	Eigen::Vector3d centroid;
+	Eigen::Vector3d size;
+	double yaw;
+};
 
 class obstacleClustering{
 	private:
@@ -86,7 +91,8 @@ class obstacleClustering{
 
 		std::vector<pointCluster> getInitialCluster();
 		std::vector<bboxVertex> getRotatedInitialBBoxes();
-		std::vector<bboxVertex> getStaticObstacles();
+		std::vector<bboxVertex> getRefinedBBoxes();
+		std::vector<staticObstacle> getStaticObstacles();
 };
 
 
