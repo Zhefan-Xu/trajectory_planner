@@ -298,7 +298,7 @@ int main(int argc, char** argv){
 		double offset = 0.0;
 		double regionSizeX = 5.0;
 		double regionSizeY = 2.0; // half
-		double groundHeight = 0.3;
+		double groundHeight = 0.4;
 		double cloudRes = 0.2;
 		double angle = currPose[3];
 		Eigen::Vector3d pCurr (currPose[0], currPose[1], currPose[2]);
@@ -345,7 +345,7 @@ int main(int argc, char** argv){
 		rotatedBBoxVertices = oc.getRotatedInitialBBoxes();
 		refinedBBoxVertices = oc.getStaticObstacles();
 		ros::Time clusterEndTime = ros::Time::now();
-		cout << "size: " << refinedBBoxVertices.size() << endl;
+		cout << "[Test Clustering Node]: size of objects: " << refinedBBoxVertices.size() << endl;
 		cout << "[Test Clustering Node]: cluster time: " << (clusterEndTime - clusterStartTime).toSec() << "s." << endl;
 
 		++countLoop;
