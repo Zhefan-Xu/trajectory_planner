@@ -7,7 +7,7 @@
 #include <trajectory_planner/mpcPlanner.h>
 
 namespace trajPlanner{
-	mpcPlanner::mpcPlanner(){}
+	mpcPlanner::mpcPlanner(const ros::NodeHandle& nh) : nh_(nh){}
 
 	void mpcPlanner::makePlan(){
 		DifferentialState x;
@@ -30,8 +30,6 @@ namespace trajPlanner{
 		f << dot(vy) == ay;
 		f << dot(vz) == az;
 		
-		for (int i=0; i<size_t(10); ++i){
 
-		}	
 	}
 }
