@@ -1,0 +1,13 @@
+poly_traj/polynomial_degree: 7
+poly_traj/differential_degree: 4
+poly_traj/continuity_degree: 3
+poly_traj/desired_velocity: 1.0 # this is not used. Will be overwritten.
+poly_traj/initial_radius: 0.5
+poly_traj/timeout: 0.1
+poly_traj/corridor_res: 5.0
+poly_traj/shrinking_factor: 0.5
+poly_traj/soft_constraint: false
+poly_traj/constraint_radius: 0.5
+poly_traj/sample_delta_time: 0.1
+poly_traj/maximum_iteration_num: 10
+poly_traj/use_pwl_failsafe: true
