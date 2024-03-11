@@ -922,7 +922,7 @@ namespace trajPlanner{
 				trajLength += trajPlanner::getPoseDistance(p1, p2);
 			}
 			else{
-				cout << "traj " << timeIdx << ": " << trajLength << endl;
+				// cout << "traj " << timeIdx << ": " << trajLength << endl;
 				trajLengthVec.push_back(trajLength);
 				trajLength = 0.0;
 				timeIdx += 1;
@@ -936,7 +936,7 @@ namespace trajPlanner{
 			trajPlanner::pose p2 = this->path_[i+1];
 			double pathLength = trajPlanner::getPoseDistance(p1, p2);
 			pathLegnthVec.push_back(pathLength);
-			cout << "path " << i << ": " << pathLength << endl;
+			// cout << "path " << i << ": " << pathLength << endl;
 		}
 	}
 

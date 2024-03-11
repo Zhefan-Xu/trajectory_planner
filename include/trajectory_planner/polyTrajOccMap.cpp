@@ -312,6 +312,16 @@ namespace trajPlanner{
 				this->pwlTrajSolver_->updatePath(this->path_);
 				this->pwlTrajSolver_->makePlan(trajectory, this->delT_);
 			}
+			else{
+				this->initSolver(); // polynomial solver
+				this->trajSolver_->updatePath(this->path_);
+				this->trajSolver_->updateInitVel(this->initVel_);
+				this->trajSolver_->updateEndVel(this->endVel_);
+				this->trajSolver_->updateInitAcc(this->initAcc_);
+				this->trajSolver_->updateEndAcc(this->endAcc_);
+				this->trajSolver_->solve();
+				this->trajSolver_->getTrajectory(trajectory, this->delT_);	
+			}
 		}
 		this->trajMsgConverter(trajectory, this->trajVisMsg_);
 
@@ -386,6 +396,16 @@ namespace trajPlanner{
 			if (this->usePWL_){
 				this->pwlTrajSolver_->updatePath(this->path_);
 				this->pwlTrajSolver_->makePlan(trajectory, this->delT_);
+			}
+			else{
+				this->initSolver(); // polynomial solver
+				this->trajSolver_->updatePath(this->path_);
+				this->trajSolver_->updateInitVel(this->initVel_);
+				this->trajSolver_->updateEndVel(this->endVel_);
+				this->trajSolver_->updateInitAcc(this->initAcc_);
+				this->trajSolver_->updateEndAcc(this->endAcc_);
+				this->trajSolver_->solve();
+				this->trajSolver_->getTrajectory(trajectory, this->delT_);	
 			}
 		}
 		this->trajMsgConverter(trajectory, this->trajVisMsg_);
