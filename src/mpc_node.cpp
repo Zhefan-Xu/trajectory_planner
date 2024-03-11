@@ -81,6 +81,8 @@ int main(int argc, char** argv){
 
 	std::shared_ptr<trajPlanner::mpcPlanner> mp;
 	mp.reset(new trajPlanner::mpcPlanner (nh));
+	mp->updateMaxVel(desiredVel);
+	mp->updateMaxAcc(desiredAcc);
 
 	std::thread visWorker = std::thread(visPub);
 
@@ -137,9 +139,32 @@ int main(int argc, char** argv){
 		Eigen::Vector3d endAcc (0, 0, 0);
 		std::vector<Eigen::Vector3d> startEndConditions {startVel, startAcc, endVel, endAcc};
 
+		
 		pt->updatePath(waypointInputMsg, startEndConditions);
 		inputTraj.poses.clear();
 		pt->makePlan(inputTraj);
+
+		double dt = 0.1;
+		nav_msgs::Path mpcInputTraj = pt->getTrajectory(dt);
+
+		// MPC part
+		mp->updatePath(mpcInputTraj, dt);
+		Eigen::Vector3d currPos (waypoints[0][0], waypoints[0][1], waypoints[0][2]);
+		Eigen::Vector3d currVel (0.0, 0.0, 0.0);
+		Eigen::Vector3d goalPos (waypoints.back()[0], waypoints.back()[1], waypoints.back()[2]);
+
+		double t = 0;
+		while (ros::ok() and (currPos - goalPos).norm() >= 0.2){
+			mp->updateCurrStates(currPos, currVel);
+			mp->makePlan();
+			currPos = mp->getPos(dt);
+			currVel = mp->getVel(dt);
+			
+			t += dt;
+			ros::spinOnce();
+			r.sleep();
+		}
+		cout << "[Test MPC Node]: Complete Current Trajectory." << endl;
 	}
 
 

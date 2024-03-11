@@ -1,1 +1,4 @@
 horizon: 20
+constraint_slack_ratio: 0.4
+z_range_min: 0.7
+z_range_max: 1.2
