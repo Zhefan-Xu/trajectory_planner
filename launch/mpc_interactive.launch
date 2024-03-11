@@ -1,5 +1,6 @@
 <launch>
 	<rosparam file="$(find trajectory_planner)/cfg/mpc_interactive/polyTraj_param.yaml"/>
+	<rosparam file="$(find trajectory_planner)/cfg/mpc_interactive/mpc_param.yaml" ns="/mpc_planner"/>
 	<rosparam file="$(find trajectory_planner)/cfg/mpc_interactive/occupancy_map.yaml" ns="/occupancy_map"/>
 	<node pkg="trajectory_planner" type="mpc_node" name="mpc_node" output="screen" />
 	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find trajectory_planner)/rviz/mpc_interactive.rviz"/>
