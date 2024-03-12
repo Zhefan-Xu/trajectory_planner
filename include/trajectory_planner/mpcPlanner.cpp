@@ -11,6 +11,7 @@ namespace trajPlanner{
 		this->ns_ = "mpc_planner";
 		this->hint_ = "[MPCPlanner]";
 		this->initParam();
+		this->initModules();
 		this->registerPub();
 		this->registerCallback();
 	}
@@ -50,15 +51,103 @@ namespace trajPlanner{
 		}
 		else{
 			cout << this->hint_ << ": Z range max is set to: " << this->zRangeMax_ << "m" << endl;
+		}	
+
+		// pointcloud resolution for clustering
+		if (not this->nh_.getParam(this->ns_ + "/cloud_res", this->cloudRes_)){
+			this->cloudRes_ = 0.2;
+			cout << this->hint_ << ": No cloud res param. Use default: 0.2" << endl;
+		}
+		else{
+			cout << this->hint_ << ": Cloud res is set to: " << this->cloudRes_ << endl;
+		}	
+
+		// local cloud region size x 
+		if (not this->nh_.getParam(this->ns_ + "/local_cloud_region_x", this->regionSizeX_)){
+			this->regionSizeX_ = 5.0;
+			cout << this->hint_ << ": No local cloud region size x param. Use default: 5.0m" << endl;
+		}
+		else{
+			cout << this->hint_ << ": Local cloud region size x is set to: " << this->regionSizeX_ << "m" << endl;
+		}	
+
+		// local cloud region size y 
+		if (not this->nh_.getParam(this->ns_ + "/local_cloud_region_y", this->regionSizeY_)){
+			this->regionSizeY_ = 2.0;
+			cout << this->hint_ << ": No local cloud region size y param. Use default: 2.0m" << endl;
+		}
+		else{
+			cout << this->hint_ << ": Local cloud region size y is set to: " << this->regionSizeY_ << "m" << endl;
+		}	
+
+		// ground height
+		if (not this->nh_.getParam(this->ns_ + "/ground_height", this->groundHeight_)){
+			this->groundHeight_ = 0.3;
+			cout << this->hint_ << ": No ground height param. Use default: 0.3m" << endl;
+		}
+		else{
+			cout << this->hint_ << ": Ground height is set to: " << this->groundHeight_ << "m" << endl;
 		}					
 	}
 
+	void mpcPlanner::initModules(){
+		this->obclustering_.reset(new obstacleClustering (this->cloudRes_));
+	}
+
 	void mpcPlanner::registerPub(){
-		this->mpcTrajVisPub_ = this->nh_.advertise<nav_msgs::Path>("mpc/mpc_trajectory", 10);
+		this->mpcTrajVisPub_ = this->nh_.advertise<nav_msgs::Path>(this->ns_ + "/mpc_trajectory", 10);
+		this->mpcTrajHistVisPub_ = this->nh_.advertise<nav_msgs::Path>(this->ns_ + "/traj_history", 10);
+		this->localCloudPub_ = this->nh_.advertise<sensor_msgs::PointCloud2>(this->ns_ + "/local_cloud", 10);
+		this->staticObstacleVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>(this->ns_ + "/static_obstacles", 10);
 	}
 
 	void mpcPlanner::registerCallback(){
 		this->visTimer_ = this->nh_.createTimer(ros::Duration(0.033), &mpcPlanner::visCB, this);
+		this->clusteringTimer_ = this->nh_.createTimer(ros::Duration(0.033), &mpcPlanner::staticObstacleClusteringCB, this);
+	}
+
+	void mpcPlanner::setMap(const std::shared_ptr<mapManager::occMap>& map){
+		this->map_ = map;
+	}
+
+	void mpcPlanner::staticObstacleClusteringCB(const ros::TimerEvent&){
+		if (this->inputTraj_.size() == 0 or not this->stateReceived_) return;
+		Eigen::Vector3d mapMin, mapMax;
+		this->map_->getCurrMapRange(mapMin, mapMax);
+		std::vector<Eigen::Vector3d> currCloud;
+		double offset = 0.0;
+		double angle = atan2(this->currVel_(1), this->currVel_(0));
+		Eigen::Vector3d faceDirection (cos(angle), sin(angle), 0);
+		Eigen::Vector3d sideDirection (-sin(angle), cos(angle), 0); // positive (left side)
+		Eigen::Vector3d pOrigin = this->currPos_ - offset * faceDirection;
+
+		// find four vextex of the bounding boxes
+		Eigen::Vector3d p1, p2, p3, p4;
+		p1 = pOrigin + this->regionSizeY_ * sideDirection;
+		p2 = pOrigin - this->regionSizeY_ * sideDirection;
+		p3 = p1 + (this->regionSizeX_ + offset) * faceDirection;
+		p4 = p2 + (this->regionSizeX_ + offset) * faceDirection;
+
+		double xStart = std::min({p1(0), p2(0), p3(0), p4(0)});
+		double xEnd = std::max({p1(0), p2(0), p3(0), p4(0)});
+		double yStart = std::min({p1(1), p2(1), p3(1), p4(1)});
+		double yEnd = std::max({p1(1), p2(1), p3(1), p4(1)});
+
+		for (double ix=xStart; ix<=xEnd; ix+=cloudRes_){
+			for (double iy=yStart; iy<=yEnd; iy+=this->cloudRes_){
+				for (double iz=this->groundHeight_; iz<=mapMax(2); iz+=this->cloudRes_){
+					Eigen::Vector3d p (ix, iy, iz);
+					if ((p - pOrigin).dot(faceDirection) >= 0){
+						if (this->map_->isInflatedOccupied(p)){
+							currCloud.push_back(p);
+						}
+					}
+				}
+			}
+		}	
+		this->currCloud_ = currCloud;
+		this->obclustering_->run(currCloud);
+		this->refinedBBoxVertices_ = this->obclustering_->getRefinedBBoxes();
 	}
 
 	void mpcPlanner::updateMaxVel(double maxVel){
@@ -72,6 +161,8 @@ namespace trajPlanner{
 	void mpcPlanner::updateCurrStates(const Eigen::Vector3d& pos, const Eigen::Vector3d& vel){
 		this->currPos_ = pos;
 		this->currVel_ = vel;
+		this->trajHist_.push_back(pos);
+		this->stateReceived_ = true;
 	}
 
 	void mpcPlanner::updatePath(const nav_msgs::Path& path, double ts){
@@ -81,16 +172,20 @@ namespace trajPlanner{
 			pathTemp.push_back(p); 
 		}
 		this->updatePath(pathTemp, ts);
+		this->trajHist_.clear();
 	}
 
 	void mpcPlanner::updatePath(const std::vector<Eigen::Vector3d>& path, double ts){
 		this->ts_ = ts;
 		this->inputTraj_ = path;
 		this->firstTime_ = true;
+		this->stateReceived_ = false;
 	}
 
 	void mpcPlanner::makePlan(){
-		cout << "1" << endl;
+		std::ostringstream local;
+		auto cout_buff = std::cout.rdbuf();
+		std::cout.rdbuf(local.rdbuf());
 		// States
 		DifferentialState x;
 		DifferentialState y;
@@ -128,14 +223,12 @@ namespace trajPlanner{
 
 		// Reference Trajectory
 		VariablesGrid refTraj = this->getReferenceTraj();
-		cout << refTraj << endl;
 
 		// Set up the optimal control problem
 		OCP ocp (refTraj);
 		DMatrix Q (8, 8);
 		Q.setIdentity(); Q(0,0) = 10.0; Q(1,1) = 10.0; Q(2,2) = 10.0; Q(3,3) = 1.0; Q(4,4) = 1.0; Q(5,5) = 1.0; Q(6,6) = 1000.0; Q(7,7) = 1000.0;
 		ocp.minimizeLSQ(Q, h, refTraj); 
-
 		// Contraints
 		ocp.subjectTo(f); // dynamics
 		double sklimit = 1.0 - pow((1 - this->constraintSlackRatio_), 2);
@@ -151,25 +244,24 @@ namespace trajPlanner{
 
 		// Algorithm
 		RealTimeAlgorithm RTalgorithm(ocp, this->ts_);
+		RTalgorithm.set(PRINTLEVEL, 0);
 		if (not this->firstTime_){
 			RTalgorithm.initializeDifferentialStates(this->currentStatesSol_);
 		}
 
 		RTalgorithm.set(MAX_NUM_ITERATIONS, 1);
-		RTalgorithm.set(KKT_TOLERANCE, 3e-4);
+		// RTalgorithm.set(KKT_TOLERANCE, 3e-4);
 		RTalgorithm.set(TERMINATE_AT_CONVERGENCE, BT_TRUE);
 
 		// Solve
-		cout << "here1" << endl;
 		DVector currentState ({this->currPos_(0), this->currPos_(1), this->currPos_(2), this->currVel_(0), this->currVel_(1), this->currVel_(2)});
-		cout << "here2" << endl;
 		RTalgorithm.solve(0.0, currentState); // start time and t0
-		cout << "here3" << endl;
 		RTalgorithm.getDifferentialStates(this->currentStatesSol_);
 		RTalgorithm.getControls(this->currentControlsSol_);
 		this->firstTime_ = false;
 		clearAllStaticCounters();
-		cout << "2" << endl;
+		std::cout.rdbuf(cout_buff);
+
 	}
 
 
@@ -269,6 +361,9 @@ namespace trajPlanner{
 
 	void mpcPlanner::visCB(const ros::TimerEvent&){
 		this->publishMPCTrajectory();
+		this->publishHistoricTrajectory();
+		this->publishLocalCloud();
+		this->publishStaticObstacles();
 	}
 
 	void mpcPlanner::publishMPCTrajectory(){
@@ -276,6 +371,95 @@ namespace trajPlanner{
 			nav_msgs::Path traj;
 			this->getTrajectory(traj);
 			this->mpcTrajVisPub_.publish(traj);
+		}
+	}
+
+	void mpcPlanner::publishHistoricTrajectory(){
+		if (not this->firstTime_){
+			nav_msgs::Path histTraj;
+			histTraj.header.frame_id = "map";
+			for (int i=0; i<int(this->trajHist_.size()); ++i){
+				geometry_msgs::PoseStamped ps;
+				ps.pose.position.x = this->trajHist_[i](0);
+				ps.pose.position.y = this->trajHist_[i](1);
+				ps.pose.position.z = this->trajHist_[i](2);
+				histTraj.poses.push_back(ps);
+			}
+			this->mpcTrajHistVisPub_.publish(histTraj);
+		}
+	}
+
+	void mpcPlanner::publishLocalCloud(){
+		if (this->currCloud_.size() != 0){
+			pcl::PointXYZ pt;
+			pcl::PointCloud<pcl::PointXYZ> cloud;
+
+			for (int i=0; i<int(this->currCloud_.size()); ++i){
+				pt.x = this->currCloud_[i](0);
+				pt.y = this->currCloud_[i](1);
+				pt.z = this->currCloud_[i](2);
+				cloud.push_back(pt);
+			}
+
+			cloud.width = cloud.points.size();
+			cloud.height = 1;
+			cloud.is_dense = true;
+			cloud.header.frame_id = "map";
+
+			sensor_msgs::PointCloud2 cloudMsg;
+			pcl::toROSMsg(cloud, cloudMsg);
+			this->localCloudPub_.publish(cloudMsg);		
+		}
+	}
+
+	void mpcPlanner::publishStaticObstacles(){
+		if (this->refinedBBoxVertices_.size() != 0){
+		    visualization_msgs::Marker line;
+		    visualization_msgs::MarkerArray lines;
+
+		    line.header.frame_id = "map";
+		    line.type = visualization_msgs::Marker::LINE_LIST;
+		    line.action = visualization_msgs::Marker::ADD;
+		    line.ns = "mpc_static_obstacles";  
+		    line.scale.x = 0.06;
+		    line.color.r = 0;
+		    line.color.g = 1;
+		    line.color.b = 1;
+		    line.color.a = 1.0;
+		    line.lifetime = ros::Duration(0.15);
+		    Eigen::Vector3d vertex_pose;
+		    for(int i=0; i<int(this->refinedBBoxVertices_.size()); ++i){
+		        bboxVertex v = this->refinedBBoxVertices_[i];
+		        std::vector<geometry_msgs::Point> verts;
+		        geometry_msgs::Point p;
+
+				for (int j=0; j<int(v.vert.size());++j){
+					p.x = v.vert[j](0); p.y = v.vert[j](1); p.z = v.vert[j](2);
+		        	verts.push_back(p);
+				}
+
+		        int vert_idx[12][2] = {
+		            {0,1},
+		            {1,2},
+		            {2,3},
+		            {0,3},
+		            {0,4},
+		            {1,5},
+		            {3,7},
+		            {2,6},
+		            {4,5},
+		            {5,6},
+		            {4,7},
+		            {6,7}
+		        };
+		        for (int j=0;j<12;++j){
+		            line.points.push_back(verts[vert_idx[j][0]]);
+		            line.points.push_back(verts[vert_idx[j][1]]);
+		        }
+		        lines.markers.push_back(line);
+		        line.id++;
+		    }
+		    this->staticObstacleVisPub_.publish(lines);			
 		}
 	}
 }

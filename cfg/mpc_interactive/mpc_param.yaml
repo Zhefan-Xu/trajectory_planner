@@ -2,3 +2,10 @@ horizon: 20
 constraint_slack_ratio: 0.4
 z_range_min: 0.7
 z_range_max: 1.2
+
+
+# clustering params
+cloud_res: 0.2
+local_cloud_region_x: 5.0 # forward
+local_cloud_region_y: 2.0 # left and right
+ground_height: 0.4

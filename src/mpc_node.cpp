@@ -83,6 +83,7 @@ int main(int argc, char** argv){
 	mp.reset(new trajPlanner::mpcPlanner (nh));
 	mp->updateMaxVel(desiredVel);
 	mp->updateMaxAcc(desiredAcc);
+	mp->setMap(map);
 
 	std::thread visWorker = std::thread(visPub);
 
@@ -105,7 +106,7 @@ int main(int argc, char** argv){
 					currPose = newPoint;
 					newMsg = false;
 					if (currPose[3] != 0){
-						if (waypoints.size() != 0){
+						if (waypoints.size() > 1){
 							lastPoint = true;
 							newWaypoints = true;
 							cout << "[Test MPC Node]: received last point. Waypoints size: " << waypoints.size() << endl;
@@ -156,7 +157,10 @@ int main(int argc, char** argv){
 		double t = 0;
 		while (ros::ok() and (currPos - goalPos).norm() >= 0.2){
 			mp->updateCurrStates(currPos, currVel);
+			ros::Time mpcStartTime = ros::Time::now();
 			mp->makePlan();
+			ros::Time mpcEndTime = ros::Time::now();
+			cout << "[Test MPC Node]: MPC runtime: " << (mpcEndTime - mpcStartTime).toSec() << "s." << endl; 
 			currPos = mp->getPos(dt);
 			currVel = mp->getVel(dt);
 			

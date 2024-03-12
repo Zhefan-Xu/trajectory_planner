@@ -11,6 +11,8 @@
 #include <acado_gnuplot.hpp>
 #include <acado_optimal_control.hpp>
 #include <Eigen/Eigen>
+#include <trajectory_planner/clustering/obstacleClustering.h>
+#include <map_manager/occupancyMap.h>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
 USING_NAMESPACE_ACADO
@@ -24,17 +26,28 @@ namespace trajPlanner{
 		std::string hint_;
 		ros::NodeHandle nh_;
 		ros::Publisher mpcTrajVisPub_;
+		ros::Publisher mpcTrajHistVisPub_;
+		ros::Publisher localCloudPub_;
+		ros::Publisher staticObstacleVisPub_;
 
 		ros::Timer visTimer_;
+		ros::Timer clusteringTimer_;
 
+		std::shared_ptr<mapManager::occMap> map_;
+		std::shared_ptr<obstacleClustering> obclustering_;
 		double ts_; // timestep
 		Eigen::Vector3d currPos_;
 		Eigen::Vector3d currVel_;
 		std::vector<Eigen::Vector3d> inputTraj_;
 		bool firstTime_ = true;
+		bool stateReceived_ = false;
 		VariablesGrid currentStatesSol_;
 		VariablesGrid currentControlsSol_;
 		std::vector<Eigen::Vector3d> currentTraj_;
+		std::vector<Eigen::Vector3d> trajHist_;
+		std::vector<Eigen::Vector3d> currCloud_;
+		std::vector<bboxVertex> refinedBBoxVertices_;
+
 
 
 
@@ -46,11 +59,21 @@ namespace trajPlanner{
 		double zRangeMin_;
 		double zRangeMax_;
 
+		// clustering params
+		double cloudRes_;
+		double regionSizeX_;
+		double regionSizeY_;
+		double groundHeight_;
+
 	public:
 		mpcPlanner(const ros::NodeHandle& nh);
 		void initParam();
+		void initModules();
 		void registerPub();
 		void registerCallback();
+		void setMap(const std::shared_ptr<mapManager::occMap>& map);
+
+		void staticObstacleClusteringCB(const ros::TimerEvent&);
 
 		void updateMaxVel(double maxVel);
 		void updateMaxAcc(double maxAcc);
@@ -71,7 +94,9 @@ namespace trajPlanner{
 
 		void visCB(const ros::TimerEvent&);
 		void publishMPCTrajectory();
-
+		void publishHistoricTrajectory();
+		void publishLocalCloud();
+		void publishStaticObstacles();
 
 	};
 }
