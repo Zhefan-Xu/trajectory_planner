@@ -57,9 +57,11 @@ namespace trajPlanner{
 		int horizon_;
 		double maxVel_ = 1.0;
 		double maxAcc_ = 1.0;
-		double constraintSlackRatio_;
 		double zRangeMin_;
 		double zRangeMax_;
+		double safetyDist_;
+		double staticSlack_;
+		double dynamicSlack_;
 
 		// clustering params
 		double cloudRes_;

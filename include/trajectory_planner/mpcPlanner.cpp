@@ -26,15 +26,6 @@ namespace trajPlanner{
 			cout << this->hint_ << ": Planning horizon is set to: " << this->horizon_ << endl;
 		}	
 
-		// constraint slack variable
-		if (not this->nh_.getParam(this->ns_ + "/constraint_slack_ratio", this->constraintSlackRatio_)){
-			this->constraintSlackRatio_ = 0.4;
-			cout << this->hint_ << ": No constraint slack ratio param. Use default: 0.4" << endl;
-		}
-		else{
-			cout << this->hint_ << ": Constraint slack ratio is set to: " << this->constraintSlackRatio_ << endl;
-		}	
-
 		// mininimum height
 		if (not this->nh_.getParam(this->ns_ + "/z_range_min", this->zRangeMin_)){
 			this->zRangeMin_ = 0.7;
@@ -87,7 +78,35 @@ namespace trajPlanner{
 		}
 		else{
 			cout << this->hint_ << ": Ground height is set to: " << this->groundHeight_ << "m" << endl;
-		}					
+		}		
+
+		// safety distance
+		if (not this->nh_.getParam(this->ns_ + "/safety_dist", this->safetyDist_)){
+			this->safetyDist_ = 0.5;
+			cout << this->hint_ << ": No safety distance param. Use default: 0.5m" << endl;
+		}
+		else{
+			cout << this->hint_ << ": Safety distance is set to: " << this->safetyDist_ << "m" << endl;
+		}	
+
+		// static slack variable
+		if (not this->nh_.getParam(this->ns_ + "/static_constraint_slack_ratio", this->staticSlack_)){
+			this->staticSlack_ = 0.5;
+			cout << this->hint_ << ": No static slack variable param. Use default: 0.5" << endl;
+		}
+		else{
+			cout << this->hint_ << ": Static slack variable is set to: " << this->staticSlack_ << endl;
+		}				
+
+		// dynamic slack variable
+		if (not this->nh_.getParam(this->ns_ + "/dynamic_constraint_slack_ratio", this->dynamicSlack_)){
+			this->dynamicSlack_ = 0.5;
+			cout << this->hint_ << ": No dynamic slack variable param. Use default: 0.5" << endl;
+		}
+		else{
+			cout << this->hint_ << ": Dynamic slack variable is set to: " << this->dynamicSlack_ << endl;
+		}
+
 	}
 
 	void mpcPlanner::initModules(){
@@ -227,12 +246,14 @@ namespace trajPlanner{
 
 		// Set up the optimal control problem
 		OCP ocp (refTraj);
+
 		DMatrix Q (8, 8);
 		Q.setIdentity(); Q(0,0) = 10.0; Q(1,1) = 10.0; Q(2,2) = 10.0; Q(3,3) = 1.0; Q(4,4) = 1.0; Q(5,5) = 1.0; Q(6,6) = 1000.0; Q(7,7) = 1000.0;
 		ocp.minimizeLSQ(Q, h, refTraj); 
 		// Contraints
 		ocp.subjectTo(f); // dynamics
-		double sklimit = 1.0 - pow((1 - this->constraintSlackRatio_), 2);
+		double skslimit = 1.0 - pow((1 - this->staticSlack_), 2);
+		double skdlimit = 1.0 - pow((1 - this->dynamicSlack_), 2);
 		ocp.subjectTo( this->zRangeMin_ <= z <= this->zRangeMax_ );
 		ocp.subjectTo( -this->maxVel_ <= vx <= this->maxVel_ );
 		ocp.subjectTo( -this->maxVel_ <= vy <= this->maxVel_ );
@@ -240,20 +261,20 @@ namespace trajPlanner{
 		ocp.subjectTo( -this->maxAcc_ <= ax <= this->maxAcc_ );
 		ocp.subjectTo( -this->maxAcc_ <= ay <= this->maxAcc_ );
 		ocp.subjectTo( -this->maxAcc_ <= az <= this->maxAcc_ );
-		ocp.subjectTo( 0.0 <= skd <= sklimit);
-		ocp.subjectTo( 0.0 <= sks <= sklimit);
-
+		ocp.subjectTo( 0.0 <= skd <= skdlimit);
+		ocp.subjectTo( 0.0 <= sks <= skslimit);
+		
 
 		// static obstacle constraints
 		std::vector<staticObstacle> staticObstacles = this->obclustering_->getStaticObstacles();
 		for (int i=0; i<int(staticObstacles.size()); ++i){
 			staticObstacle so = staticObstacles[i];
 			double yaw = so.yaw;
-			Eigen::Vector3d size = so.size/2;
+			Eigen::Vector3d size = so.size/2 + Eigen::Vector3d (this->safetyDist_, this->safetyDist_, this->safetyDist_);
 			Eigen::Vector3d centroid = so.centroid;
 
 			if (size(0) == 0 or size(1) == 0 or size(2) == 0) continue;
-			ocp.subjectTo(pow((x - centroid(0))*cos(yaw) + (y - centroid(1))*sin(yaw), 2)/pow(size(0), 2) + pow(-(x - centroid(0))*cos(yaw) + (y - centroid(1))*sin(yaw) - centroid(1), 2)/pow(size(1), 2) + pow(z - centroid(2), 2)/pow(size(2), 2) - 1 >= 0 );
+			ocp.subjectTo(pow((x - centroid(0))*cos(yaw) + (y - centroid(1))*sin(yaw), 2)/pow(size(0), 2) + pow(-(x - centroid(0))*sin(yaw) + (y - centroid(1))*cos(yaw), 2)/pow(size(1), 2) + pow(z - centroid(2), 2)/pow(size(2), 2) - 1  + sks >= 0 );
 		}
 
 		// Algorithm
@@ -274,8 +295,8 @@ namespace trajPlanner{
 		RTalgorithm.getControls(this->currentControlsSol_);
 		this->firstTime_ = false;
 		clearAllStaticCounters();
+		// cout << this->currentControlsSol_ << endl;
 		std::cout.rdbuf(cout_buff);
-
 	}
 
 

@@ -1,8 +1,9 @@
-horizon: 20
-constraint_slack_ratio: 0.4
+horizon: 30
 z_range_min: 0.7
 z_range_max: 1.2
-
+safety_dist: 0.8
+static_constraint_slack_ratio: 0.3
+dynamic_constraint_slack_ratio: 0.3
 
 # clustering params
 cloud_res: 0.2
