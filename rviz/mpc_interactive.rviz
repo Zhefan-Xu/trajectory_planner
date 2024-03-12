@@ -205,6 +205,14 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /mpc_planner/clustering_facing
+      Name: Marker
+      Namespaces:
+        currPoseVis: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -251,7 +259,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 3.0803639888763428
+      Yaw: 4.705373287200928
     Saved: ~
 Window Geometry:
   Displays:

@@ -99,6 +99,7 @@ namespace trajPlanner{
 		this->mpcTrajHistVisPub_ = this->nh_.advertise<nav_msgs::Path>(this->ns_ + "/traj_history", 10);
 		this->localCloudPub_ = this->nh_.advertise<sensor_msgs::PointCloud2>(this->ns_ + "/local_cloud", 10);
 		this->staticObstacleVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>(this->ns_ + "/static_obstacles", 10);
+		this->facingPub_ = this->nh_.advertise<visualization_msgs::Marker>(this->ns_ + "/clustering_facing", 10);
 	}
 
 	void mpcPlanner::registerCallback(){
@@ -241,6 +242,19 @@ namespace trajPlanner{
 		ocp.subjectTo( -this->maxAcc_ <= az <= this->maxAcc_ );
 		ocp.subjectTo( 0.0 <= skd <= sklimit);
 		ocp.subjectTo( 0.0 <= sks <= sklimit);
+
+
+		// static obstacle constraints
+		std::vector<staticObstacle> staticObstacles = this->obclustering_->getStaticObstacles();
+		for (int i=0; i<int(staticObstacles.size()); ++i){
+			staticObstacle so = staticObstacles[i];
+			double yaw = so.yaw;
+			Eigen::Vector3d size = so.size/2;
+			Eigen::Vector3d centroid = so.centroid;
+
+			if (size(0) == 0 or size(1) == 0 or size(2) == 0) continue;
+			ocp.subjectTo(pow((x - centroid(0))*cos(yaw) + (y - centroid(1))*sin(yaw), 2)/pow(size(0), 2) + pow(-(x - centroid(0))*cos(yaw) + (y - centroid(1))*sin(yaw) - centroid(1), 2)/pow(size(1), 2) + pow(z - centroid(2), 2)/pow(size(2), 2) - 1 >= 0 );
+		}
 
 		// Algorithm
 		RealTimeAlgorithm RTalgorithm(ocp, this->ts_);
@@ -426,7 +440,7 @@ namespace trajPlanner{
 		    line.color.g = 1;
 		    line.color.b = 1;
 		    line.color.a = 1.0;
-		    line.lifetime = ros::Duration(0.15);
+		    line.lifetime = ros::Duration(0.1);
 		    Eigen::Vector3d vertex_pose;
 		    for(int i=0; i<int(this->refinedBBoxVertices_.size()); ++i){
 		        bboxVertex v = this->refinedBBoxVertices_[i];
@@ -459,7 +473,31 @@ namespace trajPlanner{
 		        lines.markers.push_back(line);
 		        line.id++;
 		    }
-		    this->staticObstacleVisPub_.publish(lines);			
+		    this->staticObstacleVisPub_.publish(lines);		
+
+
+		    // facing direction	
+		    visualization_msgs::Marker currPoseMarker;
+	    	currPoseMarker.header.frame_id = "map";
+			currPoseMarker.header.stamp = ros::Time();
+			currPoseMarker.ns = "currPoseVis";
+			currPoseMarker.id = 0;
+			currPoseMarker.type = visualization_msgs::Marker::ARROW;
+			currPoseMarker.action = visualization_msgs::Marker::ADD;
+			currPoseMarker.pose.position.x = this->currPos_(0);
+			currPoseMarker.pose.position.y = this->currPos_(1);
+			currPoseMarker.pose.position.z = this->currPos_(2);
+			double angle = atan2(this->currVel_(1), this->currVel_(0));
+			currPoseMarker.pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, angle);
+			currPoseMarker.lifetime = ros::Duration(0.1);
+			currPoseMarker.scale.x = 0.4;
+			currPoseMarker.scale.y = 0.2;
+			currPoseMarker.scale.z = 0.2;
+			currPoseMarker.color.a = 1.0;
+			currPoseMarker.color.r = 0.0;
+			currPoseMarker.color.g = 0.5;
+			currPoseMarker.color.b = 1.0;
+			this->facingPub_.publish(currPoseMarker);
 		}
 	}
 }

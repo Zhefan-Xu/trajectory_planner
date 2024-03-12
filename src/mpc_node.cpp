@@ -160,7 +160,7 @@ int main(int argc, char** argv){
 			ros::Time mpcStartTime = ros::Time::now();
 			mp->makePlan();
 			ros::Time mpcEndTime = ros::Time::now();
-			cout << "[Test MPC Node]: MPC runtime: " << (mpcEndTime - mpcStartTime).toSec() << "s." << endl; 
+			cout << "[Test MPC Node]: MPC runtime [s]: " << (mpcEndTime - mpcStartTime).toSec() << "\t\r" << std::flush;;
 			currPos = mp->getPos(dt);
 			currVel = mp->getVel(dt);
 			
@@ -169,6 +169,7 @@ int main(int argc, char** argv){
 			r.sleep();
 		}
 		cout << "[Test MPC Node]: Complete Current Trajectory." << endl;
+		++countLoop;
 	}
 
 

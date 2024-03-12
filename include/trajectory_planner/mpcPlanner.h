@@ -12,6 +12,7 @@
 #include <acado_optimal_control.hpp>
 #include <Eigen/Eigen>
 #include <trajectory_planner/clustering/obstacleClustering.h>
+#include <trajectory_planner/utils.h>
 #include <map_manager/occupancyMap.h>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -29,6 +30,7 @@ namespace trajPlanner{
 		ros::Publisher mpcTrajHistVisPub_;
 		ros::Publisher localCloudPub_;
 		ros::Publisher staticObstacleVisPub_;
+		ros::Publisher facingPub_;
 
 		ros::Timer visTimer_;
 		ros::Timer clusteringTimer_;
