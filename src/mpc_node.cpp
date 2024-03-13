@@ -155,7 +155,7 @@ int main(int argc, char** argv){
 		Eigen::Vector3d goalPos (waypoints.back()[0], waypoints.back()[1], waypoints.back()[2]);
 
 		double t = 0;
-		while (ros::ok() and (currPos - goalPos).norm() >= 0.2){
+		while (ros::ok() and ((currPos - goalPos).norm() >= 0.2 or t <= 1.0)){
 			mp->updateCurrStates(currPos, currVel);
 			ros::Time mpcStartTime = ros::Time::now();
 			mp->makePlan();
