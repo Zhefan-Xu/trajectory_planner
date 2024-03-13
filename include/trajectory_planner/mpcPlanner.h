@@ -41,6 +41,7 @@ namespace trajPlanner{
 		Eigen::Vector3d currPos_;
 		Eigen::Vector3d currVel_;
 		std::vector<Eigen::Vector3d> inputTraj_;
+		int lastRefStartIdx_ = 0;
 		bool firstTime_ = true;
 		bool stateReceived_ = false;
 		VariablesGrid currentStatesSol_;

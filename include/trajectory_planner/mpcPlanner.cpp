@@ -193,6 +193,7 @@ namespace trajPlanner{
 		}
 		this->updatePath(pathTemp, ts);
 		this->trajHist_.clear();
+		this->lastRefStartIdx_ = 0;
 	}
 
 	void mpcPlanner::updatePath(const std::vector<Eigen::Vector3d>& path, double ts){
@@ -303,14 +304,17 @@ namespace trajPlanner{
 	void mpcPlanner::getReferenceTraj(std::vector<Eigen::Vector3d>& referenceTraj){
 		// find the nearest position in the reference trajectory
 		double leastDist = std::numeric_limits<double>::max();
-		int startIdx = 0;
-		for (int i=0; i<int(this->inputTraj_.size()); ++i){
+		double maxForwardTime = 3.0; // # 3.0s ahead
+		int maxForwardIdx = maxForwardTime/this->ts_;
+		int startIdx = this->lastRefStartIdx_;
+		for (int i=this->lastRefStartIdx_; i<this->lastRefStartIdx_+maxForwardIdx; ++i){
 			double dist = (this->currPos_ - this->inputTraj_[i]).norm();
 			if (dist < leastDist){
 				leastDist = dist;
 				startIdx = i;
 			}
 		}
+		this->lastRefStartIdx_ = startIdx; // update start idx
 
 		referenceTraj.clear();
 		for (int i=startIdx; i<startIdx+this->horizon_; ++i){
