@@ -80,6 +80,15 @@ namespace trajPlanner{
 			cout << this->hint_ << ": Ground height is set to: " << this->groundHeight_ << "m" << endl;
 		}		
 
+		// ceiling height
+		if (not this->nh_.getParam(this->ns_ + "/ceiling_height", this->ceilingHeight_)){
+			this->ceilingHeight_ = 2.0;
+			cout << this->hint_ << ": No ceiling height param. Use default: 2.0m" << endl;
+		}
+		else{
+			cout << this->hint_ << ": Ceiling height is set to: " << this->ceilingHeight_ << "m" << endl;
+		}		
+
 		// safety distance
 		if (not this->nh_.getParam(this->ns_ + "/safety_dist", this->safetyDist_)){
 			this->safetyDist_ = 0.5;
@@ -155,7 +164,7 @@ namespace trajPlanner{
 
 		for (double ix=xStart; ix<=xEnd; ix+=cloudRes_){
 			for (double iy=yStart; iy<=yEnd; iy+=this->cloudRes_){
-				for (double iz=this->groundHeight_; iz<=mapMax(2); iz+=this->cloudRes_){
+				for (double iz=this->groundHeight_; iz<=this->ceilingHeight_; iz+=this->cloudRes_){
 					Eigen::Vector3d p (ix, iy, iz);
 					if ((p - pOrigin).dot(faceDirection) >= 0){
 						if (this->map_->isInMap(p) and this->map_->isInflatedOccupied(p)){

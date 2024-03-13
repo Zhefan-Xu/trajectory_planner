@@ -70,6 +70,7 @@ namespace trajPlanner{
 		double regionSizeX_;
 		double regionSizeY_;
 		double groundHeight_;
+		double ceilingHeight_;
 
 	public:
 		mpcPlanner(const ros::NodeHandle& nh);

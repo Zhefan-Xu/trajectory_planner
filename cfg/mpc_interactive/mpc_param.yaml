@@ -1,7 +1,7 @@
 horizon: 30
 z_range_min: 0.7
 z_range_max: 1.2
-safety_dist: 0.8
+safety_dist: 0.3
 static_constraint_slack_ratio: 0.3
 dynamic_constraint_slack_ratio: 0.3
 
@@ -10,3 +10,4 @@ cloud_res: 0.2
 local_cloud_region_x: 5.0 # forward
 local_cloud_region_y: 2.0 # left and right
 ground_height: 0.4
+ceiling_height: 1.5
