@@ -158,7 +158,7 @@ namespace trajPlanner{
 				for (double iz=this->groundHeight_; iz<=mapMax(2); iz+=this->cloudRes_){
 					Eigen::Vector3d p (ix, iy, iz);
 					if ((p - pOrigin).dot(faceDirection) >= 0){
-						if (this->map_->isInflatedOccupied(p)){
+						if (this->map_->isInMap(p) and this->map_->isInflatedOccupied(p)){
 							currCloud.push_back(p);
 						}
 					}

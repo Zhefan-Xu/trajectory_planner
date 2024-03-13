@@ -326,7 +326,7 @@ int main(int argc, char** argv){
 					Eigen::Vector3d p (ix, iy, iz);
 					if ((p - pOrigin).dot(faceDirection) >= 0){
 						// cout << p.transpose() << endl;
-						if (map->isInflatedOccupied(p)){
+						if (map->isInMap(p) and map->isInflatedOccupied(p)){
 							currCloud.push_back(p);
 						}
 					}
