@@ -192,8 +192,7 @@ namespace trajPlanner{
 			pathTemp.push_back(p); 
 		}
 		this->updatePath(pathTemp, ts);
-		this->trajHist_.clear();
-		this->lastRefStartIdx_ = 0;
+
 	}
 
 	void mpcPlanner::updatePath(const std::vector<Eigen::Vector3d>& path, double ts){
@@ -201,7 +200,16 @@ namespace trajPlanner{
 		this->inputTraj_ = path;
 		this->firstTime_ = true;
 		this->stateReceived_ = false;
+		this->trajHist_.clear();
+		this->lastRefStartIdx_ = 0;
 	}
+
+	void mpcPlanner::updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize){
+		this->dynamicObstaclesPos_ = obstaclesPos;
+		this->dynamicObstaclesVel_ = obstaclesVel;
+		this->dynamicObstaclesSize_ = obstaclesSize;
+	}
+
 
 	void mpcPlanner::makePlan(){
 		std::ostringstream local;
@@ -266,7 +274,7 @@ namespace trajPlanner{
 		ocp.subjectTo( 0.0 <= sks <= skslimit);
 		
 
-		// static obstacle constraints
+		// Static obstacle constraints
 		std::vector<staticObstacle> staticObstacles = this->obclustering_->getStaticObstacles();
 		for (int i=0; i<int(staticObstacles.size()); ++i){
 			staticObstacle so = staticObstacles[i];
@@ -277,6 +285,19 @@ namespace trajPlanner{
 			if (size(0) == 0 or size(1) == 0 or size(2) == 0) continue;
 			ocp.subjectTo(pow((x - centroid(0))*cos(yaw) + (y - centroid(1))*sin(yaw), 2)/pow(size(0), 2) + pow(-(x - centroid(0))*sin(yaw) + (y - centroid(1))*cos(yaw), 2)/pow(size(1), 2) + pow(z - centroid(2), 2)/pow(size(2), 2) - 1  + sks >= 0 );
 		}
+
+		// Dynamic obstacle constraints
+		if (this->dynamicObstaclesPos_.size() != 0){
+			// Horizon
+			for (int n=0; n<this->horizon_; ++n){
+				for (int i=0; i<int(this->dynamicObstaclesPos_.size()); ++i){
+					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i];
+					Eigen::Vector3d vel = this->dynamicObstaclesVel_[i];
+					Eigen::Vector3d size = this->dynamicObstaclesSize_[i];
+				}
+			}
+		}
+
 
 		// Algorithm
 		RealTimeAlgorithm RTalgorithm(ocp, this->ts_);

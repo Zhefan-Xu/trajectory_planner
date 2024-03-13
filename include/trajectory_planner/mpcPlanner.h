@@ -50,8 +50,9 @@ namespace trajPlanner{
 		std::vector<Eigen::Vector3d> trajHist_;
 		std::vector<Eigen::Vector3d> currCloud_;
 		std::vector<bboxVertex> refinedBBoxVertices_;
-
-
+		std::vector<Eigen::Vector3d> dynamicObstaclesPos_;
+		std::vector<Eigen::Vector3d> dynamicObstaclesVel_;
+		std::vector<Eigen::Vector3d> dynamicObstaclesSize_;
 
 
 		// parameters
@@ -85,6 +86,7 @@ namespace trajPlanner{
 		void updateCurrStates(const Eigen::Vector3d& pos, const Eigen::Vector3d& vel);
 		void updatePath(const nav_msgs::Path& path, double ts);
 		void updatePath(const std::vector<Eigen::Vector3d>& path, double ts);
+		void updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize); // position, velocity, size
 		void makePlan();
 
 		void getReferenceTraj(std::vector<Eigen::Vector3d>& referenceTraj);
