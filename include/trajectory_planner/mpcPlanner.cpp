@@ -157,12 +157,12 @@ namespace trajPlanner{
 		p3 = p1 + (this->regionSizeX_ + offset) * faceDirection;
 		p4 = p2 + (this->regionSizeX_ + offset) * faceDirection;
 
-		double xStart = std::min({p1(0), p2(0), p3(0), p4(0)});
-		double xEnd = std::max({p1(0), p2(0), p3(0), p4(0)});
-		double yStart = std::min({p1(1), p2(1), p3(1), p4(1)});
-		double yEnd = std::max({p1(1), p2(1), p3(1), p4(1)});
+		double xStart = floor(std::min({p1(0), p2(0), p3(0), p4(0)})/this->cloudRes_)*this->cloudRes_;
+		double xEnd = ceil(std::max({p1(0), p2(0), p3(0), p4(0)})/this->cloudRes_)*this->cloudRes_;
+		double yStart = floor(std::min({p1(1), p2(1), p3(1), p4(1)})/this->cloudRes_)*this->cloudRes_;
+		double yEnd = ceil(std::max({p1(1), p2(1), p3(1), p4(1)})/this->cloudRes_)*this->cloudRes_;
 
-		for (double ix=xStart; ix<=xEnd; ix+=cloudRes_){
+		for (double ix=xStart; ix<=xEnd; ix+=this->cloudRes_){
 			for (double iy=yStart; iy<=yEnd; iy+=this->cloudRes_){
 				for (double iz=this->groundHeight_; iz<=this->ceilingHeight_; iz+=this->cloudRes_){
 					Eigen::Vector3d p (ix, iy, iz);
@@ -305,7 +305,7 @@ namespace trajPlanner{
 					Eigen::Vector3d vel = this->dynamicObstaclesVel_[i];
 					
 					if(this->currentStatesSol_.isEmpty()){
-						ocp.subjectTo(n, pow((x-pos(0))/size(0), 2) + pow((y-pos(1))/size(1), 2) + pow((z-pos(2))/size(2), 2) -1.0 + skd >=  0 );
+						ocp.subjectTo(n, pow((x-pos(0))/size(0), 2) + pow((y-pos(1))/size(1), 2) + pow((z-pos(2))/pow(size(2),2), 2)   -1.0 + skd >=  0 );
 					}
 					else{
 						double cx,cy,cz;
@@ -334,7 +334,7 @@ namespace trajPlanner{
 
 		// Algorithm
 		RealTimeAlgorithm RTalgorithm(ocp, this->ts_);
-		RTalgorithm.set(PRINTLEVEL, 0);
+		RTalgorithm.set(PRINTLEVEL, 40);
 		if (not this->firstTime_){
 			RTalgorithm.initializeDifferentialStates(this->currentStatesSol_);
 		}

@@ -123,7 +123,7 @@ namespace trajPlanner{
             m.action = visualization_msgs::Marker::ADD;
             m.pose.position.x = this->obstaclePos_[i](0);
             m.pose.position.y = this->obstaclePos_[i](1);
-            m.pose.position.z = this->obstaclePos_[i](2);
+            m.pose.position.z = this->obstaclePos_[i](2)+this->obstacleSize_[i](2)/2;
             m.pose.orientation.x = 0;
             m.pose.orientation.y = 0;
             m.pose.orientation.z = 0;
