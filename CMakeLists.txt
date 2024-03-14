@@ -150,6 +150,7 @@ add_library(
   include/${PROJECT_NAME}/clustering/Kmeans.cpp
   include/${PROJECT_NAME}/clustering/obstacleClustering.cpp
   include/${PROJECT_NAME}/mpcPlanner.cpp
+  include/${PROJECT_NAME}/obstacleTest/dynamicObstacleGenerator.cpp
 )
 
 

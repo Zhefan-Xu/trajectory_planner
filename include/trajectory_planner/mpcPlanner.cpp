@@ -300,9 +300,33 @@ namespace trajPlanner{
 			// Horizon
 			for (int n=0; n<this->horizon_; ++n){
 				for (int i=0; i<int(this->dynamicObstaclesPos_.size()); ++i){
-					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i];
+					Eigen::Vector3d size = this->dynamicObstaclesSize_[i]/2 + Eigen::Vector3d (this->safetyDist_, this->safetyDist_, this->safetyDist_);
+					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i] + Eigen::Vector3d (0,0,size(2));
 					Eigen::Vector3d vel = this->dynamicObstaclesVel_[i];
-					Eigen::Vector3d size = this->dynamicObstaclesSize_[i];
+					
+					if(this->currentStatesSol_.isEmpty()){
+						ocp.subjectTo(n, pow((x-pos(0)), 2)/size(0) + pow((y-pos(1)), 2)/size(1) + pow((z-pos(2)), 2)/size(2) -1.0 + skd >=  0 );
+					}
+					else{
+						double cx,cy,cz;
+						DVector linearize_point;
+							if(n+1<this->horizon_-1){
+								// cout<<"using xd"<<endl;
+								linearize_point = this->currentStatesSol_.getVector(n+1);
+								cx = linearize_point(0);
+								cy = linearize_point(1);
+								cz = linearize_point(2);
+							}
+							else{
+								linearize_point = this->currentStatesSol_.getVector(this->horizon_-1);
+								double delT = 1/this->horizon_;
+								cx = linearize_point(0)+linearize_point(3)*delT;
+								cy = linearize_point(1)+linearize_point(4)*delT;
+								cz = linearize_point(2)+linearize_point(5)*delT;
+							}
+						ocp.subjectTo(n, pow((cx-pos(0))/size(0), 2) + pow((cy-pos(1))/size(1), 2) + pow((cz-pos(2))/pow(size(2),2), 2)  
+										+ 2 * ((cx-pos(0))/pow(size(0),2)*(x-cx) + (cy-pos(1))/pow(size(1),2)*(y-cy) + (cz-pos(2))/pow(size(2),2)*(z-cz)) -1.0 + skd >= 0 );
+					}
 				}
 			}
 		}
