@@ -305,7 +305,7 @@ namespace trajPlanner{
 					Eigen::Vector3d vel = this->dynamicObstaclesVel_[i];
 					
 					if(this->currentStatesSol_.isEmpty()){
-						ocp.subjectTo(n, pow((x-pos(0)), 2)/size(0) + pow((y-pos(1)), 2)/size(1) + pow((z-pos(2)), 2)/size(2) -1.0 + skd >=  0 );
+						ocp.subjectTo(n, pow((x-pos(0))/size(0), 2) + pow((y-pos(1))/size(1), 2) + pow((z-pos(2))/size(2), 2) -1.0 + skd >=  0 );
 					}
 					else{
 						double cx,cy,cz;
