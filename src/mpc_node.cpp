@@ -159,7 +159,7 @@ int main(int argc, char** argv){
 
 		double t = 0;
 		while (ros::ok() and ((currPos - goalPos).norm() >= 0.2 or t <= 1.0)){
-			mp->updateDynamicObstacles(obg->getObstaclePos(),obg->getObstacleVel(),obg->getObstacleSize());
+			mp->updateDynamicObstacles(obg->getObstaclePos(), obg->getObstacleVel(), obg->getObstacleSize());
 			mp->updateCurrStates(currPos, currVel);
 			ros::Time mpcStartTime = ros::Time::now();
 			mp->makePlan();

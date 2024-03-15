@@ -22,6 +22,7 @@ namespace trajPlanner{
             ros::NodeHandle nh_;
 
             ros::Publisher obstacleVisPub_;
+            ros::Publisher obstacleBBoxVisPub_;
             ros::Timer obGenTimer_;
             ros::Timer visTimer_;
 
@@ -41,12 +42,15 @@ namespace trajPlanner{
 
             void obGenCB(const ros::TimerEvent&);
             void linearMotion(Eigen::Vector3d &pos, Eigen::Vector3d &vel);
-            std::vector<Eigen::Vector3d> getObstaclePos();
-            std::vector<Eigen::Vector3d> getObstacleVel();
-            std::vector<Eigen::Vector3d> getObstacleSize();
+
 
             void visCB(const ros::TimerEvent&);
-            void publishObstacles();        
+            void publishObstacles();
+            void publishObstacleBBoxes();      
+
+            std::vector<Eigen::Vector3d> getObstaclePos();
+            std::vector<Eigen::Vector3d> getObstacleVel();
+            std::vector<Eigen::Vector3d> getObstacleSize();  
     };
 }
 #endif
