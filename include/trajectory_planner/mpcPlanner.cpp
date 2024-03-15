@@ -157,12 +157,12 @@ namespace trajPlanner{
 		p3 = p1 + (this->regionSizeX_ + offset) * faceDirection;
 		p4 = p2 + (this->regionSizeX_ + offset) * faceDirection;
 
-		double xStart = std::min({p1(0), p2(0), p3(0), p4(0)});
-		double xEnd = std::max({p1(0), p2(0), p3(0), p4(0)});
-		double yStart = std::min({p1(1), p2(1), p3(1), p4(1)});
-		double yEnd = std::max({p1(1), p2(1), p3(1), p4(1)});
+		double xStart = floor(std::min({p1(0), p2(0), p3(0), p4(0)})/this->cloudRes_)*this->cloudRes_;
+		double xEnd = ceil(std::max({p1(0), p2(0), p3(0), p4(0)})/this->cloudRes_)*this->cloudRes_;
+		double yStart = floor(std::min({p1(1), p2(1), p3(1), p4(1)})/this->cloudRes_)*this->cloudRes_;
+		double yEnd = ceil(std::max({p1(1), p2(1), p3(1), p4(1)})/this->cloudRes_)*this->cloudRes_;
 
-		for (double ix=xStart; ix<=xEnd; ix+=cloudRes_){
+		for (double ix=xStart; ix<=xEnd; ix+=this->cloudRes_){
 			for (double iy=yStart; iy<=yEnd; iy+=this->cloudRes_){
 				for (double iz=this->groundHeight_; iz<=this->ceilingHeight_; iz+=this->cloudRes_){
 					Eigen::Vector3d p (ix, iy, iz);
@@ -300,9 +300,31 @@ namespace trajPlanner{
 			// Horizon
 			for (int n=0; n<this->horizon_; ++n){
 				for (int i=0; i<int(this->dynamicObstaclesPos_.size()); ++i){
-					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i];
+					Eigen::Vector3d size = this->dynamicObstaclesSize_[i]/2 + Eigen::Vector3d (this->safetyDist_, this->safetyDist_, this->safetyDist_);
+					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i] + Eigen::Vector3d (0,0, size(2));
 					Eigen::Vector3d vel = this->dynamicObstaclesVel_[i];
-					Eigen::Vector3d size = this->dynamicObstaclesSize_[i];
+					
+					if (this->firstTime_){
+						ocp.subjectTo(n, pow((x-pos(0))/size(0), 2) + pow((y-pos(1))/size(1), 2) + pow((z-pos(2))/pow(size(2), 2), 2) - 1 + skd >=  0 );
+					}
+					else{
+						double cx, cy, cz;
+						DVector linearizePoint;
+						if (n < this->horizon_- 1){
+							linearizePoint = this->currentStatesSol_.getVector(n+1);
+							cx = linearizePoint(0);
+							cy = linearizePoint(1);
+							cz = linearizePoint(2);
+						}
+						else{
+							linearizePoint = this->currentStatesSol_.getVector(this->horizon_-1);
+							cx = linearizePoint(0) + linearizePoint(3) * this->ts_;
+							cy = linearizePoint(1) + linearizePoint(4) * this->ts_;
+							cz = linearizePoint(2) + linearizePoint(5) * this->ts_;
+						}
+						ocp.subjectTo(n, pow((cx-pos(0))/size(0), 2) + pow((cy-pos(1))/size(1), 2) + pow((cz-pos(2))/pow(size(2), 2), 2)  
+										+ 2 * ((cx-pos(0))/pow(size(0), 2)*(x-cx) + (cy-pos(1))/pow(size(1), 2)*(y-cy) + (cz-pos(2))/pow(size(2), 2)*(z-cz)) - 1 + skd >= 0 );
+					}
 				}
 			}
 		}

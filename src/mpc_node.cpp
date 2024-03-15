@@ -1,8 +1,8 @@
 #include <ros/ros.h>
 #include <trajectory_planner/mpcPlanner.h>
 #include <trajectory_planner/polyTrajOccMap.h>
+#include <trajectory_planner/obstacle_test/dynamicObstacleGenerator.h>
 #include <visualization_msgs/MarkerArray.h>
-
 ros::Publisher waypointsVisPub;
 ros::Publisher inputTrajPub;
 nav_msgs::Path inputTraj;
@@ -85,6 +85,9 @@ int main(int argc, char** argv){
 	mp->updateMaxAcc(desiredAcc);
 	mp->setMap(map);
 
+	std::shared_ptr<trajPlanner::obstacleGenerator> obg;
+	obg.reset(new trajPlanner::obstacleGenerator (nh));
+
 	std::thread visWorker = std::thread(visPub);
 
 	int countLoop = 0;
@@ -156,6 +159,7 @@ int main(int argc, char** argv){
 
 		double t = 0;
 		while (ros::ok() and ((currPos - goalPos).norm() >= 0.2 or t <= 1.0)){
+			mp->updateDynamicObstacles(obg->getObstaclePos(), obg->getObstacleVel(), obg->getObstacleSize());
 			mp->updateCurrStates(currPos, currVel);
 			ros::Time mpcStartTime = ros::Time::now();
 			mp->makePlan();
