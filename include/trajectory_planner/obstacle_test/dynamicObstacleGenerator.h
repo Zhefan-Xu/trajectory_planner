@@ -1,3 +1,10 @@
+/*
+    FILE: dynamicObstacleGenerator.h
+    -----------------------------
+    dynamic obstacle generator header
+*/
+
+
 #ifndef DYNAMIC_OBSTACLE_GENERATOR_H
 #define DYNAMIC_OBSTACLE_GENERATOR_H
 #include <ros/ros.h>

@@ -301,31 +301,29 @@ namespace trajPlanner{
 			for (int n=0; n<this->horizon_; ++n){
 				for (int i=0; i<int(this->dynamicObstaclesPos_.size()); ++i){
 					Eigen::Vector3d size = this->dynamicObstaclesSize_[i]/2 + Eigen::Vector3d (this->safetyDist_, this->safetyDist_, this->safetyDist_);
-					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i] + Eigen::Vector3d (0,0,size(2));
+					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i] + Eigen::Vector3d (0,0, size(2));
 					Eigen::Vector3d vel = this->dynamicObstaclesVel_[i];
 					
-					if(this->currentStatesSol_.isEmpty()){
-						ocp.subjectTo(n, pow((x-pos(0))/size(0), 2) + pow((y-pos(1))/size(1), 2) + pow((z-pos(2))/pow(size(2),2), 2)   -1.0 + skd >=  0 );
+					if (this->firstTime_){
+						ocp.subjectTo(n, pow((x-pos(0))/size(0), 2) + pow((y-pos(1))/size(1), 2) + pow((z-pos(2))/pow(size(2), 2), 2) - 1 + skd >=  0 );
 					}
 					else{
-						double cx,cy,cz;
-						DVector linearize_point;
-							if(n+1<this->horizon_-1){
-								// cout<<"using xd"<<endl;
-								linearize_point = this->currentStatesSol_.getVector(n+1);
-								cx = linearize_point(0);
-								cy = linearize_point(1);
-								cz = linearize_point(2);
-							}
-							else{
-								linearize_point = this->currentStatesSol_.getVector(this->horizon_-1);
-								double delT = 1/this->horizon_;
-								cx = linearize_point(0)+linearize_point(3)*delT;
-								cy = linearize_point(1)+linearize_point(4)*delT;
-								cz = linearize_point(2)+linearize_point(5)*delT;
-							}
-						ocp.subjectTo(n, pow((cx-pos(0))/size(0), 2) + pow((cy-pos(1))/size(1), 2) + pow((cz-pos(2))/pow(size(2),2), 2)  
-										+ 2 * ((cx-pos(0))/pow(size(0),2)*(x-cx) + (cy-pos(1))/pow(size(1),2)*(y-cy) + (cz-pos(2))/pow(size(2),2)*(z-cz)) -1.0 + skd >= 0 );
+						double cx, cy, cz;
+						DVector linearizePoint;
+						if (n < this->horizon_- 1){
+							linearizePoint = this->currentStatesSol_.getVector(n+1);
+							cx = linearizePoint(0);
+							cy = linearizePoint(1);
+							cz = linearizePoint(2);
+						}
+						else{
+							linearizePoint = this->currentStatesSol_.getVector(this->horizon_-1);
+							cx = linearizePoint(0) + linearizePoint(3) * this->ts_;
+							cy = linearizePoint(1) + linearizePoint(4) * this->ts_;
+							cz = linearizePoint(2) + linearizePoint(5) * this->ts_;
+						}
+						ocp.subjectTo(n, pow((cx-pos(0))/size(0), 2) + pow((cy-pos(1))/size(1), 2) + pow((cz-pos(2))/pow(size(2), 2), 2)  
+										+ 2 * ((cx-pos(0))/pow(size(0), 2)*(x-cx) + (cy-pos(1))/pow(size(1), 2)*(y-cy) + (cz-pos(2))/pow(size(2), 2)*(z-cz)) - 1 + skd >= 0 );
 					}
 				}
 			}
@@ -334,7 +332,7 @@ namespace trajPlanner{
 
 		// Algorithm
 		RealTimeAlgorithm RTalgorithm(ocp, this->ts_);
-		RTalgorithm.set(PRINTLEVEL, 40);
+		RTalgorithm.set(PRINTLEVEL, 0);
 		if (not this->firstTime_){
 			RTalgorithm.initializeDifferentialStates(this->currentStatesSol_);
 		}

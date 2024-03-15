@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <trajectory_planner/mpcPlanner.h>
 #include <trajectory_planner/polyTrajOccMap.h>
-#include <trajectory_planner/obstacleTest/dynamicObstacleGenerator.h>
+#include <trajectory_planner/obstacle_test/dynamicObstacleGenerator.h>
 #include <visualization_msgs/MarkerArray.h>
 ros::Publisher waypointsVisPub;
 ros::Publisher inputTrajPub;

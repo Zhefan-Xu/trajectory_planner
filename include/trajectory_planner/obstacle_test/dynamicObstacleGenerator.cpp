@@ -1,4 +1,10 @@
-#include <trajectory_planner/obstacleTest/dynamicObstacleGenerator.h>
+/*
+    FILE: dynamicObstacleGenerator.cpp
+    -----------------------------
+    dynamic obstacle generator function implementation
+*/
+
+#include <trajectory_planner/obstacle_test/dynamicObstacleGenerator.h>
 namespace trajPlanner{
     obstacleGenerator::obstacleGenerator(){}
 
@@ -117,8 +123,8 @@ namespace trajPlanner{
             visualization_msgs::Marker m;
             m.header.frame_id = "map";
             m.header.stamp = ros::Time();
-            m.ns = "obstacles";
-            m.id = 99999 + i;
+            m.ns = "obstacles_ellipsoid";
+            m.id = i;
             m.type = visualization_msgs::Marker::SPHERE;
             m.action = visualization_msgs::Marker::ADD;
             m.pose.position.x = this->obstaclePos_[i](0);
@@ -138,7 +144,6 @@ namespace trajPlanner{
             m.lifetime = ros::Duration(0.5);
             markers.push_back(m);
         }
-        // cout << markers.size() << endl;
         msg.markers = markers;
         this->obstacleVisPub_.publish(msg);
 	}
