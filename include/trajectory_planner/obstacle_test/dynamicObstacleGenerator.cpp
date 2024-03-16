@@ -25,59 +25,66 @@ namespace trajPlanner{
         else{
             cout<< this->hint_ <<": Discrete time step: "<<this->delT_<<endl;
         }
-		std::vector<double> obstacleVecTemp;
-		if (not this->nh_.getParam(this->ns_ + "/obstacles", obstacleVecTemp)){
-            this->obstaclePos_.clear();
-            this->obstacleVel_.clear();
+		// std::vector<double> obstacleVecTemp;
+		// if (not this->nh_.getParam(this->ns_ + "/obstacles", obstacleVecTemp)){
+        //     this->obstaclePos_.clear();
+        //     this->obstacleVel_.clear();
+        //     this->obstacleSize_.clear();
+		// 	cout << this->hint_ << ": No obstacles param found." << endl;
+		// }
+		// else{
+        //     this->obstaclePos_.clear();
+        //     this->obstacleVel_.clear();
+        //     this->obstacleSize_.clear();
+		// 	int numObstacle = int(obstacleVecTemp.size())/9;
+		// 	if (numObstacle != 0){
+		// 		for (int i=0; i<numObstacle; ++i){
+		// 			Eigen::Vector3d pos;
+		// 			Eigen::Vector3d vel;
+		// 			Eigen::Vector3d size;
+		// 			pos << obstacleVecTemp[i*9 + 0], obstacleVecTemp[i*9 + 1], obstacleVecTemp[i*9 + 2]-obstacleVecTemp[i*9 + 5]/2;
+		// 			size << obstacleVecTemp[i*9 + 3], obstacleVecTemp[i*9 + 4], obstacleVecTemp[i*9 + 5];
+		// 			vel << obstacleVecTemp[i*9 + 6], obstacleVecTemp[i*9 + 7], obstacleVecTemp[i*9 + 8];
+		// 			this->obstaclePos_.push_back(pos);
+        //             this->obstacleVel_.push_back(vel);
+        //             this->obstacleSize_.push_back(size);	
+		// 		}
+		// 	}
+        //     cout << this->hint_ <<": number of obstacle: " << numObstacle << endl; 
+		// }
+        std::vector<double> obstacleParamTemp;
+		if (not this->nh_.getParam(this->ns_ + "/dynamic_obstacles", obstacleParamTemp)){
+            this->obstacleStartPos_.clear();
+            this->obstacleEndPos_.clear();
+            this->obstacleRefVel_.clear();
             this->obstacleSize_.clear();
-			cout << this->hint_ << ": No obstacles param found." << endl;
+			cout << this->hint_ << ": No dynamic obstacles param found." << endl;
 		}
 		else{
-            this->obstaclePos_.clear();
-            this->obstacleVel_.clear();
+            this->obstacleStartPos_.clear();
+            this->obstacleEndPos_.clear();
+            this->obstacleRefVel_.clear();
             this->obstacleSize_.clear();
-			int numObstacle = int(obstacleVecTemp.size())/9;
+			int numObstacle = int(obstacleParamTemp.size())/10;
 			if (numObstacle != 0){
 				for (int i=0; i<numObstacle; ++i){
-					Eigen::Vector3d pos;
-					Eigen::Vector3d vel;
+					Eigen::Vector3d startPos;
+					Eigen::Vector3d endPos;
+                    double refVel;
 					Eigen::Vector3d size;
-					pos << obstacleVecTemp[i*9 + 0], obstacleVecTemp[i*9 + 1], obstacleVecTemp[i*9 + 2]-obstacleVecTemp[i*9 + 5]/2;
-					size << obstacleVecTemp[i*9 + 3], obstacleVecTemp[i*9 + 4], obstacleVecTemp[i*9 + 5];
-					vel << obstacleVecTemp[i*9 + 6], obstacleVecTemp[i*9 + 7], obstacleVecTemp[i*9 + 8];
-					this->obstaclePos_.push_back(pos);
-                    this->obstacleVel_.push_back(vel);
+					startPos << obstacleParamTemp[i*10+0], obstacleParamTemp[i*10+1], obstacleParamTemp[i*10+2];
+					endPos << obstacleParamTemp[i*10+3], obstacleParamTemp[i*10+4], obstacleParamTemp[i*10+5];
+                    refVel = obstacleParamTemp[i*10+6];
+					size << obstacleParamTemp[i*10+7], obstacleParamTemp[i*10+8], obstacleParamTemp[i*10+9];
+                    this->obstacleStartPos_.push_back(startPos);
+                    this->obstacleEndPos_.push_back(endPos);
+                    this->obstacleRefVel_.push_back(refVel);
                     this->obstacleSize_.push_back(size);	
 				}
+                this->obstaclePos_ = this->obstacleStartPos_;
 			}
-            cout << this->hint_ <<": number of obstacle: " << numObstacle << endl; 
+            cout << this->hint_ <<": number of dynamic obstacle: " << numObstacle << endl; 
 		}
-        std::vector<double> maxVecTemp;
-        if (not this->nh_.getParam(this->ns_ + "/max", maxVecTemp)){
-            this->xmax_ = 10;
-            this->ymax_ = 10;
-            this->zmax_ = 10;
-            cout << this->hint_ << ": No max xyz param found. Use default: [10,10,10]" << endl;
-        }
-        else{
-            this->xmax_ = maxVecTemp[0];
-            this->ymax_ = maxVecTemp[1];
-            this->zmax_ = maxVecTemp[2];
-            cout<< this->hint_ <<": max x: "<<this->xmax_<<", max y: "<<this->ymax_<<", max z: "<<this->zmax_<<endl;
-        }
-        std::vector<double> minVecTemp;
-        if (not this->nh_.getParam(this->ns_ + "/min", minVecTemp)){
-            this->xmin_ = -10;
-            this->ymin_ = -10;
-            this->zmin_ = -10;
-            cout << this->hint_ << ": No min xyz param found. Use default: [-10,-10,-10]" << endl;
-        }
-        else{
-            this->xmin_ = minVecTemp[0];
-            this->ymin_ = minVecTemp[1];
-            this->zmin_ = minVecTemp[2];
-            cout<< this->hint_ <<": min x: "<<this->xmin_<<", min y: "<<this->ymin_<<", min z: "<<this->zmin_<<endl;
-        }
     }
 
     void obstacleGenerator::registerPub(){
@@ -86,29 +93,30 @@ namespace trajPlanner{
     }
 
     void obstacleGenerator::registerCallback(){
-        this->obGenTimer_ = this->nh_.createTimer(ros::Duration(0.033), &obstacleGenerator::obGenCB, this);
-        this->visTimer_ = this->nh_.createTimer(ros::Duration(0.033), &obstacleGenerator::visCB, this);
+        this->obGenTimer_ = this->nh_.createTimer(ros::Duration(this->delT_), &obstacleGenerator::obGenCB, this);
+        this->visTimer_ = this->nh_.createTimer(ros::Duration(this->delT_), &obstacleGenerator::visCB, this);
     }
 
     void obstacleGenerator::obGenCB(const ros::TimerEvent&){
-        for (int i = 0; i < this->obstaclePos_.size(); i++){
-            this->linearMotion(this->obstaclePos_[i],this->obstacleVel_[i]);
-        }   
+        this->linearMotion();
     }
 
-    void obstacleGenerator::linearMotion(Eigen::Vector3d &pos, Eigen::Vector3d &vel){
-        if (pos(0) >= this->xmax_ || pos(0) <= this->xmin_){
-            vel(0) = -vel(0);
-        }
-        if (pos(1) >= this->ymax_ || pos(1) <= this->ymin_){
-            vel(1) = -vel(1);
-        }
-        if (pos(2) >= this->zmax_ || pos(2) <= this->zmin_){
-            vel(2) = -vel(2);
-        }
-        pos(0) = pos(0) + vel(0)*this->delT_;
-        pos(1) = pos(1) + vel(1)*this->delT_;
-        pos(2) = pos(2) + vel(2)*this->delT_;
+    void obstacleGenerator::linearMotion(){
+        this->obstacleVel_.clear();
+        for (int i=0; i<this->obstacleSize_.size();i++){            
+            Eigen::Vector3d startPos = this->obstacleStartPos_[i];
+            Eigen::Vector3d endPos = this->obstacleEndPos_[i];
+            double refVel = this->obstacleRefVel_[i];
+            Eigen::Vector3d currPos = this->obstaclePos_[i];
+            Eigen::Vector3d currVel = (endPos-startPos).normalized()*refVel;
+            if ((currPos-endPos).norm()<=0.1){
+                this->obstacleStartPos_[i] = endPos;
+                this->obstacleEndPos_[i] = startPos;
+            }
+            currPos += (endPos-startPos).normalized()*refVel*this->delT_;
+            this->obstaclePos_[i] = currPos;
+            this->obstacleVel_.push_back(currVel);
+        }        
     }
 
     void obstacleGenerator::visCB(const ros::TimerEvent&){
@@ -130,7 +138,7 @@ namespace trajPlanner{
             m.action = visualization_msgs::Marker::ADD;
             m.pose.position.x = this->obstaclePos_[i](0);
             m.pose.position.y = this->obstaclePos_[i](1);
-            m.pose.position.z = this->obstaclePos_[i](2)+this->obstacleSize_[i](2)/2;
+            m.pose.position.z = this->obstaclePos_[i](2);
             m.pose.orientation.x = 0;
             m.pose.orientation.y = 0;
             m.pose.orientation.z = 0;
@@ -167,7 +175,7 @@ namespace trajPlanner{
             // visualization msgs
             double x = this->obstaclePos_[i](0); 
             double y = this->obstaclePos_[i](1); 
-            double z = (this->obstaclePos_[i](2) + this->obstacleSize_[i](2))/2; 
+            double z = (this->obstaclePos_[i](2) + this->obstacleSize_[i](2)/2)/2; 
 
             // double x_width = std::max(boxes[i].x_width,boxes[i].y_width);
             // double y_width = std::max(boxes[i].x_width,boxes[i].y_width);

@@ -30,6 +30,7 @@ namespace trajPlanner{
 		ros::Publisher mpcTrajHistVisPub_;
 		ros::Publisher localCloudPub_;
 		ros::Publisher staticObstacleVisPub_;
+		ros::Publisher dynamicObstacleVisPub_;
 		ros::Publisher facingPub_;
 
 		ros::Timer visTimer_;
@@ -105,6 +106,7 @@ namespace trajPlanner{
 		void publishHistoricTrajectory();
 		void publishLocalCloud();
 		void publishStaticObstacles();
+		void publishDynamicObstacles();
 
 	};
 }

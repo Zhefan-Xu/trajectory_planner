@@ -1,13 +1,22 @@
 #dynamic obstacle 
-discrete_time_step: 0.1
-obstacles: [6, 2.5, 1.0, 1.5, 1.2, 2.0, 0.0, 0, 0, # obstacle 1 [pos, size, vel]
-            -1, 0, 1.0, 1.3, 0.5, 2.0, 0.0, 0.0, 0,
-            5, 0, 1.0, 0.6, 1.3, 2.0, 0.0, 0, 0,
-            0, 3.3, 1.0, 0.8, 0.6, 2.0, 0.0, 0.0, 0]
+discrete_time_step: 0.033
+# obstacles: [6, 2.5, 1.0, 1.5, 1.2, 2.0, 0.0, 0, 0, # obstacle 1 [pos, size, vel]
+#             -1, 0, 1.0, 1.3, 0.5, 2.0, 0.0, 0.0, 0,
+#             5, 0, 1.0, 0.6, 1.3, 2.0, 0.0, 0, 0,
+#             0, 3.3, 1.0, 0.8, 0.6, 2.0, 0.0, 0.0, 0]
 
-dynamic_obstacles: [[1, 2, 3, 4, 5, 6, 7],
-                    [1, 2, 3, 4, 5, 6, 7]] # start, end, vel 
+# example dynamic obstacles for floorplan1
+# dynamic_obstacles: [4, 5, 1, 4, -7, 1, 1.0, 0.5, 0.5, 1.0,
+#                     -1, 1, 1, -10, 1, 1, 1.0, 0.5, 0.5, 1.0,
+#                     -6, -4, 1, -16, -4, 1, 1, 0.5, 0.5, 1.0,
+#                     -15, -3, 1, -15, 8, 1, 2, 0.5, 0.5, 2.0
+#                     ] # start, end, vel, size
 
-#obstacle motion range
-max: [10, 10, 10] #x, y, z
-min: [-10,-10,-10] #x, y, z
+# example dynamic obstacles for square
+dynamic_obstacles: [3, -1, 1, -3, 4, 1, 1.0, 0.5, 0.5, 2.0,
+                    -8, -1, 1, 5, -1, 1, 1.0, 0.5, 0.5, 2.0,
+                    5, 4, 1, -2, 6, 1, 1, 0.5, 0.5, 1.0
+                    ] # start, end, vel, size
+# #obstacle motion range
+# max: [10, 10, 10] #x, y, z
+# min: [-10,-10,-10] #x, y, z

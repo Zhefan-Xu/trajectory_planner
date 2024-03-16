@@ -127,6 +127,7 @@ namespace trajPlanner{
 		this->mpcTrajHistVisPub_ = this->nh_.advertise<nav_msgs::Path>(this->ns_ + "/traj_history", 10);
 		this->localCloudPub_ = this->nh_.advertise<sensor_msgs::PointCloud2>(this->ns_ + "/local_cloud", 10);
 		this->staticObstacleVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>(this->ns_ + "/static_obstacles", 10);
+		this->dynamicObstacleVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>(this->ns_ + "/dynamic_obstacles", 10);
 		this->facingPub_ = this->nh_.advertise<visualization_msgs::Marker>(this->ns_ + "/clustering_facing", 10);
 	}
 
@@ -214,9 +215,18 @@ namespace trajPlanner{
 	}
 
 	void mpcPlanner::updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize){
-		this->dynamicObstaclesPos_ = obstaclesPos;
+		this->dynamicObstaclesPos_.clear();
+		this->dynamicObstaclesSize_.clear();
+		this->dynamicObstaclesVel_.clear();
+		for (int i=0;i<obstaclesPos.size();i++){
+            Eigen::Vector3d pos = obstaclesPos[i];
+            Eigen::Vector3d size = obstaclesSize[i];
+            pos(2) = (pos(2) + size(2)/2)/2;
+			size(2) = 2*pos(2);
+            this->dynamicObstaclesPos_.push_back(pos);
+			this->dynamicObstaclesSize_.push_back(size);
+        }
 		this->dynamicObstaclesVel_ = obstaclesVel;
-		this->dynamicObstaclesSize_ = obstaclesSize;
 	}
 
 
@@ -301,7 +311,7 @@ namespace trajPlanner{
 			for (int n=0; n<this->horizon_; ++n){
 				for (int i=0; i<int(this->dynamicObstaclesPos_.size()); ++i){
 					Eigen::Vector3d size = this->dynamicObstaclesSize_[i]/2 + Eigen::Vector3d (this->safetyDist_, this->safetyDist_, this->safetyDist_);
-					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i] + Eigen::Vector3d (0,0, size(2));
+					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i];
 					Eigen::Vector3d vel = this->dynamicObstaclesVel_[i];
 					
 					if (this->firstTime_){
@@ -455,6 +465,7 @@ namespace trajPlanner{
 		this->publishHistoricTrajectory();
 		this->publishLocalCloud();
 		this->publishStaticObstacles();
+		this->publishDynamicObstacles();
 	}
 
 	void mpcPlanner::publishMPCTrajectory(){
@@ -576,5 +587,91 @@ namespace trajPlanner{
 			currPoseMarker.color.b = 1.0;
 			this->facingPub_.publish(currPoseMarker);
 		}
+	}
+
+	void mpcPlanner::publishDynamicObstacles(){
+		if (this->dynamicObstaclesPos_.size() != 0){
+		    visualization_msgs::Marker line;
+		    visualization_msgs::MarkerArray lines;
+
+		    line.header.frame_id = "map";
+		    line.type = visualization_msgs::Marker::LINE_LIST;
+		    line.action = visualization_msgs::Marker::ADD;
+		    line.ns = "mpc_dynamic_obstacles";  
+		    line.scale.x = 0.06;
+		    line.color.r = 0;
+		    line.color.g = 0;
+		    line.color.b = 1;
+		    line.color.a = 1.0;
+		    line.lifetime = ros::Duration(0.1);
+
+			for (int i = 0; i<this->dynamicObstaclesPos_.size();i++){
+				double x = this->dynamicObstaclesPos_[i](0); 
+				double y = this->dynamicObstaclesPos_[i](1); 
+				double z = this->dynamicObstaclesPos_[i](2);
+				double x_width = this->dynamicObstaclesSize_[i](0);
+				double y_width = this->dynamicObstaclesSize_[i](1);
+				double z_width = this->dynamicObstaclesSize_[i](2);
+				
+				std::vector<geometry_msgs::Point> verts;
+				geometry_msgs::Point p;
+				// vertice 0
+				p.x = x-x_width / 2.; p.y = y-y_width / 2.; p.z = z-z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 1
+				p.x = x-x_width / 2.; p.y = y+y_width / 2.; p.z = z-z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 2
+				p.x = x+x_width / 2.; p.y = y+y_width / 2.; p.z = z-z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 3
+				p.x = x+x_width / 2.; p.y = y-y_width / 2.; p.z = z-z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 4
+				p.x = x-x_width / 2.; p.y = y-y_width / 2.; p.z = z+z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 5
+				p.x = x-x_width / 2.; p.y = y+y_width / 2.; p.z = z+z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 6
+				p.x = x+x_width / 2.; p.y = y+y_width / 2.; p.z = z+z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 7
+				p.x = x+x_width / 2.; p.y = y-y_width / 2.; p.z = z+z_width / 2.;
+				verts.push_back(p);
+				
+				int vert_idx[12][2] = {
+					{0,1},
+					{1,2},
+					{2,3},
+					{0,3},
+					{0,4},
+					{1,5},
+					{3,7},
+					{2,6},
+					{4,5},
+					{5,6},
+					{4,7},
+					{6,7}
+				};
+				
+				for (size_t i=0;i<12;i++){
+					line.points.push_back(verts[vert_idx[i][0]]);
+					line.points.push_back(verts[vert_idx[i][1]]);
+				}
+				
+				lines.markers.push_back(line);
+				
+				line.id++;
+			}
+		    this->dynamicObstacleVisPub_.publish(lines);	
+		}	
 	}
 }
