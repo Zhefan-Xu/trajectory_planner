@@ -171,8 +171,8 @@ int main(int argc, char** argv){
 			if (not firstTime){
 				std::thread check([&cv, &retValue, &mp]() 
 				{
-					// retValue = mp->makePlan();
-					retValue = mp->makePlanCG();
+					retValue = mp->makePlan();
+					// retValue = mp->makePlanCG();
 					cv.notify_one();
 				});
 
@@ -180,7 +180,7 @@ int main(int argc, char** argv){
 
 				{
 					std::unique_lock<std::mutex> l(m);
-					if(cv.wait_for(l, 0.05s) >= std::cv_status::timeout){ 
+					if(cv.wait_for(l, 0.03s) >= std::cv_status::timeout){ 
 						// ros::Time mpcEndTime = ros::Time::now();
 						// cout << "[Test MPC Node]: MPC runtime [s]: " << (mpcEndTime - mpcStartTime).toSec() << "\t\r" << std::flush;;
 						currPos = mp->getPos(dt);
@@ -204,8 +204,8 @@ int main(int argc, char** argv){
 				}
 			}
 			else{
-				// retValue = mp->makePlan();
-				retValue = mp->makePlanCG();
+				retValue = mp->makePlan();
+				// retValue = mp->makePlanCG();
 				ros::Time mpcEndTime = ros::Time::now();
 				cout << "[Test MPC Node]: MPC runtime [s]: " << (mpcEndTime - mpcStartTime).toSec() << "\t\r" << std::flush;;
 				currPos = mp->getPos(dt);

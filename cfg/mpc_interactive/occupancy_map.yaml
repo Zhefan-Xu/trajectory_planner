@@ -50,4 +50,4 @@ verbose: false
 # prebuilt_map_directory: "No"
 # prebuilt_map_directory: "/home/zhefanx/catkin_ws/src/CERLAB-UAV-Autonomy/trajectory_planner/map/square_static_map.pcd"
 # prebuilt_map_directory: "/home/zhefanx/catkin_ws/src/CERLAB-UAV-Autonomy/trajectory_planner/map/square_static_map.pcd"
-prebuilt_map_directory: "/home/jhy/catkin_ws/src/CERLAB-UAV-Autonomy/trajectory_planner/map/floorplan1_static_map.pcd"
+prebuilt_map_directory: "/home/jhy/catkin_ws/src/CERLAB-UAV-Autonomy/trajectory_planner/map/square_static_map.pcd"

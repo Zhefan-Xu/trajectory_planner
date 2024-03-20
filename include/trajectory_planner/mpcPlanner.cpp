@@ -392,8 +392,7 @@ namespace trajPlanner{
 		} 
 		acadoVariables.x0[ACADO_NX-1] = 0;
 
-		// cout<<acadoVariables.x0[ACADO_NX-1]<<endl;
-		//onlineData: obstacles
+		// Update Obstacle Param
 		int numParam = 7;
 		for (int i = 0; i< ACADO_N+1;i++){
 			int j,k;
@@ -497,14 +496,11 @@ namespace trajPlanner{
 				}
 			}		
 			this->firstTime_ = false;
-			// mpc_trajectory = this->getTrajectory(xd, start_idx);
 			return 1;
 		}
 		else{	
-			// mpc_trajectory = this->getTrajectory(xd, start_idx);
 			printf(acado_getErrorString(errorMessage));	
 			printf("\n");
-			// cout<<"!!!!!!!!!!!!!!!KKT Tolerance: "<<acado_getKKT()<<"!!!!!!!!!!"<<endl; 
 			return 0;
 		}
 
@@ -675,7 +671,7 @@ namespace trajPlanner{
 		    line.color.g = 1;
 		    line.color.b = 1;
 		    line.color.a = 1.0;
-		    line.lifetime = ros::Duration(0.1);
+		    line.lifetime = ros::Duration(0.2);
 		    Eigen::Vector3d vertex_pose;
 		    for(int i=0; i<int(this->refinedBBoxVertices_.size()); ++i){
 		        bboxVertex v = this->refinedBBoxVertices_[i];
@@ -724,7 +720,7 @@ namespace trajPlanner{
 			currPoseMarker.pose.position.z = this->currPos_(2);
 			double angle = atan2(this->currVel_(1), this->currVel_(0));
 			currPoseMarker.pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, angle);
-			currPoseMarker.lifetime = ros::Duration(0.1);
+			currPoseMarker.lifetime = ros::Duration(0.2);
 			currPoseMarker.scale.x = 0.4;
 			currPoseMarker.scale.y = 0.2;
 			currPoseMarker.scale.z = 0.2;
