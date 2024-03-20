@@ -11,14 +11,21 @@
 #include <acado_gnuplot.hpp>
 #include <acado_optimal_control.hpp>
 #include <Eigen/Eigen>
+#include <iostream>
+#include <chrono>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <trajectory_planner/clustering/obstacleClustering.h>
 #include <trajectory_planner/utils.h>
 #include <map_manager/occupancyMap.h>
+#include <trajectory_planner/mpc_solver/acado_common.h>
+#include <trajectory_planner/mpc_solver/acado_auxiliary_functions.h>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
+ACADOvariables acadoVariables;
+ACADOworkspace acadoWorkspace;
 USING_NAMESPACE_ACADO
-// ACADOvariables acadoVariables;
-// ACADOworkspace acadoWorkspace;
 using std::cout; using std::endl;
 namespace trajPlanner{
 	class mpcPlanner{
@@ -89,7 +96,8 @@ namespace trajPlanner{
 		void updatePath(const nav_msgs::Path& path, double ts);
 		void updatePath(const std::vector<Eigen::Vector3d>& path, double ts);
 		void updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize); // position, velocity, size
-		void makePlan();
+		int makePlan();
+		int makePlanCG();
 
 		void getReferenceTraj(std::vector<Eigen::Vector3d>& referenceTraj);
 		VariablesGrid getReferenceTraj();

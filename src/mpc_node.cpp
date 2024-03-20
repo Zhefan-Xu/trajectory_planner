@@ -158,19 +158,65 @@ int main(int argc, char** argv){
 		Eigen::Vector3d goalPos (waypoints.back()[0], waypoints.back()[1], waypoints.back()[2]);
 
 		double t = 0;
+		bool firstTime = true;
 		while (ros::ok() and ((currPos - goalPos).norm() >= 0.2 or t <= 1.0)){
+			ros::Time mpcStartTime = ros::Time::now();
 			mp->updateDynamicObstacles(obg->getObstaclePos(), obg->getObstacleVel(), obg->getObstacleSize());
 			mp->updateCurrStates(currPos, currVel);
-			ros::Time mpcStartTime = ros::Time::now();
-			mp->makePlan();
-			ros::Time mpcEndTime = ros::Time::now();
-			cout << "[Test MPC Node]: MPC runtime [s]: " << (mpcEndTime - mpcStartTime).toSec() << "\t\r" << std::flush;;
-			currPos = mp->getPos(dt);
-			currVel = mp->getVel(dt);
 			
-			t += dt;
-			ros::spinOnce();
-			r.sleep();
+			std::mutex m;
+			std::condition_variable cv;
+			int retValue;
+
+			if (not firstTime){
+				std::thread check([&cv, &retValue, &mp]() 
+				{
+					// retValue = mp->makePlan();
+					retValue = mp->makePlanCG();
+					cv.notify_one();
+				});
+
+				check.detach();
+
+				{
+					std::unique_lock<std::mutex> l(m);
+					if(cv.wait_for(l, 0.05s) >= std::cv_status::timeout){ 
+						// ros::Time mpcEndTime = ros::Time::now();
+						// cout << "[Test MPC Node]: MPC runtime [s]: " << (mpcEndTime - mpcStartTime).toSec() << "\t\r" << std::flush;;
+						currPos = mp->getPos(dt);
+						currVel = mp->getVel(dt);
+						t+=dt;
+						ros::Time mpcEndTime = ros::Time::now();
+						cout << "[Test MPC Node]: MPC runtime [s]: " << (mpcEndTime - mpcStartTime).toSec() << "\t\r" << std::flush;;
+						
+						ros::spinOnce();
+						r.sleep();
+						continue;
+					}
+
+					ros::Time mpcEndTime = ros::Time::now();
+					cout << "[Test MPC Node]: MPC runtime [s]: " << (mpcEndTime - mpcStartTime).toSec() << "\t\r" << std::flush;;
+					currPos = mp->getPos(dt);
+					currVel = mp->getVel(dt);
+					t += dt;
+					ros::spinOnce();
+					r.sleep();
+				}
+			}
+			else{
+				// retValue = mp->makePlan();
+				retValue = mp->makePlanCG();
+				ros::Time mpcEndTime = ros::Time::now();
+				cout << "[Test MPC Node]: MPC runtime [s]: " << (mpcEndTime - mpcStartTime).toSec() << "\t\r" << std::flush;;
+				currPos = mp->getPos(dt);
+				currVel = mp->getVel(dt);
+				t += dt;
+				firstTime = false;
+				ros::spinOnce();
+				r.sleep();
+			}
+				// continue;
+			// }
 		}
 		cout << "[Test MPC Node]: Complete Current Trajectory." << endl;
 		++countLoop;

@@ -230,7 +230,7 @@ namespace trajPlanner{
 	}
 
 
-	void mpcPlanner::makePlan(){
+	int mpcPlanner::makePlan(){
 		std::ostringstream local;
 		auto cout_buff = std::cout.rdbuf();
 		std::cout.rdbuf(local.rdbuf());
@@ -314,7 +314,7 @@ namespace trajPlanner{
 					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i];
 					Eigen::Vector3d vel = this->dynamicObstaclesVel_[i];
 					
-					if (this->firstTime_){
+					if (this->firstTime_ || this->currentStatesSol_.isEmpty()){
 						ocp.subjectTo(n, pow((x-pos(0))/size(0), 2) + pow((y-pos(1))/size(1), 2) + pow((z-pos(2))/pow(size(2), 2), 2) - 1 + skd >=  0 );
 					}
 					else{
@@ -342,7 +342,7 @@ namespace trajPlanner{
 
 		// Algorithm
 		RealTimeAlgorithm RTalgorithm(ocp, this->ts_);
-		RTalgorithm.set(PRINTLEVEL, 0);
+		RTalgorithm.set(PRINTLEVEL, NONE);
 		if (not this->firstTime_){
 			RTalgorithm.initializeDifferentialStates(this->currentStatesSol_);
 		}
@@ -358,10 +358,157 @@ namespace trajPlanner{
 		RTalgorithm.getControls(this->currentControlsSol_);
 		this->firstTime_ = false;
 		clearAllStaticCounters();
+		// cout<<"[MPC Planner]: Success Return!"<<endl;
 		// cout << this->currentControlsSol_ << endl;
 		std::cout.rdbuf(cout_buff);
+		return 1;
 	}
 
+	int mpcPlanner::makePlanCG(){
+		int NUM_STEPS = 10;
+		double Tolerance = 1e-4;
+		int errorMessage;
+		std::vector<staticObstacle> staticObstacles = this->obclustering_->getStaticObstacles();
+		acado_initializeSolver();
+
+		// Obtain reference trajectory
+		VariablesGrid refTraj = this->getReferenceTraj();
+
+		for (int i = 0; i<ACADO_N; i++){
+			DVector ref = refTraj.getVector(i);
+			for (int j = 0; j<ACADO_NY; j++){
+				acadoVariables.y[i*ACADO_NY+j] = ref(j);
+			}		
+		}
+
+		DVector refN = refTraj.getLastVector();
+		for (int i = 0; i < ACADO_NYN; i++){
+			acadoVariables.yN[i] = refN(i);
+		}
+
+		DVector currentState ({this->currPos_(0), this->currPos_(1), this->currPos_(2), this->currVel_(0), this->currVel_(1), this->currVel_(2)});
+		for (int i = 0; i < ACADO_NX-1; ++i){
+			acadoVariables.x0[ i ] = currentState(i);
+		} 
+		acadoVariables.x0[ACADO_NX-1] = 0;
+
+		// cout<<acadoVariables.x0[ACADO_NX-1]<<endl;
+		//onlineData: obstacles
+		int numParam = 7;
+		for (int i = 0; i< ACADO_N+1;i++){
+			int j,k;
+			j = 0; 
+			k = 0;
+					
+			if (this->dynamicObstaclesPos_.size()>0){
+				for (j = 0; j<ACADO_NPAC;j++){
+					if (j>this->dynamicObstaclesPos_.size()){
+						j-=1;
+						break;
+					}
+					else{
+						Eigen::Vector3d size = this->dynamicObstaclesSize_[j]/2 + Eigen::Vector3d (this->safetyDist_, this->safetyDist_, this->safetyDist_);
+						Eigen::Vector3d pos = this->dynamicObstaclesPos_[j];
+						Eigen::Vector3d vel = this->dynamicObstaclesVel_[j];
+						acadoVariables.od[i*ACADO_NOD+j*numParam] = pos(0);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+1] = pos(1);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+2] = pos(2);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+3] = size(0);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+4] = size(1);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+5] = size(2);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+6] = 0.0;
+						// cout<<"1"<<endl;
+					}
+					// cout<<"onlinedata idx: "<<j<<endl;
+				}
+			}
+			// cout<<"j:"<<j<<endl;
+			for (k = 0;k+j<ACADO_NPAC;k++){
+				if (k >= staticObstacles.size()){
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam] = 0;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+1] = 0;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+2] = 0;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+3] = 0.001;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+4] = 0.001;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+5] = 0.001;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+6] = 0.0;
+					// cout<<"0"<<endl;
+				}
+				else{
+					staticObstacle so = staticObstacles[k];
+					double yaw = so.yaw;
+					Eigen::Vector3d size = so.size/2 + Eigen::Vector3d (this->safetyDist_, this->safetyDist_, this->safetyDist_);
+					Eigen::Vector3d centroid = so.centroid;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam] = centroid(0);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+1] = centroid(1);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+2] = centroid(2);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+3] = size(0);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+4] = size(1);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+5] = size(2);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+6] = yaw;
+				}
+			}
+		}
+
+		for (int iter =0;iter<NUM_STEPS;++iter){
+			/* Perform the feedback step. */
+			errorMessage = acado_feedbackStep( );
+			
+			if (acado_getKKT() <= 1e-6 && iter != 0){
+				break;
+			}
+
+			/* Prepare for the next step. */
+			acado_preparationStep();
+			
+		}
+
+		if ((errorMessage == 0)|| this->firstTime_){
+			if (this->currentStatesSol_.isEmpty()){
+				for (int i = 0; i<ACADO_N+1; i++){
+					DVector xi(ACADO_NX-1);
+					for (int j = 0; j<ACADO_NX-1; j++){
+						xi(j) = acadoVariables.x[i*ACADO_NX+j];
+					}	
+					this->currentStatesSol_.addVector(xi);
+				}
+				for (int i = 0; i<ACADO_N; i++){
+					DVector ci(ACADO_NU-1);
+					for (int j = 0; j<ACADO_NU-1; j++){
+						ci(j) = acadoVariables.u[i*ACADO_NU+j];
+					}		
+					this->currentControlsSol_.addVector(ci);
+				}
+			}
+			else{
+				for (int i = 0; i<ACADO_N+1; i++){
+					DVector xi(ACADO_NX-1);
+					for (int j = 0; j<ACADO_NX-1; j++){
+						xi(j) = acadoVariables.x[i*ACADO_NX+j];
+					}	
+					this->currentStatesSol_.setVector(i,xi);
+				}
+				for (int i = 0; i<ACADO_N; i++){
+					DVector ci(ACADO_NU-1);
+					for (int j = 0; j<ACADO_NU-1; j++){
+						ci(j) = acadoVariables.u[i*ACADO_NU+j];
+					}		
+					this->currentControlsSol_.setVector(i,ci);
+				}
+			}		
+			this->firstTime_ = false;
+			// mpc_trajectory = this->getTrajectory(xd, start_idx);
+			return 1;
+		}
+		else{	
+			// mpc_trajectory = this->getTrajectory(xd, start_idx);
+			printf(acado_getErrorString(errorMessage));	
+			printf("\n");
+			// cout<<"!!!!!!!!!!!!!!!KKT Tolerance: "<<acado_getKKT()<<"!!!!!!!!!!"<<endl; 
+			return 0;
+		}
+
+	}
 
 	void mpcPlanner::getReferenceTraj(std::vector<Eigen::Vector3d>& referenceTraj){
 		// find the nearest position in the reference trajectory
