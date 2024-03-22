@@ -30,21 +30,12 @@ int main( )
 	DifferentialState vy;
 	DifferentialState vz;
 	DifferentialState dummy1;
-	// DifferentialState dummy1;
-	// DifferentialState ax;
-	// DifferentialState ay;
-	// DifferentialState az;
-	// // double yaw = currentYaw;
 
 	// //Control Input
 	Control ax;
 	Control ay;
 	Control az;
 	Control sk_d;
-	// Control sk_s;
-	// // Control jx;
-	// // Control jy;
-	// // Control jz;
 
 	// // MODEL Definition
 	DifferentialEquation f;
@@ -55,43 +46,20 @@ int main( )
 	f << dot(vy) == ay;
 	f << dot(vz) == az;
 	f << dot(dummy1) == sk_d;
-	// f << dot(dummy2) == sk_s;
-	// // f << dot(ax) == jx;
-	// // f << dot(ay) == jy;
-	// // f << dot(az) == jz;
 
 	// // Least Square Function
 	Function h, hN;
 	h << x << y << z << ax << ay << az << sk_d ;
-	// << sk_d << sk_s;
-	// h << jx;
-	// h << jy;
-	// h << jz;
 	hN << x << y << z;
-	// hN << 0;
-	// hN << x << y << z << dummy1;
-
-
-
-	// // r = this->getReferenceGoal();
-    // // OnlineData r;
 
 	// // setup OCP
 	OCP ocp(0.0, N*Ts, N);
 	DMatrix Q(7, 7);
 	Q.setIdentity(); Q(0,0) = 10.0; Q(1,1) = 10.0; Q(2,2) = 10.0; Q(3,3) = 1.0; Q(4,4) = 1.0; Q(5,5) = 1.0; 
 	Q(6,6) = 1000.0;
-	// Q(7,7) = 1000.0;
 	
 	DMatrix QN(3,3);
 	QN.setIdentity(); QN(0,0) = 10.0; QN(1,1) = 10.0; QN(2,2) = 10.0;
-	// DMatrix QN(1,1);
-	// QN.setIdentity(); QN(0,0) = 1;
-	
-
-	// DMatrix QN(4,4);
-	// QN.setIdentity(); QN(0,0) = 10.0; QN(1,1) = 10.0; QN(2,2) = 10.0;QN(3,3) = 1000.0;
-	
 	
 	// // ocp.minimizeLSQ(Q, h, r); // Objective
 	ocp.minimizeLSQ(Q, h); // Objective
@@ -103,21 +71,6 @@ int main( )
 	// State constraint
 	double slackRatio = 0.4;
 	double skLimit = 1 - pow((1 - slackRatio), 2);
-	// OnlineData vx_max;
-    // OnlineData vy_max;
-    // OnlineData vz_max;
-    // OnlineData ax_max;
-    // OnlineData ay_max;
-    // OnlineData az_max;    
-	
-	// OnlineData obx1;
-    // OnlineData oby1;
-    // OnlineData obz1;
-    // OnlineData a1;
-    // OnlineData b1;
-    // OnlineData c1;
-
-	// ocp.setNOD(6);
 
 	ocp.subjectTo( 1.0 <= z <= 1.5);
 	ocp.subjectTo( -1 <= vx <= 1 );
@@ -127,18 +80,6 @@ int main( )
 	ocp.subjectTo( -1 <= ay <= 1 );
 	ocp.subjectTo( -1 <= az <= 1 );
 	ocp.subjectTo(0 <= sk_d<= skLimit);
-	// // ocp.subjectTo( -vx_max <= vx <= vx_max );
-	// // ocp.subjectTo( -vy_max <= vy <= vy_max );
-	// // ocp.subjectTo( -vz_max <= vz <= vz_max );
-	// // ocp.subjectTo( -ax_max <= ax <= ax_max );
-	// // ocp.subjectTo( -ay_max <= ay <= ay_max );
-	// // ocp.subjectTo( -az_max <= az <= az_max );
-	
-	// ocp.subjectTo(0 <= sk_s <= skLimit);
-	// // // // Control input constraint
-	// // // ocp.subjectTo( -this->jx_max <= jx <= this->jx_max );
-	// // // ocp.subjectTo( -this->jy_max <= jy <= this->jy_max );
-	// // // ocp.subjectTo( -this->jz_max <= jz <= this->jz_max );
 
 	OnlineData obx1;
     OnlineData oby1;
@@ -350,7 +291,7 @@ int main( )
 
 // 	mpc.set( USE_SINGLE_PRECISION,        YES             );
 
-	if (mpc.exportCode( "./src/CERLAB-UAV-Autonomy/trajectory_planner/include/trajectory_planner/mpc_solver" ) != SUCCESSFUL_RETURN){
+	if (mpc.exportCode( "./mpc_solver" ) != SUCCESSFUL_RETURN){
 		exit( EXIT_FAILURE );
 	}
 		

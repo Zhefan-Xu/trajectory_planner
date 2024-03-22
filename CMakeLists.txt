@@ -6,7 +6,7 @@ project(trajectory_planner)
 set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS} -O3 -Wall")
 add_compile_options(-w)
 
-
+# ADD_SUBDIRECTORY( include/${PROJECT_NAME}/third_party/ACADO/acado/code_generation/templates)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -193,7 +193,7 @@ add_executable(bspline_node src/bspline_node.cpp)
 # add_executable(testBsplineFit src/test/testBsplineFit.cpp)
 add_executable(testObstacleClustering src/test/testObstacleClustering.cpp)
 add_executable(mpc_node src/mpc_node.cpp)
-add_executable(mpc_solver_setup src/mpc_solver_setup.cpp)
+# add_executable(mpc_solver_setup src/mpc_solver_setup.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -237,7 +237,7 @@ target_link_libraries(bspline_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 # target_link_libraries(testBsplineFit ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(testObstacleClustering ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(mpc_node ${catkin_LIBRARIES} ${PROJECT_NAME})
-target_link_libraries(mpc_solver_setup ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/ACADO/libacado_toolkit_s.so)
+# target_link_libraries(mpc_solver_setup ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/ACADO/libacado_toolkit_s.so)
 
 #############
 ## Install ##
