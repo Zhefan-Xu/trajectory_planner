@@ -336,21 +336,21 @@ int main( )
 	mpc.set( HESSIAN_APPROXIMATION,       GAUSS_NEWTON    );
 	mpc.set( DISCRETIZATION_TYPE,         SINGLE_SHOOTING );
 	mpc.set( INTEGRATOR_TYPE,             INT_RK4         );
-	mpc.set( NUM_INTEGRATOR_STEPS,        90              );
-	// mpc.set( MAX_NUM_QP_ITERATIONS,		  100	  		  );
+	mpc.set( NUM_INTEGRATOR_STEPS,        30              );
+
 
 	mpc.set( QP_SOLVER,                   QP_QPOASES      );
 	mpc.set( HOTSTART_QP,                 YES         );
 // 	mpc.set( LEVENBERG_MARQUARDT,         1.0e-4          );
 	mpc.set( GENERATE_TEST_FILE,          BT_FALSE             );
-	mpc.set( GENERATE_MAKE_FILE,          BT_FALSE            );
+	mpc.set( GENERATE_MAKE_FILE,          BT_FALSE             );
 	mpc.set( GENERATE_MATLAB_INTERFACE,   BT_FALSE             );
 	mpc.set( GENERATE_SIMULINK_INTERFACE, BT_FALSE             );
-	mpc.set( CG_HARDCODE_CONSTRAINT_VALUES, YES);
+	mpc.set( CG_HARDCODE_CONSTRAINT_VALUES, NO);
 
 // 	mpc.set( USE_SINGLE_PRECISION,        YES             );
 
-	if (mpc.exportCode( "./mpc_solver" ) != SUCCESSFUL_RETURN){
+	if (mpc.exportCode( "./src/CERLAB-UAV-Autonomy/trajectory_planner/include/trajectory_planner/mpc_solver" ) != SUCCESSFUL_RETURN){
 		exit( EXIT_FAILURE );
 	}
 		

@@ -58,7 +58,7 @@ extern "C"
 /** Compute covariance matrix of the last state estimate. */
 #define ACADO_COMPUTE_COVARIANCE_MATRIX 0
 /** Flag indicating whether constraint values are hard-coded or not. */
-#define ACADO_HARDCODED_CONSTRAINT_VALUES 1
+#define ACADO_HARDCODED_CONSTRAINT_VALUES 0
 /** Indicator for fixed initial state. */
 #define ACADO_INITIAL_STATE_FIXED 1
 /** Number of control/estimation intervals. */
@@ -82,11 +82,9 @@ extern "C"
 /** Total number of QP optimization variables. */
 #define ACADO_QP_NV 120
 /** Number of integration steps per shooting interval. */
-#define ACADO_RK_NIS 3
+#define ACADO_RK_NIS 1
 /** Number of Runge-Kutta stages per integration step. */
 #define ACADO_RK_NSTAGES 4
-/** Single versus double precision data type representation. */
-#define ACADO_SINGLE_PRECISION 0
 /** Providing interface for arrival cost. */
 #define ACADO_USE_ARRIVAL_COST 0
 /** Indicator for usage of non-hard-coded linear terms in the objective. */
@@ -141,6 +139,30 @@ real_t yN[ 3 ];
  *  Current state feedback vector.
  */
 real_t x0[ 7 ];
+
+/** Column vector of size: 120
+ * 
+ *  Lower bounds values.
+ */
+real_t lbValues[ 120 ];
+
+/** Column vector of size: 120
+ * 
+ *  Upper bounds values.
+ */
+real_t ubValues[ 120 ];
+
+/** Column vector of size: 720
+ * 
+ *  Lower bounds values for affine constraints.
+ */
+real_t lbAValues[ 720 ];
+
+/** Column vector of size: 720
+ * 
+ *  Upper bounds values for affine constraints.
+ */
+real_t ubAValues[ 720 ];
 
 
 } ACADOvariables;
