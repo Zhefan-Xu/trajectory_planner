@@ -73,12 +73,12 @@ int main( )
 	double skLimit = 1 - pow((1 - slackRatio), 2);
 
 	ocp.subjectTo( 1.0 <= z <= 1.5);
-	ocp.subjectTo( -1 <= vx <= 1 );
-	ocp.subjectTo( -1 <= vy <= 1 );
-	ocp.subjectTo( -1 <= vz <= 1 );
-	ocp.subjectTo( -1 <= ax <= 1 );
-	ocp.subjectTo( -1 <= ay <= 1 );
-	ocp.subjectTo( -1 <= az <= 1 );
+	ocp.subjectTo( -3 <= vx <= 3 );
+	ocp.subjectTo( -3 <= vy <= 3 );
+	ocp.subjectTo( -3 <= vz <= 3 );
+	ocp.subjectTo( -2 <= ax <= 2 );
+	ocp.subjectTo( -2 <= ay <= 2 );
+	ocp.subjectTo( -2 <= az <= 2 );
 	ocp.subjectTo(0 <= sk_d<= skLimit);
 
 	OnlineData obx1;
@@ -263,14 +263,7 @@ int main( )
 	ocp.subjectTo(pow((x-obx18)*cos(yaw18)+(y-oby18)*sin(yaw18), 2)/pow(a18,2) + pow(-(x-obx18)*sin(yaw18)+(y-oby18)*cos(yaw18), 2)/pow(b18,2) + pow((z-obz18), 2)/pow(c18,2) -1.0 + sk_d >=  0 );
 	ocp.subjectTo(pow((x-obx19)*cos(yaw19)+(y-oby19)*sin(yaw19), 2)/pow(a19,2) + pow(-(x-obx19)*sin(yaw19)+(y-oby19)*cos(yaw19), 2)/pow(b19,2) + pow((z-obz19), 2)/pow(c19,2) -1.0 + sk_d >=  0 );
 	ocp.subjectTo(pow((x-obx20)*cos(yaw20)+(y-oby20)*sin(yaw20), 2)/pow(a20,2) + pow(-(x-obx20)*sin(yaw20)+(y-oby20)*cos(yaw20), 2)/pow(b20,2) + pow((z-obz20), 2)/pow(c20,2) -1.0 + sk_d >=  0 );
-	// ocp.subjectTo(pow((x-obx3)*cos(yaw3), 2)/a3 + pow((y-oby3), 2)/b3 + pow((z-obz3), 2)/c3 -1.0 + sk_d >=  0 );
-	// ocp.subjectTo(pow((x-obx4)*cos(yaw4), 2)/a4 + pow((y-oby4), 2)/b4 + pow((z-obz4), 2)/c4 -1.0 + sk_d >=  0 );
-	// ocp.subjectTo(pow((x-obx5), 2)/a5 + pow((y-oby5), 2)/b5 + pow((z-obz5), 2)/c5 -1.0 + sk_d >=  0 );
-	// ocp.subjectTo(pow((x-obx6), 2)/a6 + pow((y-oby6), 2)/b6 + pow((z-obz6), 2)/c6 -1.0 + sk_d >=  0 );
-	// ocp.subjectTo(pow((x-obx7), 2)/a7 + pow((y-oby7), 2)/b7 + pow((z-obz7), 2)/c7 -1.0 + sk_d >=  0 );
-	// ocp.subjectTo(pow((x-obx8), 2)/a8 + pow((y-oby8), 2)/b8 + pow((z-obz8), 2)/c8 -1.0 + sk_d >=  0 );
-	// ocp.subjectTo(pow((x-obx9), 2)/a9 + pow((y-oby9), 2)/b9 + pow((z-obz9), 2)/c9 -1.0 + sk_d >=  0 );
-	// ocp.subjectTo(pow((x-obx10), 2)/a10 + pow((y-oby10), 2)/b10 + pow((z-obz10), 2)/c10 -1.0 + sk_d >=  0 );
+	
 	// Export the code:
 	OCPexport mpc( ocp );
 
@@ -291,7 +284,7 @@ int main( )
 
 // 	mpc.set( USE_SINGLE_PRECISION,        YES             );
 
-	if (mpc.exportCode( "./mpc_solver" ) != SUCCESSFUL_RETURN){
+	if (mpc.exportCode( "./src/CERLAB-UAV-Autonomy/trajectory_planner/include/trajectory_planner/mpc_solver" ) != SUCCESSFUL_RETURN){
 		exit( EXIT_FAILURE );
 	}
 		
