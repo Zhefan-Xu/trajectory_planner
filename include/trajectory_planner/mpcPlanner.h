@@ -96,8 +96,8 @@ namespace trajPlanner{
 		void updatePath(const nav_msgs::Path& path, double ts);
 		void updatePath(const std::vector<Eigen::Vector3d>& path, double ts);
 		void updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize); // position, velocity, size
-		int makePlan();
-		int makePlanCG();
+		bool makePlan();
+		bool makePlanCG();
 
 		void getReferenceTraj(std::vector<Eigen::Vector3d>& referenceTraj);
 		VariablesGrid getReferenceTraj();

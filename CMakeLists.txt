@@ -6,7 +6,6 @@ project(trajectory_planner)
 set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS} -O3 -Wall")
 add_compile_options(-w)
 
-# ADD_SUBDIRECTORY( include/${PROJECT_NAME}/third_party/ACADO/acado/code_generation/templates)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -158,7 +157,6 @@ add_library(
   include/${PROJECT_NAME}/mpc_solver/acado_auxiliary_functions.c
   include/${PROJECT_NAME}/mpc_solver/acado_integrator.c
   include/${PROJECT_NAME}/mpc_solver/acado_qpoases_interface.cpp
-  # add_library(acado_solver_mex include/mpc/solver/acado_solver_mex.c)
   include/${PROJECT_NAME}/mpc_solver/acado_solver_sfunction.c
   include/${PROJECT_NAME}/mpc_solver/acado_solver.c
   include/${PROJECT_NAME}/mpc_solver/qpoases/SRC/Bounds.cpp

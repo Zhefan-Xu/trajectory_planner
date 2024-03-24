@@ -218,7 +218,7 @@ namespace trajPlanner{
 		this->dynamicObstaclesPos_.clear();
 		this->dynamicObstaclesSize_.clear();
 		this->dynamicObstaclesVel_.clear();
-		for (int i=0;i<obstaclesPos.size();i++){
+		for (int i=0; i<int(obstaclesPos.size()); ++i){
             Eigen::Vector3d pos = obstaclesPos[i];
             Eigen::Vector3d size = obstaclesSize[i];
             pos(2) = (pos(2) + size(2)/2)/2;
@@ -230,7 +230,7 @@ namespace trajPlanner{
 	}
 
 
-	int mpcPlanner::makePlan(){
+	bool mpcPlanner::makePlan(){
 		std::ostringstream local;
 		auto cout_buff = std::cout.rdbuf();
 		std::cout.rdbuf(local.rdbuf());
@@ -361,10 +361,10 @@ namespace trajPlanner{
 		// cout<<"[MPC Planner]: Success Return!"<<endl;
 		// cout << this->currentControlsSol_ << endl;
 		std::cout.rdbuf(cout_buff);
-		return 1;
+		return true;
 	}
 
-	int mpcPlanner::makePlanCG(){
+	bool mpcPlanner::makePlanCG(){
 		int NUM_STEPS = 10;
 		double Tolerance = 1e-4;
 		int errorMessage;
@@ -496,12 +496,12 @@ namespace trajPlanner{
 				}
 			}		
 			this->firstTime_ = false;
-			return 1;
+			return true;
 		}
 		else{	
 			printf(acado_getErrorString(errorMessage));	
 			printf("\n");
-			return 0;
+			return false;
 		}
 
 	}

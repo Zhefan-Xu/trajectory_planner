@@ -72,13 +72,13 @@ int main( )
 	double slackRatio = 0.4;
 	double skLimit = 1 - pow((1 - slackRatio), 2);
 
-	ocp.subjectTo( 1.0 <= z <= 1.5);
-	ocp.subjectTo( -3 <= vx <= 3 );
-	ocp.subjectTo( -3 <= vy <= 3 );
-	ocp.subjectTo( -3 <= vz <= 3 );
-	ocp.subjectTo( -2 <= ax <= 2 );
-	ocp.subjectTo( -2 <= ay <= 2 );
-	ocp.subjectTo( -2 <= az <= 2 );
+	ocp.subjectTo( 0.7 <= z <= 1.5);
+	ocp.subjectTo( -2 <= vx <= 2 );
+	ocp.subjectTo( -2 <= vy <= 2 );
+	ocp.subjectTo( -2 <= vz <= 2 );
+	ocp.subjectTo( -1.5 <= ax <= 1.5 );
+	ocp.subjectTo( -1.5 <= ay <= 1.5 );
+	ocp.subjectTo( -1.5 <= az <= 1.5 );
 	ocp.subjectTo(0 <= sk_d<= skLimit);
 
 	OnlineData obx1;

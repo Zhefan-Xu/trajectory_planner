@@ -166,13 +166,13 @@ int main(int argc, char** argv){
 			
 			std::mutex m;
 			std::condition_variable cv;
-			int retValue;
+			bool planSuccess;
 
 			if (not firstTime){
-				std::thread check([&cv, &retValue, &mp]() 
+				std::thread check([&cv, &planSuccess, &mp]() 
 				{
 					// retValue = mp->makePlan();
-					retValue = mp->makePlanCG();
+					planSuccess = mp->makePlanCG();
 					cv.notify_one();
 				});
 
@@ -205,7 +205,7 @@ int main(int argc, char** argv){
 			}
 			else{
 				// retValue = mp->makePlan();
-				retValue = mp->makePlanCG();
+				planSuccess = mp->makePlanCG();
 				ros::Time mpcEndTime = ros::Time::now();
 				cout << "[Test MPC Node]: MPC runtime [s]: " << (mpcEndTime - mpcStartTime).toSec() << "\t\r" << std::flush;;
 				currPos = mp->getPos(dt);
