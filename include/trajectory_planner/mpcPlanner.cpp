@@ -127,6 +127,7 @@ namespace trajPlanner{
 		this->mpcTrajHistVisPub_ = this->nh_.advertise<nav_msgs::Path>(this->ns_ + "/traj_history", 10);
 		this->localCloudPub_ = this->nh_.advertise<sensor_msgs::PointCloud2>(this->ns_ + "/local_cloud", 10);
 		this->staticObstacleVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>(this->ns_ + "/static_obstacles", 10);
+		this->dynamicObstacleVisPub_ = this->nh_.advertise<visualization_msgs::MarkerArray>(this->ns_ + "/dynamic_obstacles", 10);
 		this->facingPub_ = this->nh_.advertise<visualization_msgs::Marker>(this->ns_ + "/clustering_facing", 10);
 	}
 
@@ -214,13 +215,22 @@ namespace trajPlanner{
 	}
 
 	void mpcPlanner::updateDynamicObstacles(const std::vector<Eigen::Vector3d>& obstaclesPos, const std::vector<Eigen::Vector3d>& obstaclesVel, const std::vector<Eigen::Vector3d>& obstaclesSize){
-		this->dynamicObstaclesPos_ = obstaclesPos;
+		this->dynamicObstaclesPos_.clear();
+		this->dynamicObstaclesSize_.clear();
+		this->dynamicObstaclesVel_.clear();
+		for (int i=0; i<int(obstaclesPos.size()); ++i){
+            Eigen::Vector3d pos = obstaclesPos[i];
+            Eigen::Vector3d size = obstaclesSize[i];
+            pos(2) = (pos(2) + size(2)/2)/2;
+			size(2) = 2*pos(2);
+            this->dynamicObstaclesPos_.push_back(pos);
+			this->dynamicObstaclesSize_.push_back(size);
+        }
 		this->dynamicObstaclesVel_ = obstaclesVel;
-		this->dynamicObstaclesSize_ = obstaclesSize;
 	}
 
 
-	void mpcPlanner::makePlan(){
+	bool mpcPlanner::makePlan(){
 		std::ostringstream local;
 		auto cout_buff = std::cout.rdbuf();
 		std::cout.rdbuf(local.rdbuf());
@@ -301,10 +311,10 @@ namespace trajPlanner{
 			for (int n=0; n<this->horizon_; ++n){
 				for (int i=0; i<int(this->dynamicObstaclesPos_.size()); ++i){
 					Eigen::Vector3d size = this->dynamicObstaclesSize_[i]/2 + Eigen::Vector3d (this->safetyDist_, this->safetyDist_, this->safetyDist_);
-					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i] + Eigen::Vector3d (0,0, size(2));
+					Eigen::Vector3d pos = this->dynamicObstaclesPos_[i];
 					Eigen::Vector3d vel = this->dynamicObstaclesVel_[i];
 					
-					if (this->firstTime_){
+					if (this->firstTime_ || this->currentStatesSol_.isEmpty()){
 						ocp.subjectTo(n, pow((x-pos(0))/size(0), 2) + pow((y-pos(1))/size(1), 2) + pow((z-pos(2))/pow(size(2), 2), 2) - 1 + skd >=  0 );
 					}
 					else{
@@ -332,7 +342,7 @@ namespace trajPlanner{
 
 		// Algorithm
 		RealTimeAlgorithm RTalgorithm(ocp, this->ts_);
-		RTalgorithm.set(PRINTLEVEL, 0);
+		RTalgorithm.set(PRINTLEVEL, NONE);
 		if (not this->firstTime_){
 			RTalgorithm.initializeDifferentialStates(this->currentStatesSol_);
 		}
@@ -348,10 +358,153 @@ namespace trajPlanner{
 		RTalgorithm.getControls(this->currentControlsSol_);
 		this->firstTime_ = false;
 		clearAllStaticCounters();
+		// cout<<"[MPC Planner]: Success Return!"<<endl;
 		// cout << this->currentControlsSol_ << endl;
 		std::cout.rdbuf(cout_buff);
+		return true;
 	}
 
+	bool mpcPlanner::makePlanCG(){
+		int NUM_STEPS = 10;
+		double Tolerance = 1e-4;
+		int errorMessage;
+		std::vector<staticObstacle> staticObstacles = this->obclustering_->getStaticObstacles();
+		acado_initializeSolver();
+
+		// Obtain reference trajectory
+		VariablesGrid refTraj = this->getReferenceTraj();
+
+		for (int i = 0; i<ACADO_N; i++){
+			DVector ref = refTraj.getVector(i);
+			for (int j = 0; j<ACADO_NY; j++){
+				acadoVariables.y[i*ACADO_NY+j] = ref(j);
+			}		
+		}
+
+		DVector refN = refTraj.getLastVector();
+		for (int i = 0; i < ACADO_NYN; i++){
+			acadoVariables.yN[i] = refN(i);
+		}
+
+		DVector currentState ({this->currPos_(0), this->currPos_(1), this->currPos_(2), this->currVel_(0), this->currVel_(1), this->currVel_(2)});
+		for (int i = 0; i < ACADO_NX-1; ++i){
+			acadoVariables.x0[ i ] = currentState(i);
+		} 
+		acadoVariables.x0[ACADO_NX-1] = 0;
+
+		// Update Obstacle Param
+		int numParam = 7;
+		for (int i = 0; i< ACADO_N+1;i++){
+			int j,k;
+			j = 0; 
+			k = 0;
+					
+			if (this->dynamicObstaclesPos_.size()>0){
+				for (j = 0; j<ACADO_NPAC;j++){
+					if (j>this->dynamicObstaclesPos_.size()){
+						j-=1;
+						break;
+					}
+					else{
+						Eigen::Vector3d size = this->dynamicObstaclesSize_[j]/2 + Eigen::Vector3d (this->safetyDist_, this->safetyDist_, this->safetyDist_);
+						Eigen::Vector3d pos = this->dynamicObstaclesPos_[j];
+						Eigen::Vector3d vel = this->dynamicObstaclesVel_[j];
+						acadoVariables.od[i*ACADO_NOD+j*numParam] = pos(0);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+1] = pos(1);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+2] = pos(2);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+3] = size(0);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+4] = size(1);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+5] = size(2);
+						acadoVariables.od[i*ACADO_NOD+j*numParam+6] = 0.0;
+						// cout<<"1"<<endl;
+					}
+					// cout<<"onlinedata idx: "<<j<<endl;
+				}
+			}
+			// cout<<"j:"<<j<<endl;
+			for (k = 0;k+j<ACADO_NPAC;k++){
+				if (k >= staticObstacles.size()){
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam] = 0;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+1] = 0;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+2] = 0;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+3] = 0.001;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+4] = 0.001;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+5] = 0.001;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+6] = 0.0;
+					// cout<<"0"<<endl;
+				}
+				else{
+					staticObstacle so = staticObstacles[k];
+					double yaw = so.yaw;
+					Eigen::Vector3d size = so.size/2 + Eigen::Vector3d (this->safetyDist_, this->safetyDist_, this->safetyDist_);
+					Eigen::Vector3d centroid = so.centroid;
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam] = centroid(0);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+1] = centroid(1);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+2] = centroid(2);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+3] = size(0);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+4] = size(1);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+5] = size(2);
+					acadoVariables.od[i*ACADO_NOD+(k+j)*numParam+6] = yaw;
+				}
+			}
+		}
+
+		for (int iter =0;iter<NUM_STEPS;++iter){
+			/* Perform the feedback step. */
+			errorMessage = acado_feedbackStep( );
+			
+			if (acado_getKKT() <= 1e-6 && iter != 0){
+				break;
+			}
+
+			/* Prepare for the next step. */
+			acado_preparationStep();
+			
+		}
+
+		if ((errorMessage == 0)|| this->firstTime_){
+			if (this->currentStatesSol_.isEmpty()){
+				for (int i = 0; i<ACADO_N+1; i++){
+					DVector xi(ACADO_NX-1);
+					for (int j = 0; j<ACADO_NX-1; j++){
+						xi(j) = acadoVariables.x[i*ACADO_NX+j];
+					}	
+					this->currentStatesSol_.addVector(xi);
+				}
+				for (int i = 0; i<ACADO_N; i++){
+					DVector ci(ACADO_NU-1);
+					for (int j = 0; j<ACADO_NU-1; j++){
+						ci(j) = acadoVariables.u[i*ACADO_NU+j];
+					}		
+					this->currentControlsSol_.addVector(ci);
+				}
+			}
+			else{
+				for (int i = 0; i<ACADO_N+1; i++){
+					DVector xi(ACADO_NX-1);
+					for (int j = 0; j<ACADO_NX-1; j++){
+						xi(j) = acadoVariables.x[i*ACADO_NX+j];
+					}	
+					this->currentStatesSol_.setVector(i,xi);
+				}
+				for (int i = 0; i<ACADO_N; i++){
+					DVector ci(ACADO_NU-1);
+					for (int j = 0; j<ACADO_NU-1; j++){
+						ci(j) = acadoVariables.u[i*ACADO_NU+j];
+					}		
+					this->currentControlsSol_.setVector(i,ci);
+				}
+			}		
+			this->firstTime_ = false;
+			return true;
+		}
+		else{	
+			printf(acado_getErrorString(errorMessage));	
+			printf("\n");
+			return false;
+		}
+
+	}
 
 	void mpcPlanner::getReferenceTraj(std::vector<Eigen::Vector3d>& referenceTraj){
 		// find the nearest position in the reference trajectory
@@ -455,6 +608,7 @@ namespace trajPlanner{
 		this->publishHistoricTrajectory();
 		this->publishLocalCloud();
 		this->publishStaticObstacles();
+		this->publishDynamicObstacles();
 	}
 
 	void mpcPlanner::publishMPCTrajectory(){
@@ -517,7 +671,7 @@ namespace trajPlanner{
 		    line.color.g = 1;
 		    line.color.b = 1;
 		    line.color.a = 1.0;
-		    line.lifetime = ros::Duration(0.1);
+		    line.lifetime = ros::Duration(0.2);
 		    Eigen::Vector3d vertex_pose;
 		    for(int i=0; i<int(this->refinedBBoxVertices_.size()); ++i){
 		        bboxVertex v = this->refinedBBoxVertices_[i];
@@ -566,7 +720,7 @@ namespace trajPlanner{
 			currPoseMarker.pose.position.z = this->currPos_(2);
 			double angle = atan2(this->currVel_(1), this->currVel_(0));
 			currPoseMarker.pose.orientation = trajPlanner::quaternion_from_rpy(0, 0, angle);
-			currPoseMarker.lifetime = ros::Duration(0.1);
+			currPoseMarker.lifetime = ros::Duration(0.2);
 			currPoseMarker.scale.x = 0.4;
 			currPoseMarker.scale.y = 0.2;
 			currPoseMarker.scale.z = 0.2;
@@ -576,5 +730,91 @@ namespace trajPlanner{
 			currPoseMarker.color.b = 1.0;
 			this->facingPub_.publish(currPoseMarker);
 		}
+	}
+
+	void mpcPlanner::publishDynamicObstacles(){
+		if (this->dynamicObstaclesPos_.size() != 0){
+		    visualization_msgs::Marker line;
+		    visualization_msgs::MarkerArray lines;
+
+		    line.header.frame_id = "map";
+		    line.type = visualization_msgs::Marker::LINE_LIST;
+		    line.action = visualization_msgs::Marker::ADD;
+		    line.ns = "mpc_dynamic_obstacles";  
+		    line.scale.x = 0.06;
+		    line.color.r = 0;
+		    line.color.g = 0;
+		    line.color.b = 1;
+		    line.color.a = 1.0;
+		    line.lifetime = ros::Duration(0.1);
+
+			for (int i = 0; i<this->dynamicObstaclesPos_.size();i++){
+				double x = this->dynamicObstaclesPos_[i](0); 
+				double y = this->dynamicObstaclesPos_[i](1); 
+				double z = this->dynamicObstaclesPos_[i](2);
+				double x_width = this->dynamicObstaclesSize_[i](0);
+				double y_width = this->dynamicObstaclesSize_[i](1);
+				double z_width = this->dynamicObstaclesSize_[i](2);
+				
+				std::vector<geometry_msgs::Point> verts;
+				geometry_msgs::Point p;
+				// vertice 0
+				p.x = x-x_width / 2.; p.y = y-y_width / 2.; p.z = z-z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 1
+				p.x = x-x_width / 2.; p.y = y+y_width / 2.; p.z = z-z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 2
+				p.x = x+x_width / 2.; p.y = y+y_width / 2.; p.z = z-z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 3
+				p.x = x+x_width / 2.; p.y = y-y_width / 2.; p.z = z-z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 4
+				p.x = x-x_width / 2.; p.y = y-y_width / 2.; p.z = z+z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 5
+				p.x = x-x_width / 2.; p.y = y+y_width / 2.; p.z = z+z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 6
+				p.x = x+x_width / 2.; p.y = y+y_width / 2.; p.z = z+z_width / 2.;
+				verts.push_back(p);
+
+				// vertice 7
+				p.x = x+x_width / 2.; p.y = y-y_width / 2.; p.z = z+z_width / 2.;
+				verts.push_back(p);
+				
+				int vert_idx[12][2] = {
+					{0,1},
+					{1,2},
+					{2,3},
+					{0,3},
+					{0,4},
+					{1,5},
+					{3,7},
+					{2,6},
+					{4,5},
+					{5,6},
+					{4,7},
+					{6,7}
+				};
+				
+				for (size_t i=0;i<12;i++){
+					line.points.push_back(verts[vert_idx[i][0]]);
+					line.points.push_back(verts[vert_idx[i][1]]);
+				}
+				
+				lines.markers.push_back(line);
+				
+				line.id++;
+			}
+		    this->dynamicObstacleVisPub_.publish(lines);	
+		}	
 	}
 }

@@ -29,9 +29,13 @@ namespace trajPlanner{
             double delT_;
             double xmax_, ymax_, zmax_;
             double xmin_, ymin_, zmin_;
+            std::vector<Eigen::Vector3d> obstacleStartPos_;
+            std::vector<Eigen::Vector3d> obstacleEndPos_;
+            std::vector<Eigen::Vector3d> obstacleSize_;
+            std::vector<double> obstacleRefVel_;     
+
             std::vector<Eigen::Vector3d> obstaclePos_;
             std::vector<Eigen::Vector3d> obstacleVel_;
-            std::vector<Eigen::Vector3d> obstacleSize_;
         
         public:
             obstacleGenerator();
@@ -41,7 +45,7 @@ namespace trajPlanner{
             void registerCallback();
 
             void obGenCB(const ros::TimerEvent&);
-            void linearMotion(Eigen::Vector3d &pos, Eigen::Vector3d &vel);
+            void linearMotion();
 
 
             void visCB(const ros::TimerEvent&);

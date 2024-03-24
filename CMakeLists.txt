@@ -6,7 +6,6 @@ project(trajectory_planner)
 set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS} -O3 -Wall")
 add_compile_options(-w)
 
-
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -127,6 +126,10 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   include/${PROJECT_NAME}/third_party/ACADO/acado
   include/${PROJECT_NAME}/third_party/ACADO
+  include/${PROJECT_NAME}/mpc_solver
+  include/${PROJECT_NAME}/mpc_solver/qpoases
+  include/${PROJECT_NAME}/mpc_solver/qpoases/INCLUDE 
+  include/${PROJECT_NAME}/mpc_solver/qpoases/SRC
   # ${OsqpEigen_INCLUDE_DIRS}
 )
 
@@ -150,8 +153,23 @@ add_library(
   include/${PROJECT_NAME}/clustering/obstacleClustering.cpp
   include/${PROJECT_NAME}/mpcPlanner.cpp
   include/${PROJECT_NAME}/obstacle_test/dynamicObstacleGenerator.cpp
-)
 
+  include/${PROJECT_NAME}/mpc_solver/acado_auxiliary_functions.c
+  include/${PROJECT_NAME}/mpc_solver/acado_integrator.c
+  include/${PROJECT_NAME}/mpc_solver/acado_qpoases_interface.cpp
+  include/${PROJECT_NAME}/mpc_solver/acado_solver_sfunction.c
+  include/${PROJECT_NAME}/mpc_solver/acado_solver.c
+  include/${PROJECT_NAME}/mpc_solver/qpoases/SRC/Bounds.cpp
+  include/${PROJECT_NAME}/mpc_solver/qpoases/SRC/Constraints.cpp
+  include/${PROJECT_NAME}/mpc_solver/qpoases/SRC/CyclingManager.cpp
+  include/${PROJECT_NAME}/mpc_solver/qpoases/SRC/Indexlist.cpp
+  include/${PROJECT_NAME}/mpc_solver/qpoases/SRC/MessageHandling.cpp
+  include/${PROJECT_NAME}/mpc_solver/qpoases/SRC/QProblem.cpp
+  include/${PROJECT_NAME}/mpc_solver/qpoases/SRC/QProblemB.cpp
+  include/${PROJECT_NAME}/mpc_solver/qpoases/SRC/SubjectTo.cpp
+  include/${PROJECT_NAME}/mpc_solver/qpoases/SRC/Utils.cpp
+  include/${PROJECT_NAME}/mpc_solver/qpoases/SRC/EXTRAS/SolutionAnalysis.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -173,6 +191,7 @@ add_executable(bspline_node src/bspline_node.cpp)
 # add_executable(testBsplineFit src/test/testBsplineFit.cpp)
 add_executable(testObstacleClustering src/test/testObstacleClustering.cpp)
 add_executable(mpc_node src/mpc_node.cpp)
+add_executable(mpc_solver_setup src/mpc_solver_setup.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -216,6 +235,7 @@ target_link_libraries(bspline_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 # target_link_libraries(testBsplineFit ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(testObstacleClustering ${catkin_LIBRARIES} ${PROJECT_NAME})
 target_link_libraries(mpc_node ${catkin_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(mpc_solver_setup ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/third_party/ACADO/libacado_toolkit_s.so)
 
 #############
 ## Install ##
